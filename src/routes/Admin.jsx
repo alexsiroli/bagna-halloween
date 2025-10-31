@@ -87,27 +87,28 @@ function Admin() {
   const stats = useMemo(() => {
     const map = new Map();
     votes.forEach((vote) => {
+      const numericScore = Number(vote.score) || 0;
+      if (numericScore < 6) {
+        return;
+      }
       const entry = map.get(vote.houseNumber) || {
         houseNumber: vote.houseNumber,
-        decorationSum: 0,
-        showSum: 0,
+        scoreSum: 0,
         count: 0,
       };
-      entry.decorationSum += vote.decorationVote || 0;
-      entry.showSum += vote.showVote || 0;
+      entry.scoreSum += numericScore;
       entry.count += 1;
       map.set(vote.houseNumber, entry);
     });
 
     return houses.map((house) => {
       const entry = map.get(house.number);
-      const decorationAverage = entry ? entry.decorationSum / entry.count : 0;
-      const showAverage = entry ? entry.showSum / entry.count : 0;
+      const scoreAverage =
+        entry && entry.count > 0 ? entry.scoreSum / entry.count : 0;
       return {
         houseNumber: house.number,
         title: house.title,
-        decorationAverage,
-        showAverage,
+        scoreAverage,
         count: entry ? entry.count : 0,
       };
     });
@@ -131,6 +132,10 @@ function Admin() {
   const votesBySlot = useMemo(() => {
     const slots = new Map();
     votes.forEach((vote) => {
+      const numericScore = Number(vote.score) || 0;
+      if (numericScore < 6) {
+        return;
+      }
       const createdAt = vote.createdAt?.toDate ? vote.createdAt.toDate() : null;
       if (!createdAt) return;
       const bucketMinutes = Math.floor(createdAt.getMinutes() / 10) * 10;
@@ -325,8 +330,7 @@ function Admin() {
             <thead>
               <tr>
                 <th onClick={() => updateSort('houseNumber')}>Casa</th>
-                <th onClick={() => updateSort('decorationAverage')}>Media addobbi</th>
-                <th onClick={() => updateSort('showAverage')}>Media spettacoli</th>
+                <th onClick={() => updateSort('scoreAverage')}>Media voto</th>
                 <th onClick={() => updateSort('count')}># Voti</th>
               </tr>
             </thead>
@@ -339,8 +343,7 @@ function Admin() {
                       <span style={{ color: '#bca9ff', fontSize: '0.85rem' }}>– {row.title}</span>
                     ) : null}
                   </td>
-                  <td>{row.count ? row.decorationAverage.toFixed(2) : '—'}</td>
-                  <td>{row.count ? row.showAverage.toFixed(2) : '—'}</td>
+                  <td>{row.count ? row.scoreAverage.toFixed(2) : '—'}</td>
                   <td>{row.count}</td>
                 </tr>
               ))}

@@ -1,4 +1,6 @@
-const pumpkins = Array.from({ length: 10 }, (_, index) => index + 1);
+const MIN_SCORE = 6;
+const MAX_SCORE = 10;
+const pumpkins = Array.from({ length: MAX_SCORE - MIN_SCORE + 1 }, (_, index) => MIN_SCORE + index);
 
 function PumpkinRating({ label, value = 0, onChange, disabled = false }) {
   const handleClick = (score) => {
@@ -13,18 +15,20 @@ function PumpkinRating({ label, value = 0, onChange, disabled = false }) {
         {pumpkins.map((score) => {
           const active = score <= value;
           return (
-            <button
-              key={score}
-              type="button"
-              className="pumpkin"
-              data-active={active}
-              aria-pressed={active}
-              aria-label={`${score} su 10`}
-              aria-disabled={disabled}
-              onClick={() => handleClick(score)}
-            >
-              {active ? '🎃' : '🕯️'}
-            </button>
+            <div key={score} className="pumpkin-option">
+              <button
+                type="button"
+                className="pumpkin"
+                data-active={active}
+                aria-pressed={active}
+                aria-label={`${score} su ${MAX_SCORE}`}
+                aria-disabled={disabled}
+                onClick={() => handleClick(score)}
+              >
+                {active ? '🎃' : '🕯️'}
+              </button>
+              <span className="pumpkin-score">{score}</span>
+            </div>
           );
         })}
       </div>

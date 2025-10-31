@@ -129,13 +129,17 @@ async function main() {
     }
 
     const voteId = `${entry.userId}_${entry.houseNumber}`;
+    const parsedScore = Number(entry.score ?? 0);
+    const normalizedScore =
+      Number.isFinite(parsedScore) && parsedScore > 0
+        ? Math.min(10, Math.max(6, parsedScore))
+        : 0;
     return {
       id: voteId,
       data: {
         userId: entry.userId,
         houseNumber: entry.houseNumber,
-        decorationVote: entry.decorationVote ?? 0,
-        showVote: entry.showVote ?? 0,
+        score: normalizedScore,
       },
     };
   });

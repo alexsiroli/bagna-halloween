@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   onAuthStateChanged,
   signInWithPopup,
@@ -16,15 +16,9 @@ import {
   where,
 } from 'firebase/firestore';
 import BackHomeLink from '../components/BackHomeLink.jsx';
-import HouseCard from '../components/HouseCard.jsx';
+import PumpkinRating from '../components/PumpkinRating.jsx';
 import MyVotes from '../components/MyVotes.jsx';
 import { auth, provider, db } from '../firebase.js';
-
-const filters = [
-  { id: 'all', label: 'Tutte' },
-  { id: 'rated', label: 'Solo votate' },
-  { id: 'unrated', label: 'Non votate' },
-];
 
 function Vote() {
   const [user, setUser] = useState(null);
@@ -34,9 +28,10 @@ function Vote() {
   const [loadingHouses, setLoadingHouses] = useState(true);
   const [loadingVotes, setLoadingVotes] = useState(false);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all');
   const [searchValue, setSearchValue] = useState('');
   const [searchMessage, setSearchMessage] = useState('');
+  const [modalState, setModalState] = useState({ open: false, house: null, score: 0 });
+  const [savingVote, setSavingVote] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -132,21 +127,14 @@ function Vote() {
     return map;
   }, [votes]);
 
-  const filteredHouses = useMemo(() => {
-    if (filter === 'rated') {
-      return houses.filter((house) => {
-        const vote = votesMap.get(house.number);
-        return (vote?.decorationVote || 0) > 0 || (vote?.showVote || 0) > 0;
-      });
-    }
-    if (filter === 'unrated') {
-      return houses.filter((house) => {
-        const vote = votesMap.get(house.number);
-        return !vote || ((vote.decorationVote || 0) === 0 && (vote.showVote || 0) === 0);
-      });
-    }
-    return houses;
-  }, [filter, houses, votesMap]);
+  const totalVisible = houses.length;
+  const totalRated = useMemo(() => {
+    return houses.reduce((count, house) => {
+      const vote = votesMap.get(house.number);
+      return count + ((vote?.score || 0) >= 6 ? 1 : 0);
+    }, 0);
+  }, [houses, votesMap]);
+  const progressPercent = totalVisible ? (totalRated / totalVisible) * 100 : 0;
 
   const handleLogin = async () => {
     try {
@@ -189,34 +177,80 @@ function Vote() {
     }
   };
 
-  const handleVoteChange = async (houseNumber, partialVote) => {
-    if (!user) {
-      setError('Per votare devi essere autenticato.');
-      return;
-    }
-    if (!config.votingOpen) {
-      setError('Le votazioni sono attualmente chiuse.');
-      return;
-    }
+  const handleVoteChange = useCallback(
+    async (houseNumber, score) => {
+      if (!user) {
+        setError('Per votare devi essere autenticato.');
+        return false;
+      }
+      if (!config.votingOpen) {
+        setError('Le votazioni sono attualmente chiuse.');
+        return false;
+      }
 
-    const existing = votesMap.get(houseNumber);
-    const voteRef = doc(db, 'votes', `${user.uid}_${houseNumber}`);
-    const payload = {
-      userId: user.uid,
-      userName: user.displayName || '',
-      houseNumber,
-      decorationVote: partialVote.decorationVote || 0,
-      showVote: partialVote.showVote || 0,
-      updatedAt: serverTimestamp(),
-      createdAt: existing?.createdAt || serverTimestamp(),
-    };
+      const existing = votesMap.get(houseNumber);
+      const voteRef = doc(db, 'votes', `${user.uid}_${houseNumber}`);
+      const parsedScore = Number(score);
+      const sanitizedScore = Number.isFinite(parsedScore) ? parsedScore : 0;
+      const clampedScore =
+        sanitizedScore <= 0 ? 0 : Math.min(10, Math.max(6, sanitizedScore));
+      const payload = {
+        userId: user.uid,
+        userName: user.displayName || '',
+        houseNumber,
+        score: clampedScore,
+        updatedAt: serverTimestamp(),
+        createdAt: existing?.createdAt || serverTimestamp(),
+      };
 
-    try {
-      await setDoc(voteRef, payload);
-      setError('');
-    } catch (err) {
-      console.error('Errore salvando il voto', err);
-      setError('Impossibile salvare il voto, riprova più tardi.');
+      try {
+        await setDoc(voteRef, payload);
+        setError('');
+        return true;
+      } catch (err) {
+        console.error('Errore salvando il voto', err);
+        setError('Impossibile salvare il voto, riprova più tardi.');
+        return false;
+      }
+    },
+    [config.votingOpen, user, votesMap],
+  );
+
+  const openHouseModal = useCallback(
+    (house) => {
+      const existingScore = votesMap.get(house.number)?.score ?? 0;
+      setModalState({ open: true, house, score: existingScore });
+      setSearchMessage('');
+    },
+    [votesMap],
+  );
+
+  const closeModal = () => {
+    setModalState({ open: false, house: null, score: 0 });
+    setSavingVote(false);
+  };
+
+  const updateModalScore = (score) => {
+    setModalState((prev) => ({ ...prev, score }));
+  };
+
+  const handleHouseSelectFromList = useCallback(
+    (houseNumber) => {
+      const house = houses.find((item) => item.number === houseNumber);
+      if (!house) return;
+      openHouseModal(house);
+    },
+    [houses, openHouseModal],
+  );
+
+  const handleModalSubmit = async (event) => {
+    event.preventDefault();
+    if (!modalState.house) return;
+    setSavingVote(true);
+    const success = await handleVoteChange(modalState.house.number, modalState.score);
+    setSavingVote(false);
+    if (success) {
+      closeModal();
     }
   };
 
@@ -224,7 +258,7 @@ function Vote() {
     event.preventDefault();
     const trimmed = searchValue.trim();
     if (!trimmed) {
-      setSearchMessage('');
+      setSearchMessage('Inserisci un numero di casa.');
       return;
     }
     const targetNumber = Number.parseInt(trimmed, 10);
@@ -233,34 +267,14 @@ function Vote() {
       return;
     }
 
-    const exists = houses.some((house) => house.number === targetNumber);
-    if (!exists) {
+    const house = houses.find((item) => item.number === targetNumber);
+    if (!house) {
       setSearchMessage(`Nessuna casa ${targetNumber} trovata (forse è nascosta).`);
       return;
     }
 
-    if (filter !== 'all') {
-      setFilter('all');
-    }
-
-    requestAnimationFrame(() => {
-      const element = document.getElementById(`house-${targetNumber}`);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        element.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.02)' }, { transform: 'scale(1)' }], {
-          duration: 400,
-        });
-        setSearchMessage(`Casa ${targetNumber} trovata.`);
-      } else {
-        setSearchMessage(`Nessuna casa ${targetNumber} trovata (forse è nascosta).`);
-      }
-    });
+    openHouseModal(house);
   };
-
-  const totalVisible = houses.length;
-  const totalVoted = votes.filter(
-    (vote) => (vote.decorationVote || 0) > 0 || (vote.showVote || 0) > 0,
-  ).length;
 
   return (
     <div className="app-shell vote-page">
@@ -269,7 +283,9 @@ function Vote() {
         <p className="badge">Sezione voto</p>
         <h1>Vota una casa</h1>
         <p>
-          {config.votingOpen ? 'Le votazioni sono aperte! Scegli le tue case preferite.' : 'Le votazioni sono chiuse, puoi comunque consultare i voti che hai espresso.'}
+          {config.votingOpen
+            ? 'Le votazioni sono aperte! Scegli le tue case preferite.'
+            : 'Le votazioni sono chiuse, puoi comunque consultare i voti che hai espresso.'}
         </p>
       </header>
 
@@ -296,7 +312,7 @@ function Vote() {
               <div>
                 <strong>Ciao {user.displayName || 'Halloween lover'}!</strong>
                 <p>
-                  Case visibili: {totalVisible} · Case votate: {totalVoted}
+                  Case visibili: {totalVisible} · Case valutate: {totalRated}
                 </p>
               </div>
               <button type="button" className="secondary-btn" onClick={handleLogout}>
@@ -304,61 +320,102 @@ function Vote() {
               </button>
             </div>
 
-            <form className="search-bar" onSubmit={handleSearchSubmit}>
+            <form className="search-bar search-bar--large" onSubmit={handleSearchSubmit}>
               <input
                 type="number"
                 inputMode="numeric"
                 placeholder="Inserisci numero casa"
                 value={searchValue}
                 onChange={(event) => setSearchValue(event.target.value)}
+                disabled={loadingHouses}
               />
-              <button type="submit" className="primary-btn">
+              <button type="submit" className="primary-btn" disabled={loadingHouses}>
                 Cerca
               </button>
             </form>
             {searchMessage && <p>{searchMessage}</p>}
 
-            <div className="admin-actions" style={{ marginTop: '1rem' }}>
-              {filters.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className="secondary-btn"
-                  onClick={() => setFilter(item.id)}
-                  aria-pressed={filter === item.id}
-                  style={
-                    filter === item.id
-                      ? { borderColor: 'rgba(255, 183, 110, 0.85)', background: 'rgba(255, 123, 0, 0.12)' }
-                      : undefined
-                  }
-                >
-                  {item.label}
-                </button>
-              ))}
+            <div
+              className="vote-progress"
+              role="group"
+              aria-label="Progresso valutazioni"
+            >
+              <p>
+                Case valutate: {totalRated} / {totalVisible || '—'}
+              </p>
+              <div
+                className="vote-progress-bar"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(progressPercent)}
+              >
+                <span style={{ width: `${progressPercent}%` }} />
+              </div>
             </div>
           </div>
 
-          {loadingHouses && <p className="empty-state">Caricamento case in corso…</p>}
-          {!loadingHouses && filteredHouses.length === 0 && (
-            <p className="empty-state">Nessuna casa disponibile con questo filtro.</p>
-          )}
-
-          <div className="house-list">
-            {filteredHouses.map((house) => (
-              <HouseCard
-                key={house.id || house.number}
-                house={house}
-                vote={votesMap.get(house.number)}
-                votingOpen={config.votingOpen}
-                onVoteChange={handleVoteChange}
-              />
-            ))}
-          </div>
-
-          <MyVotes votes={votes} houses={houses} />
+          <MyVotes
+            houses={houses}
+            votesMap={votesMap}
+            loading={loadingHouses}
+            onHouseSelect={handleHouseSelectFromList}
+          />
 
           {loadingVotes && <p className="empty-state">Aggiornamento voti…</p>}
         </>
+      )}
+
+      {modalState.open && modalState.house && (
+        <div className="dialog-backdrop" role="dialog" aria-modal="true">
+          <form className="dialog-card vote-dialog" onSubmit={handleModalSubmit}>
+            <div className="vote-dialog-header">
+              <span className="vote-dialog-emoji" role="img" aria-hidden="true">
+                🏠
+              </span>
+              <div className="vote-dialog-headings">
+                <h3>Casa {modalState.house.number}</h3>
+                <p className="vote-dialog-house-title">
+                  {modalState.house.title || 'Senza titolo'}
+                </p>
+              </div>
+            </div>
+            <p className="vote-dialog-description">
+              {modalState.house.description || 'Nessuna descrizione disponibile.'}
+            </p>
+
+            {!config.votingOpen && (
+              <p className="empty-state" style={{ margin: 0 }}>
+                Le votazioni sono chiuse al momento.
+              </p>
+            )}
+
+            <PumpkinRating
+              label="Seleziona un voto"
+              value={modalState.score}
+              onChange={updateModalScore}
+              disabled={!config.votingOpen || savingVote}
+            />
+
+            <div className="dialog-actions">
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={closeModal}
+                disabled={savingVote}
+              >
+                Annulla
+              </button>
+              <button
+                type="submit"
+                className="primary-btn"
+                disabled={savingVote || !config.votingOpen || modalState.score < 6}
+              >
+                {savingVote ? 'Salvataggio…' : 'Salva voto'}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </div>
   );

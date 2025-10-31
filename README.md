@@ -15,7 +15,7 @@ Applicazione React + Vite per gestire la votazione delle case di Halloween, con 
 - Pagina voto protetta da login Google:
   - Stato votazioni in tempo reale (`config/app` in Firestore).
   - Ricerca rapida per numero casa + filtri (tutte, votate, non votate).
-  - Due voti distinti (addobbi, spettacoli) con zucche cliccabili.
+  - Voto unico per casa (scala 6–10) con zucche cliccabili.
   - Sezione “I miei voti”.
 - Area admin raggiungibile solo tramite link diretto:
   - Toggle votazioni aperte/chiuse.

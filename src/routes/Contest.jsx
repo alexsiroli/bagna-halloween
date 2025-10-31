@@ -7,10 +7,6 @@ function Contest() {
       <header>
         <p className="badge">Contest ufficiale</p>
         <h1>Contest fotografico</h1>
-        <p>
-          Trasforma la tua serata di Halloween in un ricordo memorabile: scatta le
-          case più spaventose e condividile con la community!
-        </p>
       </header>
 
       <div className="card contest-card">

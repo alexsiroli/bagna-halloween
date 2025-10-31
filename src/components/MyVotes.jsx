@@ -1,31 +1,46 @@
-function MyVotes({ votes, houses }) {
-  if (!votes?.length) {
+function MyVotes({ houses, votesMap, loading, onHouseSelect }) {
+  if (loading) {
     return (
       <div className="card">
         <h2>I miei voti</h2>
-        <p className="empty-state">Non hai ancora espresso nessun voto.</p>
+        <p className="empty-state">Caricamento case in corso…</p>
       </div>
     );
   }
 
-  const votesSorted = [...votes].sort((a, b) => a.houseNumber - b.houseNumber);
+  if (!houses?.length) {
+    return (
+      <div className="card">
+        <h2>I miei voti</h2>
+        <p className="empty-state">Nessuna casa disponibile al momento.</p>
+      </div>
+    );
+  }
+
+  const sortedHouses = [...houses].sort((a, b) => a.number - b.number);
 
   return (
     <div className="card">
       <h2>I miei voti</h2>
       <div className="my-votes-list">
-        {votesSorted.map((vote) => {
-          const house = houses?.find((item) => item.number === vote.houseNumber);
+        {sortedHouses.map((house) => {
+          const vote = votesMap?.get(house.number);
+          const hasVote = (vote?.score || 0) >= 6;
           return (
-            <div key={vote.id || `${vote.userId}_${vote.houseNumber}`}>
-              <strong>
-                Casa {vote.houseNumber}
-                {house?.title ? ` – ${house.title}` : ''}
-              </strong>
-              <p>
-                Addobbi: {vote.decorationVote || '—'} · Spettacoli: {vote.showVote || '—'}
-              </p>
-            </div>
+            <button
+              key={house.id || house.number}
+              type="button"
+              className="my-vote-item"
+              data-rated={hasVote ? 'true' : 'false'}
+              onClick={() => onHouseSelect?.(house.number)}
+              disabled={!onHouseSelect}
+            >
+              <div className="my-vote-details">
+                <strong>Casa {house.number}</strong>
+                {house.title ? <span className="my-vote-title">– {house.title}</span> : null}
+              </div>
+              <span className="my-vote-score">{hasVote ? `${vote.score}/10` : '—'}</span>
+            </button>
           );
         })}
       </div>

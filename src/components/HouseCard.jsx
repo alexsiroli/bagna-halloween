@@ -1,14 +1,10 @@
 import PumpkinRating from './PumpkinRating.jsx';
 
 function HouseCard({ house, vote, onVoteChange, votingOpen }) {
-  const currentDecoration = vote?.decorationVote ?? 0;
-  const currentShow = vote?.showVote ?? 0;
+  const currentScore = vote?.score ?? 0;
 
-  const handleVote = (field) => (score) => {
-    onVoteChange?.(house.number, {
-      ...vote,
-      [field]: score,
-    });
+  const handleVote = (score) => {
+    onVoteChange?.(house.number, score);
   };
 
   return (
@@ -24,20 +20,12 @@ function HouseCard({ house, vote, onVoteChange, votingOpen }) {
         <p>{house.description || 'Nessuna descrizione disponibile.'}</p>
       </div>
 
-      <div className="rating-group">
-        <PumpkinRating
-          label="Vota addobbi"
-          value={currentDecoration}
-          onChange={handleVote('decorationVote')}
-          disabled={!votingOpen}
-        />
-        <PumpkinRating
-          label="Vota spettacolo"
-          value={currentShow}
-          onChange={handleVote('showVote')}
-          disabled={!votingOpen}
-        />
-      </div>
+      <PumpkinRating
+        label="Vota la casa (6-10)"
+        value={currentScore}
+        onChange={handleVote}
+        disabled={!votingOpen}
+      />
     </article>
   );
 }

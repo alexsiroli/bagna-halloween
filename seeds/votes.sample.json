@@ -2,7 +2,6 @@
   {
     "userId": "uid_esempio",
     "houseNumber": 1,
-    "decorationVote": 4,
-    "showVote": 5
+    "score": 8
   }
 ]
