@@ -1,0 +1,14 @@
+[
+  {
+    "number": 1,
+    "title": "Casa delle Zucche",
+    "description": "Facciata piena di lanterne, luci arancioni e una musica inquietante.",
+    "visible": true
+  },
+  {
+    "number": 2,
+    "title": "Il Maniero Stregato",
+    "description": "Installazione con fumo, scheletri animati e un tunnel del terrore.",
+    "visible": true
+  }
+]

@@ -40,6 +40,74 @@ header {
   margin-bottom: 2rem;
 }
 
+.back-nav {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  font-weight: 600;
+  color: #ffb36e;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(255, 123, 0, 0.14);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.back-link:hover,
+.back-link:focus-visible {
+  background: rgba(255, 123, 0, 0.22);
+  transform: translateX(-2px);
+  outline: none;
+}
+
+.back-link span {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.contest-page,
+.vote-page {
+  text-align: center;
+}
+
+.contest-page .back-nav,
+.vote-page .back-nav {
+  justify-content: center;
+}
+
+.contest-card {
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.contest-intro {
+  margin-bottom: 1rem;
+}
+
+.contest-list {
+  list-style-position: inside;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.contest-highlight {
+  color: #ffb36e;
+  font-weight: 700;
+}
+
+.contest-note {
+  margin-top: 1.2rem;
+}
+
 h1,
 h2,
 h3 {
@@ -112,6 +180,10 @@ p {
   margin-top: 0;
 }
 
+.vote-page .card {
+  text-align: center;
+}
+
 .search-bar {
   display: flex;
   gap: 0.75rem;
@@ -132,9 +204,23 @@ p {
   outline: none;
 }
 
+.vote-page .search-bar {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.vote-page .search-bar input {
+  max-width: 260px;
+  text-align: center;
+}
+
 .house-list {
   display: grid;
   gap: 1rem;
+}
+
+.vote-page .house-list {
+  justify-items: center;
 }
 
 .house-card {
@@ -145,6 +231,12 @@ p {
   scroll-margin-top: 100px;
 }
 
+.vote-page .house-card {
+  width: min(100%, 520px);
+  margin: 0 auto;
+  text-align: center;
+}
+
 .house-header {
   display: flex;
   justify-content: space-between;
@@ -153,10 +245,21 @@ p {
   margin-bottom: 0.75rem;
 }
 
+.vote-page .house-header {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
 .house-meta {
   display: grid;
   gap: 0.5rem;
   margin-bottom: 1rem;
+}
+
+.vote-page .house-meta {
+  justify-items: center;
+  text-align: center;
 }
 
 .rating-group {
@@ -164,9 +267,34 @@ p {
   gap: 0.5rem;
 }
 
+.vote-page .rating-group {
+  justify-items: center;
+  text-align: center;
+}
+
 .pumpkin-rating {
   display: flex;
   gap: 0.25rem;
+}
+
+.vote-page .pumpkin-rating {
+  justify-content: center;
+}
+
+.vote-page .admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.vote-page .my-votes-list {
+  text-align: center;
+}
+
+.vote-page .my-votes-list strong {
+  display: block;
+  margin-bottom: 0.25rem;
 }
 
 .pumpkin {

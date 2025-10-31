@@ -47,6 +47,8 @@ VITE_MAP_URL=https://drive.google.com/...
 VITE_ADMIN_ROUTE=/admin-halloween-2025
 ```
 
+> Il dominio configurato viene usato come fallback in locale. In produzione l’app forza automaticamente l’hostname corrente (es. `bagna-halloween.netlify.app`) per evitare errori di login con Google.
+
 Su Netlify inserisci gli stessi valori in **Site settings → Build & deploy → Environment**.
 
 ## Firebase
@@ -57,7 +59,16 @@ Su Netlify inserisci gli stessi valori in **Site settings → Build & deploy →
    - `houses` (id consigliato = numero casa).
    - `votes` (id consigliato = `uid_houseNumber`).
    - `config/app` con `{ votingOpen: true }`.
-4. Regole Firestore di partenza (adatta alle tue necessità):
+
+   Puoi creare il documento `config/app` (ed eventualmente importare dati da `seeds/houses.json` e `seeds/votes.json`) eseguendo lo script incluso:
+
+   ```bash
+   npm run firestore:init
+   ```
+
+   Assicurati prima di aver compilato `.env` e di aver copiato i file di esempio `seeds/*.sample.json` in `seeds/*.json`, personalizzandoli con i tuoi dati.
+4. In **Authentication → Settings → Authorized domains** aggiungi `localhost`, `127.0.0.1`, il dominio Firebase (`....firebaseapp.com`) e il dominio pubblico (es. `bagna-halloween.netlify.app`).
+5. Regole Firestore di partenza (adatta alle tue necessità):
 
    ```javascript
    rules_version = '2';
@@ -91,6 +102,7 @@ Il comando produce la cartella `dist/`. Su Netlify:
 
 - **Build command**: `npm run build`
 - **Publish directory**: `dist`
+- Il file `netlify.toml` include già il proxy `/__/auth/*` verso Firebase per mantenere il login sullo stesso dominio dell’app.
 - Abilita l’opzione “Deploys from Git” oppure pubblica manualmente.
 
 ---

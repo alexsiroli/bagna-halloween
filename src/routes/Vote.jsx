@@ -15,6 +15,7 @@ import {
   setDoc,
   where,
 } from 'firebase/firestore';
+import BackHomeLink from '../components/BackHomeLink.jsx';
 import HouseCard from '../components/HouseCard.jsx';
 import MyVotes from '../components/MyVotes.jsx';
 import { auth, provider, db } from '../firebase.js';
@@ -149,9 +150,33 @@ function Vote() {
 
   const handleLogin = async () => {
     try {
+      if (typeof window !== 'undefined') {
+        const probeKey = '__firebase_auth_probe__';
+        try {
+          window.sessionStorage.setItem(probeKey, '1');
+          window.sessionStorage.removeItem(probeKey);
+        } catch (storageErr) {
+          setError(
+            'Per accedere con Google devi aprire il sito nel browser di sistema e consentire i cookie.',
+          );
+          console.warn('SessionStorage non disponibile per autenticazione', storageErr);
+          return;
+        }
+      }
+    } catch (probeErr) {
+      console.warn('Errore durante la verifica del browser prima del login', probeErr);
+    }
+
+    try {
       await signInWithPopup(auth, provider);
     } catch (err) {
       console.error('Login fallito', err);
+      if (err?.message?.includes('missing initial state')) {
+        setError(
+          'Il browser sta bloccando la pagina di login di Google. Apri il sito nel browser di sistema e abilita i cookie, poi riprova.',
+        );
+        return;
+      }
       setError('Accesso non riuscito, riprova.');
     }
   };
@@ -238,7 +263,8 @@ function Vote() {
   ).length;
 
   return (
-    <div className="app-shell">
+    <div className="app-shell vote-page">
+      <BackHomeLink />
       <header>
         <p className="badge">Sezione voto</p>
         <h1>Vota una casa</h1>

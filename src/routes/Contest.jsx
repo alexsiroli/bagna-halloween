@@ -1,6 +1,9 @@
+import BackHomeLink from '../components/BackHomeLink.jsx';
+
 function Contest() {
   return (
-    <div className="app-shell">
+    <div className="app-shell contest-page">
+      <BackHomeLink />
       <header>
         <p className="badge">Contest ufficiale</p>
         <h1>Contest fotografico</h1>
@@ -10,19 +13,31 @@ function Contest() {
         </p>
       </header>
 
-      <div className="card">
+      <div className="card contest-card">
         <h2>Come partecipare</h2>
-        <p>
-          1. Scatta una foto della tua casa preferita o della tua decorazione. <br />
-          2. Pubblica la foto su Instagram o TikTok con l’hashtag{' '}
-          <strong>#BagnaHalloween2025</strong>. <br />
-          3. Tagga il profilo ufficiale dell’evento così possiamo ricondividerla. <br />
-          4. In alternativa invia la foto via e-mail a{' '}
-          <a href="mailto:halloween@bagna.it">halloween@bagna.it</a>.
+        <p className="contest-intro">
+          Partecipa al nostro contest fotografico e racconta la tua notte di Halloween!
         </p>
-        <p>
-          Le foto più votate saranno annunciate alla fine della serata. Buona caccia
-          alle zucche!
+        <ul className="contest-list">
+          <li>
+            <strong className="contest-highlight">Crea la tua storia:</strong> Condividi una
+            storia su Instagram che metta in mostra la tua casa o la decorazione più paurosa.
+          </li>
+          <li>
+            <strong className="contest-highlight">Profilo pubblico obbligatorio:</strong> Il tuo
+            account deve essere visibile (non privato) così possiamo trovarti e ricondividere.
+          </li>
+          <li>
+            <strong className="contest-highlight">Hashtag ben visibile:</strong> Inserisci
+            chiaramente l'hashtag{' '}
+            <strong className="contest-highlight">#BagnaHalloween2025</strong> nella storia per
+            partecipare ufficialmente.
+          </li>
+        </ul>
+        <p className="contest-note">
+          Le storie più belle riceveranno un{' '}
+          <span className="contest-highlight">premio speciale</span>: libera tutta la tua
+          creatività e spaventa la giuria!
         </p>
       </div>
     </div>
