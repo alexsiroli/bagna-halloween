@@ -2,21 +2,10 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-const configuredAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
-const browserHostname =
-  typeof window !== 'undefined' && window.location?.hostname ? window.location.hostname : undefined;
-
-// Align the auth handler domain with the hosting domain to avoid third-party storage issues.
-const resolvedAuthDomain =
-  browserHostname && browserHostname !== 'localhost' && browserHostname !== '127.0.0.1'
-    ? browserHostname
-    : configuredAuthDomain;
+const resolvedAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
 
 if (!resolvedAuthDomain) {
-  // eslint-disable-next-line no-console
-  console.warn(
-    'Firebase auth domain is not configured. Set VITE_FIREBASE_AUTH_DOMAIN or run the app from a browser context.',
-  );
+  console.warn('Firebase auth domain is not configured. Set VITE_FIREBASE_AUTH_DOMAIN.');
 }
 
 const firebaseConfig = {
