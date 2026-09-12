@@ -1,0 +1,45 @@
+# project.yml — manifest del progetto
+# Generato il 2026-09-12 dal censimento. Stato e tier dedotti: verificali.
+
+# --- identità ---------------------------------------------------------------
+nome: bagna-halloween
+descrizione: Web app per l evento di Halloween a Cesenatico con mappa delle case addobbate, valutazioni anonime e classifica per premiare le migliori.
+repo: alexsiroli/bagna-halloween
+
+# --- metodo -----------------------------------------------------------------
+tier: lite
+stato: attivo
+
+avviato: 2025-10-31
+ultimo_review: 2026-09-12
+
+# --- tecnologia -------------------------------------------------------------
+stack:
+  - react
+  - vite
+
+# --- hosting ----------------------------------------------------------------
+hosting: netlify
+hosting_project: bagna-halloween
+url_prod: https://bagna-halloween.netlify.app
+url_staging:
+
+# --- distribuzione ----------------------------------------------------------
+distribuzione: nessuna
+distribuzione_url:
+
+# --- dati -------------------------------------------------------------------
+db: firebase
+db_ref: bagna-halloween
+
+# --- osservabilità ----------------------------------------------------------
+sentry_org: 
+sentry_project: 
+
+# --- scadenze che costano soldi --------------------------------------------
+scadenze: []
+
+# --- contesto ---------------------------------------------------------------
+cliente:
+note: |
+  Nel portfolio alx-studio si chiama "Bagna Halloween" (tipo: Web App).
