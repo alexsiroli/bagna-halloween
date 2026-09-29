@@ -9,6 +9,8 @@ async function login(page, email) {
   const popupPromise = page.waitForEvent('popup');
   await page.getByRole('button', { name: 'Accedi con Google' }).click();
   const popup = await popupPromise;
+  // Il widget dell'emulatore aggancia i click solo a pagina caricata.
+  await popup.waitForLoadState('load');
   await popup.getByText(email).click();
   await popup.waitForEvent('close');
 }

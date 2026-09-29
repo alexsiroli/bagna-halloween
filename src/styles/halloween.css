@@ -32,11 +32,13 @@
   --notte-700: #1a2547;
   --notte-600: #27345f;
   --notte-500: #3a4a80;
+  --notte-400: #6878b4; /* bordi dei controlli, >= 3:1 su notte-800 */
 
   /* Luci */
   --luna: #f4efe4; /* testo */
   --nebbia: #a3acc9; /* testo secondario, 7.6:1 su notte-800 */
   --lampione: #ffb238; /* azioni e fuoco, 10:1 con notte-900 */
+  --lampione-chiaro: #ffc062;
   --finestra: #ffe19a; /* finestre accese, lampadine */
   --zucca: #ff6b1a;
   --zucca-scura: #c94a0c;
@@ -312,7 +314,7 @@ svg {
 /* Stato votazioni: lampadina accesa o spenta, sempre con il testo accanto */
 .status-line {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-2);
   color: var(--nebbia);
   font-weight: 700;
@@ -321,6 +323,7 @@ svg {
 .status-bulb {
   width: 12px;
   height: 12px;
+  margin-top: 0.4em;
   border-radius: 50%;
   background: var(--notte-500);
   flex-shrink: 0;
@@ -411,7 +414,7 @@ svg {
   min-height: 52px;
   padding: 0 var(--space-5);
   background: transparent;
-  border: 2px solid var(--notte-500);
+  border: 2px solid var(--notte-400);
   color: var(--luna);
   font-size: var(--step-0);
 }
@@ -427,7 +430,7 @@ svg {
 .chip-btn {
   min-height: 44px;
   padding: 0 var(--space-4);
-  border: 1px solid var(--notte-500);
+  border: 1px solid var(--notte-400);
   background: var(--notte-700);
   color: var(--luna);
   font-size: var(--step--1);
@@ -461,7 +464,7 @@ svg {
 
 @media (hover: hover) and (pointer: fine) {
   .primary-btn:hover:not(:disabled) {
-    background: #ffc062;
+    background: var(--lampione-chiaro);
   }
   .secondary-btn:hover:not(:disabled),
   .chip-btn:hover:not(:disabled),
@@ -492,7 +495,7 @@ textarea {
   min-height: 52px;
   padding: 0 var(--space-4);
   border-radius: var(--radius-m);
-  border: 2px solid var(--notte-500);
+  border: 2px solid var(--notte-400);
   background: var(--notte-700);
   font-size: 1.125rem; /* >= 16px: niente zoom forzato su iOS */
   transition: border-color var(--dur-fast) ease;
@@ -1040,7 +1043,7 @@ fieldset {
 
 .pumpkin__body ellipse {
   fill: var(--notte-700);
-  stroke: var(--notte-500);
+  stroke: var(--notte-400);
   stroke-width: 1.6;
   transition: fill var(--dur) var(--ease-out), stroke var(--dur) var(--ease-out);
   transition-delay: calc(var(--i) * 35ms);
@@ -1231,7 +1234,11 @@ fieldset {
 }
 
 .night-map[data-picking='true'] .map-marker {
-  opacity: 0.5;
+  opacity: 0.6;
+}
+
+.night-map[data-picking='true'] .map-marker__plate {
+  box-shadow: 0 1px 3px rgb(7 11 23 / 0.5);
 }
 
 .night-map[data-picking='true'] .map-marker[data-picked='true'] {
@@ -1600,16 +1607,23 @@ fieldset {
     padding-top: var(--space-7);
   }
 
+  /* Manifesto: il nome a tutta larghezza, sotto il testo a sinistra e il quartiere a destra */
   .home-hero {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
     grid-template-rows: auto auto auto 1fr;
     grid-template-areas:
-      'title scene'
+      'title title'
       'lead scene'
       'status scene'
       'cta scene';
     column-gap: var(--space-7);
+    row-gap: var(--space-4);
     align-items: start;
+  }
+
+  .home-hero__title {
+    font-size: clamp(4rem, 1.6rem + 4.4vw, 6rem);
+    margin-bottom: var(--space-3);
   }
 
   .home-hero__scene {

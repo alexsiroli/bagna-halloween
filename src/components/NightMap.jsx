@@ -67,7 +67,6 @@ function NightMap({ houses, ranking = null, onPick, pickedNumber }) {
           <button
             type="button"
             className="chip-btn"
-            aria-pressed={lightsOn}
             onClick={() => setLightsOn((value) => !value)}
           >
             {lightsOn ? (
