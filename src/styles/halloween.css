@@ -1222,6 +1222,28 @@ fieldset {
   animation-delay: calc(250ms + var(--order) * 110ms);
 }
 
+.map-marker[data-podium='true'] {
+  z-index: 1;
+}
+
+/* Telefono: targhe piu' piccole (l'area da toccare resta 44px), bagliore piu' stretto */
+@media (max-width: 639px) {
+  .map-marker__plate {
+    min-width: 1.55rem;
+    height: 1.35rem;
+    padding: 0 0.25rem;
+    font-size: 0.75rem;
+    box-shadow: 0 0 0 2px rgb(7 11 23 / 0.7), 0 0 12px 3px rgb(255 214 120 / 0.4);
+  }
+
+  .map-marker__rank {
+    top: 0;
+    right: -4px;
+    font-size: 0.65rem;
+    padding: 0 4px;
+  }
+}
+
 .map-marker[data-podium='true'] .map-marker__plate {
   min-width: 2.4rem;
   height: 2rem;
