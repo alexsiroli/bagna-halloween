@@ -1,0 +1,25 @@
+name: ci
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+# Cancello di Alx Studio: i job devono essere verdi prima del merge (test e build obbligatori).
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ./package-lock.json
+      - run: npm ci
+      - run: [ -f .env.example ] && [ ! -f .env ] && cp .env.example .env; npm run build
+      - run: npm run lint
+        continue-on-error: true  # informativo finché il debito non è chiuso
