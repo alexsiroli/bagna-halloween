@@ -20,6 +20,8 @@ jobs:
           cache: npm
           cache-dependency-path: ./package-lock.json
       - run: npm ci
-      - run: [ -f .env.example ] && [ ! -f .env ] && cp .env.example .env; npm run build
+      - run: |
+          if [ -f .env.example ] && [ ! -f .env ]; then cp .env.example .env; fi
+          npm run build
       - run: npm run lint
         continue-on-error: true  # informativo finché il debito non è chiuso
