@@ -3,86 +3,56 @@ import {
   collection,
   doc,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
 } from 'firebase/firestore';
+import { CaretDownIcon, CaretUpIcon, EyeIcon, EyeSlashIcon, PencilSimpleIcon, PlusIcon, SignOutIcon, TrophyIcon } from '@phosphor-icons/react';
+import NightMap from '../components/NightMap.jsx';
+import Sheet from '../components/Sheet.jsx';
 import { db } from '../firebase.js';
+import { logout } from '../auth.js';
+import { houseId, useAppConfig, useConfigDoc, useHouses } from '../data.js';
 
 const emptyHouse = {
+  id: null,
   number: '',
   title: '',
   description: '',
   visible: true,
+  x: '',
+  y: '',
 };
 
-function Admin() {
-  const [config, setConfig] = useState({ votingOpen: false });
-  const [houses, setHouses] = useState([]);
+const SORT_LABELS = { houseNumber: 'Casa', scoreAverage: 'Media voto', count: 'Voti' };
+
+function Admin({ user }) {
+  const config = useAppConfig();
+  const { edition } = config;
+  const results = useConfigDoc('results');
+  const { houses, loading, error: housesError } = useHouses(edition, { includeHidden: true });
   const [votes, setVotes] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modalState, setModalState] = useState({ open: false, data: emptyHouse, mode: 'create' });
   const [saving, setSaving] = useState(false);
   const [sort, setSort] = useState({ field: 'houseNumber', direction: 'asc' });
 
   useEffect(() => {
-    const configRef = doc(db, 'config', 'app');
-    const unsubConfig = onSnapshot(
-      configRef,
-      (snapshot) => {
-        const data = snapshot.data();
-        setConfig(data || { votingOpen: false });
-      },
-      (err) => {
-        console.error('Errore config admin', err);
-        setError('Impossibile caricare la configurazione.');
-      },
-    );
-
-    const housesRef = collection(db, 'houses');
-    const housesQuery = query(housesRef, orderBy('number'));
-    const unsubHouses = onSnapshot(
-      housesQuery,
-      (snapshot) => {
-        const list = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
-        setHouses(list);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Errore case admin', err);
-        setError('Impossibile caricare la lista case.');
-        setLoading(false);
-      },
-    );
-
-    const votesRef = collection(db, 'votes');
-    const votesQuery = query(votesRef, orderBy('createdAt'));
-    const unsubVotes = onSnapshot(
+    // Nessun orderBy: con il filtro per edizione servirebbe un indice composto. Si ordina qui.
+    const votesQuery = query(collection(db, 'votes'), where('edition', '==', edition));
+    return onSnapshot(
       votesQuery,
       (snapshot) => {
-        const list = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
-        setVotes(list);
+        setVotes(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
       },
       (err) => {
         console.error('Errore voti admin', err);
+        setError('Impossibile caricare i voti.');
       },
     );
-
-    return () => {
-      unsubConfig();
-      unsubHouses();
-      unsubVotes();
-    };
-  }, []);
+  }, [edition]);
 
   const stats = useMemo(() => {
     const map = new Map();
@@ -129,6 +99,17 @@ function Admin() {
     return sorted;
   }, [stats, sort]);
 
+  // Classifica: media piu' alta, poi piu' voti, poi numero piu' basso. Solo case votate.
+  const ranking = useMemo(
+    () =>
+      stats
+        .filter((row) => row.count > 0)
+        .sort((a, b) => b.scoreAverage - a.scoreAverage || b.count - a.count || a.houseNumber - b.houseNumber)
+        .map((row) => row.houseNumber),
+    [stats],
+  );
+  const rankingPublished = results?.published === true && results.edition === edition;
+
   const votesBySlot = useMemo(() => {
     const slots = new Map();
     votes.forEach((vote) => {
@@ -152,6 +133,7 @@ function Admin() {
   }, [votes]);
 
   const maxVotesInSlot = votesBySlot.reduce((max, slot) => Math.max(max, slot.count), 0);
+  const totalVotes = votesBySlot.reduce((sum, slot) => sum + slot.count, 0);
 
   const openCreateHouse = () => {
     setModalState({ open: true, data: emptyHouse, mode: 'create' });
@@ -162,10 +144,13 @@ function Admin() {
     setModalState({
       open: true,
       data: {
+        id: house.id,
         number: house.number,
         title: house.title || '',
         description: house.description || '',
         visible: house.visible !== false,
+        x: Number.isFinite(house.x) ? house.x : '',
+        y: Number.isFinite(house.y) ? house.y : '',
       },
       mode: 'edit',
     });
@@ -176,6 +161,9 @@ function Admin() {
     setModalState({ open: false, data: emptyHouse, mode: 'create' });
   };
 
+  const updateForm = (patch) =>
+    setModalState((prev) => ({ ...prev, data: { ...prev.data, ...patch } }));
+
   const handleHouseSubmit = async (event) => {
     event.preventDefault();
     const form = modalState.data;
@@ -184,13 +172,26 @@ function Admin() {
       setError('Il numero casa deve essere un intero.');
       return;
     }
+    if (modalState.mode === 'create' && houses.some((house) => house.number === numericNumber)) {
+      setError(`La casa ${numericNumber} esiste già: usa "Modifica".`);
+      return;
+    }
 
-    const houseRef = doc(db, 'houses', String(numericNumber));
+    const houseRef = doc(
+      db,
+      'houses',
+      modalState.mode === 'edit' ? form.id : houseId(edition, numericNumber),
+    );
+    const x = Number.parseFloat(form.x);
+    const y = Number.parseFloat(form.y);
     const payload = {
       number: numericNumber,
       title: form.title || '',
       description: form.description || '',
       visible: form.visible !== false,
+      edition,
+      x: Number.isFinite(x) ? x : null,
+      y: Number.isFinite(y) ? y : null,
       updatedAt: serverTimestamp(),
     };
     if (modalState.mode === 'create') {
@@ -201,6 +202,7 @@ function Admin() {
       setSaving(true);
       await setDoc(houseRef, payload, { merge: modalState.mode === 'edit' });
       setSaving(false);
+      setError('');
       closeModal();
     } catch (err) {
       console.error('Errore salvataggio casa', err);
@@ -237,6 +239,20 @@ function Admin() {
     }
   };
 
+  const toggleRanking = async () => {
+    try {
+      await setDoc(doc(db, 'config', 'results'), {
+        edition,
+        published: !rankingPublished,
+        ranking: rankingPublished ? [] : ranking,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error('Errore pubblicando la classifica', err);
+      setError('Impossibile aggiornare la classifica pubblica.');
+    }
+  };
+
   const updateSort = (field) => {
     setSort((prev) => {
       if (prev.field === field) {
@@ -247,204 +263,297 @@ function Admin() {
   };
 
   const formatSlot = (date) => {
-    const end = new Date(date);
-    end.setMinutes(end.getMinutes() + 10);
     const formatter = new Intl.DateTimeFormat('it-IT', {
       hour: '2-digit',
       minute: '2-digit',
     });
-    return `${formatter.format(date)} – ${formatter.format(end)}`;
+    return formatter.format(date);
   };
 
+  // In modalita' "posiziona" la casa in modifica si vede nella sua posizione nuova.
+  const pickerHouses = useMemo(() => {
+    const form = modalState.data;
+    const number = Number.parseInt(form.number, 10);
+    const edited = { ...form, number, x: Number.parseFloat(form.x), y: Number.parseFloat(form.y) };
+    return [...houses.filter((house) => house.number !== number), edited];
+  }, [houses, modalState.data]);
+
+  const shownError = error || housesError;
+
   return (
-    <div className="app-shell">
-      <header>
-        <p className="badge">Area admin</p>
-        <h1>Halloween Houses – Admin</h1>
-        <p>Gestisci case, stato delle votazioni e monitora le statistiche in tempo reale.</p>
+    <div className="app-shell admin">
+      <header className="admin-head">
+        <div>
+          <h1>Area admin</h1>
+          <p>
+            Edizione {edition}. Gestisci case, stato delle votazioni e monitora le statistiche in tempo reale.
+          </p>
+        </div>
+        <div className="admin-head__user">
+          <span>{user.email}</span>
+          <button type="button" className="ghost-btn" onClick={logout}>
+            <SignOutIcon aria-hidden="true" weight="bold" /> Esci
+          </button>
+        </div>
       </header>
 
-      {error && (
-        <div className="card" role="alert">
-          <strong>Attenzione:</strong> {error}
+      {shownError && (
+        <div className="notice notice--error" role="alert">
+          <strong>Attenzione:</strong> {shownError}
         </div>
       )}
 
       {loading && <p className="empty-state">Caricamento dati…</p>}
 
       <div className="admin-grid">
-        <section className="card">
-          <div className="house-header">
-            <div>
-              <h3>Stato votazioni</h3>
-              <p>Toggle rapido per attivare o sospendere i voti degli utenti.</p>
-            </div>
-            <button type="button" className="primary-btn" onClick={toggleVotingState}>
-              {config.votingOpen ? 'Metti in pausa' : 'Apri votazioni'}
-            </button>
+        <section className="panel admin-switch" data-open={config.votingOpen}>
+          <div>
+            <h2>Stato votazioni</h2>
+            <p className="status-line" data-open={config.votingOpen}>
+              <span className="status-bulb" aria-hidden="true" />
+              {config.votingOpen ? 'Aperte: il paese sta votando.' : 'Chiuse: nessuno può votare.'}
+            </p>
           </div>
-          <p>
-            Stato attuale:{' '}
-            <span className="inline-status">
-              {config.votingOpen ? 'Aperte 🎃' : 'Chiuse 🕯️'}
-            </span>
-          </p>
+          <button type="button" className="primary-btn" onClick={toggleVotingState}>
+            {config.votingOpen ? 'Metti in pausa' : 'Apri votazioni'}
+          </button>
         </section>
 
-        <section className="card">
-          <div className="house-header">
-            <h3>Gestione case</h3>
+        <section className="panel admin-switch" data-open={rankingPublished}>
+          <div>
+            <h2>Classifica pubblica</h2>
+            <p className="status-line" data-open={rankingPublished}>
+              <span className="status-bulb" aria-hidden="true" />
+              {rankingPublished
+                ? 'Pubblicata: le case si accendono sulla mappa in ordine.'
+                : `Non pubblicata. ${ranking.length} case votate finora.`}
+            </p>
+          </div>
+          <button
+            type="button"
+            className={rankingPublished ? 'secondary-btn' : 'primary-btn'}
+            onClick={toggleRanking}
+            disabled={!rankingPublished && ranking.length === 0}
+          >
+            <TrophyIcon aria-hidden="true" weight="bold" />
+            {rankingPublished ? 'Ritira classifica' : 'Pubblica classifica'}
+          </button>
+        </section>
+
+        <section className="panel admin-houses">
+          <div className="panel-head">
+            <h2>Gestione case</h2>
             <button type="button" className="primary-btn" onClick={openCreateHouse}>
-              Aggiungi casa
+              <PlusIcon aria-hidden="true" weight="bold" /> Aggiungi casa
             </button>
           </div>
 
+          {houses.length === 0 && !loading && (
+            <p className="empty-state">Nessuna casa per l’edizione {edition}. Aggiungi la prima.</p>
+          )}
           <div className="house-list">
             {houses.map((house) => (
-              <div key={house.id} className="house-card">
-                <div className="house-header">
+              <article key={house.id} className="house-row" data-hidden={house.visible === false}>
+                <span className="plate" aria-hidden="true">
+                  {house.number}
+                </span>
+                <div className="house-row__text">
                   <h3>
-                    Casa {house.number} – {house.title || 'Senza titolo'}
+                    Casa {house.number}: {house.title || 'Senza titolo'}
                   </h3>
-                  <span className="inline-status">
+                  <p>
                     {house.visible !== false ? 'Visibile' : 'Nascosta'}
-                  </span>
+                    {' · '}
+                    {Number.isFinite(house.x) ? 'sulla mappa' : 'da posizionare sulla mappa'}
+                  </p>
                 </div>
-                <p>{house.description || 'Nessuna descrizione.'}</p>
                 <div className="admin-actions">
-                  <button type="button" className="secondary-btn" onClick={() => openEditHouse(house)}>
-                    Modifica
+                  <button type="button" className="icon-btn" onClick={() => openEditHouse(house)} aria-label={`Modifica casa ${house.number}`}>
+                    <PencilSimpleIcon aria-hidden="true" weight="bold" />
                   </button>
-                  <button type="button" className="secondary-btn" onClick={() => toggleVisibility(house)}>
-                    {house.visible !== false ? 'Nascondi' : 'Mostra'}
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={() => toggleVisibility(house)}
+                    aria-label={`${house.visible !== false ? 'Nascondi' : 'Mostra'} casa ${house.number}`}
+                  >
+                    {house.visible !== false ? (
+                      <EyeSlashIcon aria-hidden="true" weight="bold" />
+                    ) : (
+                      <EyeIcon aria-hidden="true" weight="bold" />
+                    )}
                   </button>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         </section>
 
-        <section className="card">
-          <h3>Statistiche voti</h3>
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th onClick={() => updateSort('houseNumber')}>Casa</th>
-                <th onClick={() => updateSort('scoreAverage')}>Media voto</th>
-                <th onClick={() => updateSort('count')}># Voti</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedStats.map((row) => (
-                <tr key={row.houseNumber}>
-                  <td>
-                    {row.houseNumber}{' '}
-                    {row.title ? (
-                      <span style={{ color: '#bca9ff', fontSize: '0.85rem' }}>– {row.title}</span>
-                    ) : null}
-                  </td>
-                  <td>{row.count ? row.scoreAverage.toFixed(2) : '—'}</td>
-                  <td>{row.count}</td>
+        <section className="panel admin-stats">
+          <h2>Statistiche voti</h2>
+          <div className="table-scroll">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  {Object.entries(SORT_LABELS).map(([field, label]) => (
+                    <th
+                      key={field}
+                      scope="col"
+                      aria-sort={
+                        sort.field === field ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'
+                      }
+                    >
+                      <button type="button" className="sort-btn" onClick={() => updateSort(field)}>
+                        {label}
+                        {sort.field === field &&
+                          (sort.direction === 'asc' ? (
+                            <CaretUpIcon aria-hidden="true" weight="bold" />
+                          ) : (
+                            <CaretDownIcon aria-hidden="true" weight="bold" />
+                          ))}
+                      </button>
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sortedStats.map((row) => (
+                  <tr key={row.houseNumber}>
+                    <td>
+                      <span className="admin-table__num">{row.houseNumber}</span>
+                      {row.title ? <span className="admin-table__title">{row.title}</span> : null}
+                    </td>
+                    <td className="admin-table__figure">{row.count ? row.scoreAverage.toFixed(2) : 'n.d.'}</td>
+                    <td className="admin-table__figure">{row.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
-        <section className="card">
-          <h3>Flusso voti nel tempo (slot da 10 minuti)</h3>
+        <section className="panel admin-chart">
+          <h2>Flusso voti nel tempo</h2>
+          <p className="muted">Fasce da 10 minuti, {totalVotes} voti in tutto.</p>
           {votesBySlot.length === 0 ? (
             <p className="empty-state">Nessun voto registrato finora.</p>
           ) : (
-            <div className="chart-grid">
-              {votesBySlot.map((slot) => (
-                <div key={slot.start.toISOString()} className="chart-row">
-                  <strong>{formatSlot(slot.start)}</strong>
-                  <div className="chart-bar" aria-hidden="true">
+            <ol className="chart-bands">
+              {votesBySlot.map((slot, index) => (
+                <li key={slot.start.toISOString()} className="chart-band" style={{ '--i': index }}>
+                  <time dateTime={slot.start.toISOString()}>{formatSlot(slot.start)}</time>
+                  <span className="chart-band__bar" aria-hidden="true">
                     <span
                       style={{
-                        width: maxVotesInSlot ? `${(slot.count / maxVotesInSlot) * 100}%` : '0%',
+                        '--fill': maxVotesInSlot ? slot.count / maxVotesInSlot : 0,
                       }}
                     />
-                  </div>
-                  <small>{slot.count} voti</small>
-                </div>
+                  </span>
+                  <span className="chart-band__count">
+                    {slot.count} <span className="sr-only">voti</span>
+                  </span>
+                </li>
               ))}
-            </div>
+            </ol>
           )}
         </section>
       </div>
 
-      {modalState.open && (
-        <div className="dialog-backdrop" role="dialog" aria-modal="true">
-          <form className="dialog-card" onSubmit={handleHouseSubmit}>
-            <h3>{modalState.mode === 'create' ? 'Nuova casa' : 'Modifica casa'}</h3>
-            <label htmlFor="house-number">Numero</label>
-            <input
-              id="house-number"
-              type="number"
-              required
-              value={modalState.data.number}
-              onChange={(event) =>
-                setModalState((prev) => ({
-                  ...prev,
-                  data: { ...prev.data, number: event.target.value },
-                }))
-              }
-              disabled={modalState.mode === 'edit'}
-            />
+      <Sheet open={modalState.open} onClose={() => !saving && closeModal()} labelledBy="house-dialog-title" className="house-dialog">
+        <form className="house-form" onSubmit={handleHouseSubmit}>
+          <h2 id="house-dialog-title">{modalState.mode === 'create' ? 'Nuova casa' : `Modifica casa ${modalState.data.number}`}</h2>
 
+          <div className="house-form__grid">
+            <div className="field">
+              <label htmlFor="house-number">Numero</label>
+              <input
+                id="house-number"
+                type="number"
+                inputMode="numeric"
+                required
+                value={modalState.data.number}
+                onChange={(event) => updateForm({ number: event.target.value })}
+                disabled={modalState.mode === 'edit'}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="house-visible">Visibile</label>
+              <select
+                id="house-visible"
+                value={modalState.data.visible ? 'true' : 'false'}
+                onChange={(event) => updateForm({ visible: event.target.value === 'true' })}
+              >
+                <option value="true">Visibile</option>
+                <option value="false">Nascosta</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="field">
             <label htmlFor="house-title">Titolo</label>
             <input
               id="house-title"
               type="text"
               value={modalState.data.title}
-              onChange={(event) =>
-                setModalState((prev) => ({
-                  ...prev,
-                  data: { ...prev.data, title: event.target.value },
-                }))
-              }
+              onChange={(event) => updateForm({ title: event.target.value })}
             />
+          </div>
 
+          <div className="field">
             <label htmlFor="house-description">Descrizione</label>
             <textarea
               id="house-description"
               value={modalState.data.description}
-              onChange={(event) =>
-                setModalState((prev) => ({
-                  ...prev,
-                  data: { ...prev.data, description: event.target.value },
-                }))
-              }
+              onChange={(event) => updateForm({ description: event.target.value })}
             />
+          </div>
 
-            <label htmlFor="house-visible">Visibile</label>
-            <select
-              id="house-visible"
-              value={modalState.data.visible ? 'true' : 'false'}
-              onChange={(event) =>
-                setModalState((prev) => ({
-                  ...prev,
-                  data: { ...prev.data, visible: event.target.value === 'true' },
-                }))
-              }
-            >
-              <option value="true">Visibile</option>
-              <option value="false">Nascosta</option>
-            </select>
-
-            <div className="dialog-actions">
-              <button type="button" className="secondary-btn" onClick={closeModal}>
-                Annulla
-              </button>
-              <button type="submit" className="primary-btn" disabled={saving}>
-                {saving ? 'Salvataggio…' : 'Salva'}
-              </button>
+          <fieldset className="field house-form__map">
+            <legend>Posizione sulla mappa</legend>
+            <p className="muted">Clicca sulla mappa nel punto della casa, oppure scrivi le coordinate in %.</p>
+            <NightMap
+              houses={pickerHouses}
+              pickedNumber={Number.parseInt(modalState.data.number, 10)}
+              onPick={({ x, y }) => updateForm({ x, y })}
+            />
+            <div className="house-form__grid">
+              <div className="field">
+                <label htmlFor="house-x">X (%)</label>
+                <input
+                  id="house-x"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={modalState.data.x}
+                  onChange={(event) => updateForm({ x: event.target.value })}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="house-y">Y (%)</label>
+                <input
+                  id="house-y"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={modalState.data.y}
+                  onChange={(event) => updateForm({ y: event.target.value })}
+                />
+              </div>
             </div>
-          </form>
-        </div>
-      )}
+          </fieldset>
+
+          <div className="dialog-actions">
+            <button type="button" className="secondary-btn" onClick={closeModal} disabled={saving}>
+              Annulla
+            </button>
+            <button type="submit" className="primary-btn" disabled={saving}>
+              {saving ? 'Salvataggio…' : 'Salva'}
+            </button>
+          </div>
+        </form>
+      </Sheet>
     </div>
   );
 }

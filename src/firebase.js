@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { connectAuthEmulator, getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 
 const resolvedAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
 
@@ -22,3 +22,9 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const provider = new GoogleAuthProvider();
 export const db = getFirestore(app);
+
+// Solo `vite --mode emulator` (.env.emulator): porte di firebase.json, progetto demo-*.
+if (import.meta.env.VITE_USE_EMULATORS === 'true') {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9191', { disableWarnings: true });
+  connectFirestoreEmulator(db, '127.0.0.1', 8181);
+}
