@@ -56,6 +56,36 @@ test('admin: rifiuta chi non e in lista, accetta un admin', async ({ page }) => 
   await expect(page.getByRole('heading', { name: 'Gestione case' })).toBeVisible();
 });
 
+test('carico: le case si leggono una volta per sessione (Home, Mappa, Voto, Mappa)', async ({ page, request }) => {
+  const url =
+    'http://127.0.0.1:8181/v1/projects/demo-bagna-halloween/databases/(default)/documents/houses/2026_3?updateMask.fieldPaths=title';
+  // "Bearer owner" salta le regole, solo sull'emulatore.
+  const setTitle = (title) =>
+    request.patch(url, { headers: { Authorization: 'Bearer owner' }, data: { fields: { title: { stringValue: title } } } });
+  const house3 = (title) => page.getByRole('link', { name: new RegExp(`Casa 3, ${title}`) });
+
+  await page.goto('/');
+  await page.getByRole('link', { name: /Mappa del quartiere/ }).click();
+  await expect(house3('La Cripta del Fornaio')).toBeVisible();
+
+  try {
+    // Cambio una casa mentre la sessione e' aperta: con una lettura sola la mappa non lo vede.
+    expect((await setTitle('Titolo cambiato')).ok()).toBe(true);
+    await page.goBack();
+    await page.getByRole('link', { name: 'Vota le case' }).click();
+    await expect(page).toHaveURL(/\/vote$/);
+    await page.goBack();
+    await page.getByRole('link', { name: /Mappa del quartiere/ }).click();
+    await expect(house3('La Cripta del Fornaio')).toBeVisible();
+
+    // Un ricarico e' una nuova sessione: rilegge.
+    await page.reload();
+    await expect(house3('Titolo cambiato')).toBeVisible();
+  } finally {
+    await setTitle('La Cripta del Fornaio');
+  }
+});
+
 test('regole: un voto fuori scala viene rifiutato', async () => {
   const app = initializeApp({ apiKey: 'demo-api-key', projectId: 'demo-bagna-halloween' }, 'regole-e2e');
   const auth = getAuth(app);
