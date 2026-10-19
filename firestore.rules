@@ -43,19 +43,20 @@ service cloud.firestore {
       allow delete: if false;
 
       // Voto valido: tuo, dell'edizione corrente, intero da 6 a 10, a votazioni aperte,
-      // con id `${edition}_${uid}_${houseNumber}`.
+      // su una casa esistente (`houses/${edition}_${houseNumber}`), con id `${edition}_${uid}_${houseNumber}`.
       function validVote() {
         let v = request.resource.data;
         let app = get(configPath('app')).data;
         return signedIn()
           && app.votingOpen == true
-          && v.keys().hasOnly(['userId', 'userName', 'houseNumber', 'score', 'edition', 'createdAt', 'updatedAt'])
+          && v.keys().hasOnly(['userId', 'houseNumber', 'score', 'edition', 'createdAt', 'updatedAt'])
           && v.userId == request.auth.uid
           && v.edition == app.edition
           && v.houseNumber is int
           && v.score is int
           && v.score >= 6
           && v.score <= 10
+          && exists(/databases/$(database)/documents/houses/$(string(v.edition) + '_' + string(v.houseNumber)))
           && voteId == string(v.edition) + '_' + request.auth.uid + '_' + string(v.houseNumber);
       }
     }

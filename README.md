@@ -64,7 +64,7 @@ Su Netlify inserisci gli stessi valori in **Site settings → Build & deploy →
    - `config/results`: `{ edition, published, ranking: [numeri casa in ordine] }`.
    - `houses/<edizione>_<numero>`: `{ number, title, description, visible, edition, x, y }`
      con `x, y` in % della mappa.
-   - `votes/<edizione>_<uid>_<numero>`: `{ userId, userName, houseNumber, score, edition, createdAt, updatedAt }`.
+   - `votes/<edizione>_<uid>_<numero>`: `{ userId, houseNumber, score, edition, createdAt, updatedAt }`.
 3. Regole: `firestore.rules` (versionate, testate). Pubblicazione:
    `firebase deploy --only firestore:rules --project <id>`.
 4. In **Authentication, Settings, Authorized domains** aggiungi `localhost`, `127.0.0.1`, il

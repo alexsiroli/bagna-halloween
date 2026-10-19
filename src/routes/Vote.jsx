@@ -92,7 +92,6 @@ function Vote() {
         sanitizedScore <= 0 ? 0 : Math.min(10, Math.max(6, sanitizedScore));
       const payload = {
         userId: user.uid,
-        userName: user.displayName || '',
         houseNumber,
         score: clampedScore,
         edition,

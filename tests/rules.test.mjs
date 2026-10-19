@@ -13,7 +13,6 @@ let env;
 
 const vote = (uid, houseNumber, score, extra = {}) => ({
   userId: uid,
-  userName: 'Test',
   houseNumber,
   score,
   edition: EDITION,
@@ -82,6 +81,16 @@ test('un voto valido si crea e si modifica solo se e tuo', async () => {
   await assertFails(setDoc(doc(alice, 'votes/2026_alice_1'), vote('alice', 1, 8, { admin: true })));
   // Senza login.
   await assertFails(setDoc(doc(env.unauthenticatedContext().firestore(), 'votes/2026_x_1'), vote('x', 1, 8)));
+});
+
+test('il voto non porta dati personali (userName rifiutato)', async () => {
+  await assertFails(setDoc(doc(as('alice'), 'votes/2026_alice_1'), vote('alice', 1, 8, { userName: 'Alice' })));
+});
+
+test('si vota solo una casa che esiste nell edizione', async () => {
+  const alice = as('alice');
+  await assertFails(setDoc(doc(alice, 'votes/2026_alice_99'), vote('alice', 99, 8)));
+  await assertSucceeds(setDoc(doc(alice, 'votes/2026_alice_1'), vote('alice', 1, 8)));
 });
 
 test('punteggio intero da 6 a 10', async () => {

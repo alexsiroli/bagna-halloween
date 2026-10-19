@@ -65,7 +65,7 @@ test('regole: un voto fuori scala viene rifiutato', async () => {
 
   const token = JSON.stringify({ sub: 'furbetto', email: 'furbetto@esempio.test', email_verified: true });
   const { user } = await signInWithCredential(auth, GoogleAuthProvider.credential(token));
-  const vote = (score) => ({ userId: user.uid, userName: '', houseNumber: 3, score, edition: 2026 });
+  const vote = (score) => ({ userId: user.uid, houseNumber: 3, score, edition: 2026 });
   const ref = doc(db, 'votes', `2026_${user.uid}_3`);
 
   await expect(setDoc(ref, vote(11))).rejects.toMatchObject({ code: 'permission-denied' });

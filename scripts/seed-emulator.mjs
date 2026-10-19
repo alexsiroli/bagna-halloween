@@ -87,7 +87,7 @@ async function seedFirestore({ results }) {
       const score = Math.min(10, 6 + Math.floor(rand() * 3) + (rand() < 0.5 ? bias : 0));
       const createdAt = Timestamp.fromMillis(start + Math.floor(rand() * rand() * 270) * 60_000 + person * 1000);
       batch.set(db.doc(`votes/${EDITION}_${uid}_${number}`), {
-        userId: uid, userName: `Persona finta ${person}`, houseNumber: number, score,
+        userId: uid, houseNumber: number, score,
         edition: EDITION, createdAt, updatedAt: createdAt,
       });
       const entry = totals.get(number) ?? { sum: 0, count: 0 };
