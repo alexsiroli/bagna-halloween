@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { collection, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 import { GoogleLogoIcon, MagnifyingGlassIcon, SignOutIcon } from '@phosphor-icons/react';
 import BackHomeLink from '../components/BackHomeLink.jsx';
@@ -215,6 +215,9 @@ function Vote() {
           <button type="button" className="primary-btn primary-btn--xl" onClick={handleLogin}>
             <GoogleLogoIcon aria-hidden="true" weight="bold" /> Accedi con Google
           </button>
+          <Link className="email-link" to="/privacy">
+            Privacy
+          </Link>
         </section>
       )}
 

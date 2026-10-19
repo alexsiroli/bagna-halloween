@@ -7,6 +7,10 @@ function SiteFooter() {
       <Link className="site-footer__link" to="/alex-siroli">
         Alex Siroli
       </Link>
+      {' · '}
+      <Link className="site-footer__link" to="/privacy">
+        Privacy
+      </Link>
     </footer>
   );
 }

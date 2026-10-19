@@ -720,6 +720,23 @@ fieldset {
   width: 100%;
 }
 
+/* ---------- Privacy ---------- */
+.privacy-text h2:not(:first-child) {
+  margin-top: var(--space-3);
+}
+
+.privacy-text p,
+.privacy-text li {
+  color: var(--nebbia);
+  max-width: 65ch;
+}
+
+.privacy-text ul {
+  display: grid;
+  gap: var(--space-2);
+  padding-left: var(--space-5);
+}
+
 .vote-panel__who {
   display: flex;
   align-items: center;
