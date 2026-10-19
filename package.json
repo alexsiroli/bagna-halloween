@@ -1,16 +1,22 @@
 {
-  "name": "halloween-houses",
+  "name": "bagna-halloween",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:emulator": "vite --mode emulator --port 4101 --strictPort",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "emulators": "firebase emulators:start --only firestore,auth --project demo-bagna-halloween",
+    "seed:emulator": "node scripts/seed-emulator.mjs",
+    "test": "firebase emulators:exec --only firestore,auth --project demo-bagna-halloween \"node --test tests/rules.test.mjs && node scripts/seed-emulator.mjs && playwright test\"",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-bagna-halloween \"node --test tests/rules.test.mjs\"",
     "firestore:init": "node scripts/initFirestore.mjs"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "firebase": "^11.3.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -18,6 +24,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "@playwright/test": "^1.63.0",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",
@@ -25,6 +33,7 @@
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.22",
+    "firebase-admin": "^13.10.0",
     "globals": "^16.4.0",
     "vite": "^7.1.7"
   }
