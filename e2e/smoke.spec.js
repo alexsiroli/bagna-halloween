@@ -24,6 +24,14 @@ test('home: edizione dalla config e accesso al voto', async ({ page }) => {
   await expect(page).toHaveURL(/\/vote$/);
 });
 
+test('privacy: dal link accanto al login la pagina si apre', async ({ page }) => {
+  await page.goto('/vote');
+  await page.getByRole('main').getByRole('link', { name: 'Privacy' }).click();
+  await expect(page).toHaveURL(/\/privacy$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Privacy' })).toBeVisible();
+  await expect(page.getByText('privacy@alxstudio.it').first()).toBeVisible();
+});
+
 test('voto: login emulatore, zucche, voto salvato', async ({ page }) => {
   await page.goto('/vote');
   await login(page, 'votante@esempio.test');
