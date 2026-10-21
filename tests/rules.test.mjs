@@ -1,4 +1,5 @@
 // Test delle regole Firestore sull'emulatore: npm run test:rules
+import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { after, before, beforeEach, test } from 'node:test';
 import {
@@ -138,6 +139,19 @@ test('aggiornando un voto createdAt resta quello originale', async () => {
   const ref = doc(as('alice'), 'votes/2026_alice_1');
   await assertFails(setDoc(ref, vote('alice', 1, 9)));
   await assertSucceeds(setDoc(ref, vote('alice', 1, 9, { createdAt: created })));
+});
+
+// Come Vote.jsx quando il voto esiste: merge senza createdAt (anche se il primo salvataggio e ancora in attesa).
+test('modifica subito dopo la creazione: setDoc merge senza createdAt passa e createdAt non cambia', async () => {
+  const ref = doc(as('alice'), 'votes/2026_alice_1');
+  await assertSucceeds(setDoc(ref, vote('alice', 1, 7)));
+  const modifica = { userId: 'alice', houseNumber: 1, score: 9, edition: EDITION, updatedAt: serverTimestamp() };
+  await assertSucceeds(setDoc(ref, modifica, { merge: true }));
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const snap = await getDoc(doc(ctx.firestore(), 'votes/2026_alice_1'));
+    assert.equal(snap.data().score, 9);
+    assert.ok(snap.data().createdAt instanceof Timestamp);
+  });
 });
 
 test('niente voti su case nascoste', async () => {

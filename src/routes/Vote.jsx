@@ -96,11 +96,13 @@ function Vote() {
         score: clampedScore,
         edition,
         updatedAt: serverTimestamp(),
-        createdAt: existing?.createdAt || serverTimestamp(),
       };
+      // Voto nuovo: createdAt dal server. Voto esistente (anche se ancora in attesa):
+      // non lo inviamo e il merge lascia quello originale, come richiedono le regole.
+      if (!existing) payload.createdAt = serverTimestamp();
 
       try {
-        await setDoc(voteRef, payload);
+        await setDoc(voteRef, payload, { merge: true });
         setError('');
         return true;
       } catch (err) {
