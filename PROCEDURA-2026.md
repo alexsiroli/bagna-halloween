@@ -13,14 +13,21 @@ Da fare entro il **25 ottobre**, con le votazioni chiuse. Il dettaglio di ogni p
 - [ ] Immagine `public/mappa-2026.webp` pronta (circa 2400 px, sotto 600 KB), vedi guida §6. Arriva in `develop` con una PR, non con un commit su `main`.
 
 ## Prima di iniziare (release-manager)
-- [ ] Cartella privata fuori dal repo: `mkdir -p /Volumes/Dev/privati/bagna-halloween`, poi `chmod 700 /Volumes/Dev/privati/bagna-halloween`.
-- [ ] Sposta la chiave consegnata in `/Volumes/Dev/privati/bagna-halloween/service-account.json` (proprio questo nome: i divieti di lettura degli agenti coprono `*service-account*.json`) e `chmod 600` sul file. Cancella la copia in `consegne/in-arrivo/` e annotala in `consegne/registro.md`. Scrivi nella issue #7 la data di consegna della chiave.
+- [ ] **Cartella privata.** Sta in home, fuori dal repo, e gli script la usano da soli (creata con permessi 700, file 600): **non nominarla mai nei comandi**, il guard li blocca. Non si legge e non si elenca; gli script stampano solo nomi e conteggi.
+- [ ] Importa la chiave consegnata (la sposta nella cartella con il nome fisso `service-account.json`, permessi 600, e l'originale sparisce da `consegne/in-arrivo/`); annotalo in `consegne/registro.md`:
+```zsh
+node /Volumes/Dev/repos/bagna-halloween/scripts/private.mjs import-key /Users/alexsiroli/AlxStudio/consegne/in-arrivo/<file>
+```
+  Scrivi nella issue #7 la data di consegna della chiave.
 - [ ] Checkout su `develop` con albero pulito: `git -C /Volumes/Dev/repos/bagna-halloween status --short` non stampa nulla; se `branch --show-current` dice `main`, `git -C /Volumes/Dev/repos/bagna-halloween switch develop`; poi `git -C /Volumes/Dev/repos/bagna-halloween pull --ff-only`.
 - [ ] `npm --prefix /Volumes/Dev/repos/bagna-halloween ci`.
 
 ## 1. Salva le regole pubblicate oggi (piano di ritorno)
 - [ ] **CEO, in console:** Firestore > Regole, copia tutto il testo e consegnalo dalla dashboard come file di testo. E' il piano di ritorno.
-- [ ] **Release-manager:** salva il file in `/Volumes/Dev/privati/bagna-halloween/regole-pubblicate.rules`.
+- [ ] **Release-manager:** prima confronta il file consegnato con `firestore.rules` del repo (dopo l'import non e' piu' leggibile dagli agenti), poi salvalo (lo sposta nella cartella privata come `regole-pubblicate.rules`):
+```zsh
+node /Volumes/Dev/repos/bagna-halloween/scripts/private.mjs import-rules /Users/alexsiroli/AlxStudio/consegne/in-arrivo/<file>
+```
 
 ## 2. Allowlist admin
 - [ ] **CEO, in console:** Firestore > Dati > collezione `config`, documento `admins`, campo `emails` di tipo array con le email Google degli organizzatori, **in minuscolo**, una per elemento.
@@ -45,21 +52,21 @@ Fino al passo 3 le regole vecchie potevano essere aperte: qualcuno puo' aver scr
 ## 4. Archivia il 2025 (fuori dal repo)
 - [ ] **Release-manager:**
 ```zsh
-node /Volumes/Dev/repos/bagna-halloween/scripts/export-edition.mjs 2025 --out /Volumes/Dev/privati/bagna-halloween --key /Volumes/Dev/privati/bagna-halloween/service-account.json
+node /Volumes/Dev/repos/bagna-halloween/scripts/export-edition.mjs 2025
 ```
-Crea `/Volumes/Dev/privati/bagna-halloween/edizione-2025.json` (contiene i votanti: mai nel repo; permessi 600). Lo script rifiuta `--out` e `--key` dentro il repo, anche tramite symlink.
+Crea `edizione-2025.json` nella cartella privata (contiene i votanti: mai nel repo; permessi 600) e stampa solo il numero di case e voti. Usa la chiave importata. Se si passano `--out` o `--key`, lo script li rifiuta dentro il repo, anche tramite symlink.
 
 ## 5. Prepara il 2026 (prova, poi `--apply`)
 - [ ] **Release-manager, prova** (non scrive nulla; se il piano non torna, ferma tutto e scrivi al tech-lead):
 ```zsh
-node /Volumes/Dev/repos/bagna-halloween/scripts/prepare-edition.mjs --from 2025 --to 2026 --export-dir /Volumes/Dev/privati/bagna-halloween --key /Volumes/Dev/privati/bagna-halloween/service-account.json
+node /Volumes/Dev/repos/bagna-halloween/scripts/prepare-edition.mjs --from 2025 --to 2026
 ```
 - [ ] **Release-manager, applica** (stesso comando con `--apply` in fondo).
 
 ## 5b. Revoca la chiave (subito dopo il passo 5)
 I passi 6-7 non la usano.
 - [ ] **CEO, in console Google Cloud > IAM > Account di servizio:** elimina la chiave (e, se creato apposta, l'account di servizio).
-- [ ] **Release-manager:** `rm /Volumes/Dev/privati/bagna-halloween/service-account.json`, poi scrive nella issue #7 le date di consegna e di revoca.
+- [ ] **Release-manager:** il file della chiave, ormai revocata e quindi inerte, si cancella con il comando di pulizia (sotto) insieme a export e regole; se si vuole toglierlo prima, `clean` cancella tutto, quindi solo dopo che export e regole non servono piu'. Scrive nella issue #7 le date di consegna e di revoca.
 
 ## 6. Sito (solo dopo il passo 5)
 - [ ] **Release-manager:** su Netlify NON impostare `VITE_MAP_IMAGE` ne' `VITE_USE_EMULATORS`. `VITE_ADMIN_ROUTE` e' facoltativa.
@@ -78,13 +85,11 @@ I passi 6-7 non la usano.
 - [ ] A fine serata "Metti in pausa", poi "Pubblica classifica": le case si accendono sulla mappa in ordine.
 
 ## Dopo l'evento
-- [ ] **Entro il 2026-11-30, release-manager** (data fissa, da mettere nel calendario): cancella prima i file e poi la cartella:
+- [ ] **Entro il 2026-11-30, release-manager** (data fissa, da mettere nel calendario): un solo comando cancella export, regole salvate e chiave (`edizione-*.json`, `regole-pubblicate.rules`, `service-account.json`) e rimuove la cartella; se ci sono altri elementi li lascia e non rimuove la cartella:
 ```zsh
-rm /Volumes/Dev/privati/bagna-halloween/edizione-2025.json
-rm /Volumes/Dev/privati/bagna-halloween/regole-pubblicate.rules
-rmdir /Volumes/Dev/privati/bagna-halloween
+node /Volumes/Dev/repos/bagna-halloween/scripts/private.mjs clean
 ```
-  Se nella cartella restano altri export, cancellali prima di `rmdir`. Poi scrive nella issue #7 che export e regole salvate sono stati eliminati, con la data.
+  Stampa il numero di file cancellati. Poi scrive nella issue #7 che export e regole salvate sono stati eliminati, con la data.
 - **Voti in Firestore (2025 e 2026):** la durata di conservazione la decide il privacy-officer, sull'informativa. Fino ad allora restano nel database e non si cancellano. Se servira' cancellarli, serve una nuova chiave per quell'operazione e una richiesta esplicita del tech-lead.
 
 ## Se qualcosa va storto

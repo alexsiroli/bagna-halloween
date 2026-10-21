@@ -1,9 +1,8 @@
 // Prepara una nuova edizione. Di default e' una PROVA che non scrive nulla: aggiungi --apply.
 // Lo lancia il release-manager contro la produzione, DOPO l'export (vedi docs/EDIZIONE-2026.md):
-//   node /Volumes/Dev/repos/bagna-halloween/scripts/prepare-edition.mjs --from 2025 --to 2026 \
-//     --export-dir /Volumes/Dev/privati/bagna-halloween \
-//     --key /Volumes/Dev/privati/bagna-halloween/service-account.json --apply
-// --key ed --export-dir devono stare FUORI dal repo.
+//   node /Volumes/Dev/repos/bagna-halloween/scripts/prepare-edition.mjs --from 2025 --to 2026 --apply
+// Di default --key ed --export-dir stanno nella cartella privata in home (vedi private-dir.mjs);
+// se passati devono stare FUORI dal repo.
 // 1. Marca `edition: <from>` sulle case che non hanno ancora il campo.
 // 2. config/app: edition = <to>, votingOpen = false (si aprono dall'admin la sera dell'evento).
 // 3. config/results: classifica ritirata per la nuova edizione.
@@ -11,9 +10,10 @@
 // Con FIRESTORE_EMULATOR_HOST impostato lavora sull'emulatore (--key non serve).
 import { cert, initializeApp } from 'firebase-admin/app';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { access } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { requireOutsideRepo } from './outside-repo.mjs';
+import { exportFile, KEY_FILE, privateDir } from './private-dir.mjs';
 
 const arg = (name, fallback) => {
   const index = process.argv.indexOf(`--${name}`);
@@ -24,26 +24,23 @@ const to = Number(arg('to', 2026));
 const apply = process.argv.includes('--apply');
 
 if (!Number.isInteger(from) || !Number.isInteger(to) || to <= from) {
-  console.error('Uso: node scripts/prepare-edition.mjs --from 2025 --to 2026 --key <service-account.json> [--export-dir <cartella>] [--apply]');
+  console.error('Uso: node scripts/prepare-edition.mjs --from 2025 --to 2026 [--key <service-account.json>] [--export-dir <cartella>] [--apply]');
   process.exit(1);
 }
 
 const emulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
-const key = arg('key', '');
-if (!emulator && !key) {
-  console.error('Passa --key <percorso del JSON del service account, fuori dal repo>.');
+const key = arg('key', join(privateDir(), KEY_FILE));
+if (!emulator) requireOutsideRepo(key, '--key');
+// L'export sta fuori dal repo: --export-dir e' la cartella data a export-edition.mjs --out.
+const exportDir = arg('export-dir', privateDir());
+requireOutsideRepo(exportDir, '--export-dir');
+if (!emulator && !existsSync(key)) {
+  console.error('Chiave non trovata: importala con scripts/private.mjs import-key <file> (o passa --key).');
   process.exit(1);
 }
-
-if (!emulator) requireOutsideRepo(key, '--key');
-
-// L'export sta fuori dal repo: --export-dir e' la cartella data a export-edition.mjs --out.
-const exportDir = arg('export-dir', '');
-if (exportDir) requireOutsideRepo(exportDir, '--export-dir');
-const exportFile = join(exportDir, `edizione-${from}.json`);
-const exported = exportDir ? await access(exportFile).then(() => true, () => false) : false;
+const exported = existsSync(join(exportDir, exportFile(from)));
 if (!exported) {
-  console.warn(`[attenzione] export ${from} non trovato (--export-dir <cartella>): esegui prima scripts/export-edition.mjs ${from} --out <cartella>.`);
+  console.warn(`[attenzione] export ${from} non trovato: esegui prima scripts/export-edition.mjs ${from}.`);
   if (apply && !process.argv.includes('--senza-export')) {
     console.error('Mi fermo. Aggiungi --senza-export solo se l\'export l\'hai gia\' salvato altrove.');
     process.exit(1);
