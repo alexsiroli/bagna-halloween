@@ -2,7 +2,7 @@
 import { expect, test } from '@playwright/test';
 import { initializeApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
-import { connectFirestoreEmulator, doc, getFirestore, setDoc } from 'firebase/firestore';
+import { connectFirestoreEmulator, doc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore';
 
 // Login dal popup dell'emulatore auth, scegliendo un utente creato dal seed.
 async function login(page, email) {
@@ -101,9 +101,17 @@ test('regole: un voto fuori scala viene rifiutato', async () => {
   const db = getFirestore(app);
   connectFirestoreEmulator(db, '127.0.0.1', 8181);
 
-  const token = JSON.stringify({ sub: 'furbetto', email: 'furbetto@esempio.test', email_verified: true });
+  // Utente nuovo a ogni giro: un secondo voto con createdAt diverso sarebbe una modifica, rifiutata.
+  const token = JSON.stringify({ sub: `furbetto-${Date.now()}`, email: 'furbetto@esempio.test', email_verified: true });
   const { user } = await signInWithCredential(auth, GoogleAuthProvider.credential(token));
-  const vote = (score) => ({ userId: user.uid, houseNumber: 3, score, edition: 2026 });
+  const vote = (score) => ({
+    userId: user.uid,
+    houseNumber: 3,
+    score,
+    edition: 2026,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
   const ref = doc(db, 'votes', `2026_${user.uid}_3`);
 
   await expect(setDoc(ref, vote(11))).rejects.toMatchObject({ code: 'permission-denied' });
