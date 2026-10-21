@@ -11,7 +11,10 @@ Netlify) e dalla dashboard. I comandi li esegue il release-manager dal Mac mini,
 percorsi assoluti, `npm --prefix`, `git -C` e un comando per volta.
 
 **L'ordine dei passi 1-6 e' tassativo** (indicazione del security-auditor): prima si salva il
-piano di ritorno, poi si prepara il database, solo alla fine si pubblicano regole e sito.
+piano di ritorno e si crea la allowlist, poi si pubblicano le regole e il CEO ricontrolla la
+console (3b), solo dopo si esporta e si prepara il database (4-5), alla fine il sito. Export e
+prepare usano l'Admin SDK e non dipendono dalle regole: pubblicandole prima, la finestra in cui
+chiunque puo' scrivere tra gli admin si chiude prima.
 
 ## 0. Prerequisiti
 
@@ -20,24 +23,31 @@ CEO:
 - Dashboard > Collegamenti: Firebase `bagna-halloween` collegato (id progetto: lo dice il proxy
   in `netlify.toml`; verificalo in Console Firebase, Impostazioni progetto).
 - Piano **Blaze** con avviso di spesa a 5 euro.
-- Un **service account** per gli script: Console Firebase, Impostazioni progetto, Account di
-  servizio, "Genera nuova chiave privata". Consegna il JSON dalla dashboard (Consegne) e non
-  condividerlo altrove.
+- Una **chiave di service account** per gli script. Consigliato: in Google Cloud, IAM, un
+  account di servizio dedicato con il solo ruolo **Cloud Datastore User**, e la chiave JSON
+  generata da li'. In alternativa, Console Firebase, Impostazioni progetto, Account di servizio,
+  "Genera nuova chiave privata" (ruoli piu' ampi, compresa la creazione di token). Consegna il
+  JSON dalla dashboard (Consegne) e non condividerlo altrove. Si revoca subito dopo il passo 5.
 
 Release-manager:
 
 - Cartella privata **fuori dal repo**, solo per l'utente:
   `mkdir -p /Volumes/Dev/privati/bagna-halloween` e poi `chmod 700 /Volumes/Dev/privati/bagna-halloween`.
-- La chiave consegnata va in `/Volumes/Dev/privati/bagna-halloween/sa.json` (`chmod 600`);
-  la copia in `consegne/in-arrivo/` si cancella e si annota in `consegne/registro.md`.
-- Repo aggiornato: `git -C /Volumes/Dev/repos/bagna-halloween branch --show-current` deve dire
-  `develop`, poi `git -C /Volumes/Dev/repos/bagna-halloween pull --ff-only` e
+- La chiave consegnata va in `/Volumes/Dev/privati/bagna-halloween/service-account.json`
+  (`chmod 600`). Il nome conta: i divieti di lettura degli agenti coprono `*service-account*.json`.
+  La copia in `consegne/in-arrivo/` si cancella e si annota in `consegne/registro.md`; la data di
+  consegna si scrive nella issue #7.
+- Repo aggiornato, con albero pulito (`git -C /Volumes/Dev/repos/bagna-halloween status --short`
+  non stampa nulla). Se `git -C /Volumes/Dev/repos/bagna-halloween branch --show-current` dice
+  `main`: `git -C /Volumes/Dev/repos/bagna-halloween switch develop`. Poi
+  `git -C /Volumes/Dev/repos/bagna-halloween pull --ff-only` e
   `npm --prefix /Volumes/Dev/repos/bagna-halloween ci`.
 - `firebase-tools` installato e con il login del progetto.
 
-Gli script (`export-edition.mjs`, `prepare-edition.mjs`) si rifiutano di partire se la chiave
-(`GOOGLE_APPLICATION_CREDENTIALS`) sta dentro il repo. Il resto dei comandi la passa con
-`env GOOGLE_APPLICATION_CREDENTIALS=... node ...`, cosi' non resta nell'ambiente della shell.
+Gli script (`export-edition.mjs`, `prepare-edition.mjs`) ricevono la chiave con `--key <percorso>`
+e si rifiutano di partire se la chiave, `--out` o `--export-dir` stanno dentro il repo, anche
+scritti con `../` o passando da un symlink (come `/Users/alexsiroli/AlxStudio/progetti/...`).
+La chiave non passa dall'ambiente della shell.
 
 ## 1. Salva le regole pubblicate oggi (piano di ritorno)
 
@@ -47,7 +57,8 @@ Console Firebase, Firestore, **Regole**. Il CEO copia il testo attuale e lo cons
 dashboard come file di testo; il release-manager lo salva in
 `/Volumes/Dev/privati/bagna-halloween/regole-pubblicate.rules` e lo confronta con
 `firestore.rules` del repo. Se oggi le regole permettono a chiunque di scrivere `houses` o
-`config`, il sito e' esposto finche' non si arriva al passo 5.
+`config`, il sito e' esposto finche' non si arriva al passo 3: va scritto nella issue #7 e il
+controllo del passo 3b diventa obbligatorio anche sui dati 2025 (case modificate, admin aggiunti).
 
 ## 2. Crea la allowlist degli admin
 
@@ -61,44 +72,9 @@ Solo chi e' in questa lista (con email verificata, come tutte quelle Google) puo
 l'area admin e scrivere case e configurazione. Per aggiungere un admin in futuro basta
 modificare l'array.
 
-## 3. Archivia il 2025 (sola lettura, fuori dal repo)
+## 3. Pubblica le regole
 
-Chi: **release-manager**. Serve prima: passi 0, 1 e 2.
-
-```zsh
-env GOOGLE_APPLICATION_CREDENTIALS=/Volumes/Dev/privati/bagna-halloween/sa.json node /Volumes/Dev/repos/bagna-halloween/scripts/export-edition.mjs 2025 --out /Volumes/Dev/privati/bagna-halloween
-```
-
-Crea `/Volumes/Dev/privati/bagna-halloween/edizione-2025.json` con case, voti, config e un
-riepilogo con medie e conteggi per casa. Lo script fa solo letture. `--out` e' obbligatorio e
-lo script esce con errore se la cartella (anche scritta con `../`) sta dentro il repo: il file
-contiene uid e nomi dei votanti. La riga `exports/` in `.gitignore` resta solo come rete di
-sicurezza.
-
-I documenti senza campo `edition` vengono considerati 2025.
-
-## 4. Prepara il 2026
-
-Chi: **release-manager**. Serve prima: l'export del passo 3.
-
-Prima la prova, che non scrive nulla e stampa il piano:
-
-```zsh
-env GOOGLE_APPLICATION_CREDENTIALS=/Volumes/Dev/privati/bagna-halloween/sa.json node /Volumes/Dev/repos/bagna-halloween/scripts/prepare-edition.mjs --from 2025 --to 2026 --export-dir /Volumes/Dev/privati/bagna-halloween
-```
-
-Se il piano torna (numero di case da marcare, `config/app` attuale), applica con lo stesso
-comando e `--apply` in fondo. Se non torna, ci si ferma e si scrive al tech-lead.
-
-Cosa fa: aggiunge `edition: 2025` alle case che non l'hanno, imposta `config/app` con
-`edition: 2026` e `votingOpen: false`, e azzera `config/results` (classifica non
-pubblicata). Non cancella niente: le case e i voti 2025 restano nel database, filtrati per
-edizione. Senza l'export del passo 3 (cercato in `--export-dir`) lo script si rifiuta di
-applicare.
-
-## 5. Pubblica le regole
-
-Chi: **release-manager**. Serve prima: passi 1-4 completati.
+Chi: **release-manager**. Serve prima: passi 0, 1 e 2 completati.
 
 `firebase deploy` dagli agenti oggi e' negato dal guard: prima del passo serve il permesso del CEO (`ops/bin/chiedi-permesso`), chiesto dal release-manager.
 
@@ -109,7 +85,61 @@ firebase deploy --only firestore:rules --project bagna-halloween --config /Volum
 Ritorno indietro: il CEO incolla nella console le regole salvate al passo 1 e pubblica.
 
 Nota: da qui la vecchia versione del sito non puo' piu' salvare voti (i voti ora richiedono
-`edition`). Con le votazioni chiuse dal passo 4 non e' un problema: si passa subito al sito.
+`edition`). Con le votazioni chiuse non e' un problema: si passa al sito dopo i passi 4 e 5.
+
+### 3b. Ricontrollo in console
+
+Chi: **CEO**, subito dopo il passo 3. Fino a li' le regole vecchie potevano essere aperte e
+qualcuno puo' aver scritto dati (anche `config/admins`, di cui le nuove regole si fidano). In
+console, Firestore, Dati:
+
+- `config/admins`, campo `emails`: solo le email attese e nient'altro.
+- `config/app` e `config/results`: nessun valore estraneo.
+- Collezione `houses`: nessuna casa con id `2026_*` gia' presente.
+
+Se qualcosa non torna, **ferma tutto e avvisa il tech-lead**: non si procede con i passi 4-6.
+
+## 4. Archivia il 2025 (sola lettura, fuori dal repo)
+
+Chi: **release-manager**. Serve prima: passi 0-3 e il ricontrollo 3b.
+
+```zsh
+node /Volumes/Dev/repos/bagna-halloween/scripts/export-edition.mjs 2025 --out /Volumes/Dev/privati/bagna-halloween --key /Volumes/Dev/privati/bagna-halloween/service-account.json
+```
+
+Crea `/Volumes/Dev/privati/bagna-halloween/edizione-2025.json` (permessi 600) con case, voti,
+config e un riepilogo con medie e conteggi per casa. Lo script fa solo letture. `--out` e
+`--key` sono obbligatori e lo script esce con errore se uno dei due (anche scritto con `../` o
+via symlink) sta dentro il repo: il file contiene uid e nomi dei votanti. La riga `exports/`
+in `.gitignore` resta solo come rete di sicurezza.
+
+I documenti senza campo `edition` vengono considerati 2025.
+
+## 5. Prepara il 2026
+
+Chi: **release-manager**. Serve prima: l'export del passo 4.
+
+Prima la prova, che non scrive nulla e stampa il piano:
+
+```zsh
+node /Volumes/Dev/repos/bagna-halloween/scripts/prepare-edition.mjs --from 2025 --to 2026 --export-dir /Volumes/Dev/privati/bagna-halloween --key /Volumes/Dev/privati/bagna-halloween/service-account.json
+```
+
+Se il piano torna (numero di case da marcare, `config/app` attuale), applica con lo stesso
+comando e `--apply` in fondo. Se non torna, ci si ferma e si scrive al tech-lead.
+
+Cosa fa: aggiunge `edition: 2025` alle case che non l'hanno, imposta `config/app` con
+`edition: 2026` e `votingOpen: false`, e azzera `config/results` (classifica non
+pubblicata). Non cancella niente: le case e i voti 2025 restano nel database, filtrati per
+edizione. Senza l'export del passo 4 (cercato in `--export-dir`, che deve stare fuori dal
+repo) lo script si rifiuta di applicare.
+
+### 5b. Revoca la chiave
+
+Subito dopo il passo 5: i passi 6 e 7 non la usano. Il **CEO**, in console Google Cloud, IAM,
+Account di servizio, elimina la chiave (e l'account di servizio, se creato apposta). Il
+**release-manager** cancella `/Volumes/Dev/privati/bagna-halloween/service-account.json` e
+scrive nella issue #7 le date di consegna e di revoca.
 
 ## 6. Sito (solo dopo il passo 5)
 
@@ -119,11 +149,12 @@ Serve un'immagine `public/mappa-2026.webp`, larga circa 2000-2400 px e sotto i 6
 PDF dell'organizzazione, per esempio con ImageMagick:
 
 ```zsh
-magick -density 200 "mappa-2026.pdf[0]" -resize 2400x -quality 80 public/mappa-2026.webp
+magick -density 200 "/Users/alexsiroli/AlxStudio/consegne/in-arrivo/mappa-2026.pdf[0]" -resize 2400x -quality 80 /Volumes/Dev/worktrees/bagna-halloween/<ticket>/public/mappa-2026.webp
 ```
 
-oppure con `ffmpeg` da un PNG esportato: `ffmpeg -i mappa-2026.png -vf scale=2400:-1 -quality 80 public/mappa-2026.webp`.
-Il file arriva in `develop` con una PR come ogni altra modifica. Finche' il file manca, la
+oppure con `ffmpeg` da un PNG esportato: `ffmpeg -i /Users/alexsiroli/AlxStudio/consegne/in-arrivo/mappa-2026.png -vf scale=2400:-1 -quality 80 /Volumes/Dev/worktrees/bagna-halloween/<ticket>/public/mappa-2026.webp`.
+`<ticket>` e' il worktree del ticket della mappa (`ops/bin/wt bagna-halloween <ticket> <slug>`), non
+il checkout principale. Il file arriva in `develop` con una PR come ogni altra modifica. Finche' il file manca, la
 pagina Mappa mostra il link al PDF (`VITE_MAP_URL` o `/map.pdf`).
 
 Il vecchio `public/map.pdf` (14 MB) resta solo come ripiego: quando la webp c'e' si puo'
@@ -170,10 +201,14 @@ il 2025.
 
 ## 7. Dopo l'evento
 
-- **Entro 30 giorni dalla premiazione** si cancellano l'export e i voti. Release-manager:
-  `rm /Volumes/Dev/privati/bagna-halloween/edizione-2025.json` (e ogni altro export in quella
-  cartella), poi `rmdir /Volumes/Dev/privati/bagna-halloween`. La cancellazione dei voti in
-  Firestore (collezione `votes`) si fa solo su richiesta esplicita del tech-lead.
-- **Revoca la chiave del service account:** il CEO, in console Google Cloud, IAM, Account di
-  servizio, elimina la chiave; il release-manager cancella `sa.json`.
-- Il release-manager scrive nella issue la data di cancellazione e di revoca.
+- **Entro il 2026-11-30** (data fissa, da mettere nel calendario del release-manager) si
+  cancellano l'export e le regole salvate. Release-manager, prima i file e poi la cartella:
+  `rm /Volumes/Dev/privati/bagna-halloween/edizione-2025.json`, poi
+  `rm /Volumes/Dev/privati/bagna-halloween/regole-pubblicate.rules` (e ogni altro export in
+  quella cartella), per ultimo `rmdir /Volumes/Dev/privati/bagna-halloween`. Poi scrive nella
+  issue #7 la data di cancellazione.
+- **Voti in Firestore (2025 e 2026):** la durata di conservazione la decide il privacy-officer
+  sull'informativa. Fino ad allora restano nel database e non si cancellano. Se servira'
+  cancellarli, serve una nuova chiave per quell'operazione e una richiesta esplicita del
+  tech-lead.
+- La chiave del service account e' gia' stata revocata al passo 5b.
