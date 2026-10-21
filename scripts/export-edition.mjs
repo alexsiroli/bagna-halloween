@@ -1,15 +1,17 @@
 // Export in SOLA LETTURA di un'edizione: case, voti, config/app e config/results in JSON.
 // Lo lancia il release-manager contro la produzione (vedi docs/EDIZIONE-2026.md):
-//   node /Volumes/Dev/repos/bagna-halloween/scripts/export-edition.mjs 2025 \
-//     --out /Volumes/Dev/privati/bagna-halloween --key /Volumes/Dev/privati/bagna-halloween/service-account.json
-// Scrive <out>/edizione-<anno>.json. --out e --key sono obbligatori e devono stare FUORI dal repo:
-// il file contiene uid e nomi dei votanti, la chiave da' accesso al database.
+//   node /Volumes/Dev/repos/bagna-halloween/scripts/export-edition.mjs 2025
+// Scrive <out>/edizione-<anno>.json. Di default --out e --key stanno nella cartella privata in home
+// (vedi private-dir.mjs; la chiave ci arriva con private.mjs import-key). Se passati, devono stare
+// FUORI dal repo: il file contiene uid e nomi dei votanti, la chiave da' accesso al database.
 // Con FIRESTORE_EMULATOR_HOST impostato legge l'emulatore invece della produzione (--key non serve).
 import { cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { requireOutsideRepo } from './outside-repo.mjs';
+import { ensurePrivateDir, exportFile, KEY_FILE, privateDir } from './private-dir.mjs';
 
 // I documenti creati prima del campo `edition` appartengono al 2025.
 const LEGACY_EDITION = 2025;
@@ -19,21 +21,20 @@ const arg = (name) => {
   const index = process.argv.indexOf(`--${name}`);
   return index > -1 ? process.argv[index + 1] : undefined;
 };
-const out = arg('out');
-if (!Number.isInteger(edition) || !out) {
-  console.error('Uso: node scripts/export-edition.mjs <anno> --out <cartella fuori dal repo> --key <service-account.json fuori dal repo>');
-  console.error('es.  node scripts/export-edition.mjs 2025 --out /Volumes/Dev/privati/bagna-halloween --key /Volumes/Dev/privati/bagna-halloween/service-account.json');
+const out = arg('out') ?? privateDir();
+if (!Number.isInteger(edition)) {
+  console.error('Uso: node scripts/export-edition.mjs <anno> [--out <cartella fuori dal repo>] [--key <service-account.json fuori dal repo>]');
   process.exit(1);
 }
 requireOutsideRepo(out, '--out');
 
 const emulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
-const key = arg('key');
-if (!emulator && !key) {
-  console.error('Passa --key <percorso del JSON del service account, fuori dal repo>.');
+const key = arg('key') ?? join(privateDir(), KEY_FILE);
+if (!emulator) requireOutsideRepo(key, '--key');
+if (!emulator && !existsSync(key)) {
+  console.error('Chiave non trovata: importala con scripts/private.mjs import-key <file> (o passa --key).');
   process.exit(1);
 }
-if (!emulator) requireOutsideRepo(key, '--key');
 initializeApp(
   emulator
     ? { projectId: process.env.GCLOUD_PROJECT || 'demo-bagna-halloween' }
@@ -86,7 +87,7 @@ const output = {
   votes,
 };
 
-await mkdir(resolve(out), { recursive: true, mode: 0o700 });
-const file = join(resolve(out), `edizione-${edition}.json`);
+await (arg('out') ? mkdir(resolve(out), { recursive: true, mode: 0o700 }) : ensurePrivateDir());
+const file = join(resolve(out), exportFile(edition));
 await writeFile(file, `${JSON.stringify(output, null, 2)}\n`, { mode: 0o600 });
-console.log(`[export] ${file}: ${houses.length} case, ${votes.length} voti (edizione ${edition}).`);
+console.log(`[export] ${exportFile(edition)}: ${houses.length} case, ${votes.length} voti (edizione ${edition}).`);

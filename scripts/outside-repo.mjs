@@ -22,7 +22,7 @@ export function requireOutsideRepo(path, label) {
   const rel = relative(repo, target);
   const outside = rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel);
   if (!outside) {
-    console.error(`${label} sta dentro il repo (${target}): usa una cartella fuori, es. /Volumes/Dev/privati/bagna-halloween/`);
+    console.error(`${label} sta dentro il repo (${target}): usa una cartella fuori dal repo (di default quella privata in home).`);
     process.exit(1);
   }
 }
