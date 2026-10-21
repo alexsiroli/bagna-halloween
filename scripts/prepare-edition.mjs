@@ -1,6 +1,7 @@
 // Prepara una nuova edizione. Di default e' una PROVA che non scrive nulla: aggiungi --apply.
-// Lo lancia l'utente contro la produzione, DOPO l'export (vedi docs/EDIZIONE-2026.md):
-//   GOOGLE_APPLICATION_CREDENTIALS=/percorso/service-account.json node scripts/prepare-edition.mjs --from 2025 --to 2026 --apply
+// Lo lancia il release-manager contro la produzione, DOPO l'export (vedi docs/EDIZIONE-2026.md):
+//   GOOGLE_APPLICATION_CREDENTIALS=/Volumes/Dev/privati/bagna-halloween/sa.json node scripts/prepare-edition.mjs \
+//     --from 2025 --to 2026 --export-dir /Volumes/Dev/privati/bagna-halloween --apply
 // 1. Marca `edition: <from>` sulle case che non hanno ancora il campo.
 // 2. config/app: edition = <to>, votingOpen = false (si aprono dall'admin la sera dell'evento).
 // 3. config/results: classifica ritirata per la nuova edizione.
@@ -9,6 +10,8 @@
 import { applicationDefault, initializeApp } from 'firebase-admin/app';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { access } from 'node:fs/promises';
+import { join } from 'node:path';
+import { requireOutsideRepo } from './outside-repo.mjs';
 
 const arg = (name, fallback) => {
   const index = process.argv.indexOf(`--${name}`);
@@ -19,7 +22,7 @@ const to = Number(arg('to', 2026));
 const apply = process.argv.includes('--apply');
 
 if (!Number.isInteger(from) || !Number.isInteger(to) || to <= from) {
-  console.error('Uso: node scripts/prepare-edition.mjs --from 2025 --to 2026 [--apply]');
+  console.error('Uso: node scripts/prepare-edition.mjs --from 2025 --to 2026 [--export-dir <cartella>] [--apply]');
   process.exit(1);
 }
 
@@ -29,10 +32,14 @@ if (!emulator && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
   process.exit(1);
 }
 
-const exportFile = `exports/edizione-${from}.json`;
-const exported = await access(exportFile).then(() => true, () => false);
+if (!emulator) requireOutsideRepo(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'GOOGLE_APPLICATION_CREDENTIALS');
+
+// L'export sta fuori dal repo: --export-dir e' la cartella data a export-edition.mjs --out.
+const exportDir = arg('export-dir', '');
+const exportFile = join(exportDir, `edizione-${from}.json`);
+const exported = exportDir ? await access(exportFile).then(() => true, () => false) : false;
 if (!exported) {
-  console.warn(`[attenzione] ${exportFile} non esiste: esegui prima scripts/export-edition.mjs ${from}.`);
+  console.warn(`[attenzione] export ${from} non trovato (--export-dir <cartella>): esegui prima scripts/export-edition.mjs ${from} --out <cartella>.`);
   if (apply && !process.argv.includes('--senza-export')) {
     console.error('Mi fermo. Aggiungi --senza-export solo se l\'export l\'hai gia\' salvato altrove.');
     process.exit(1);
