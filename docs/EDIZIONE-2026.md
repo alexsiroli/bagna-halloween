@@ -100,6 +100,8 @@ applicare.
 
 Chi: **release-manager**. Serve prima: passi 1-4 completati.
 
+`firebase deploy` dagli agenti oggi e' negato dal guard: prima del passo serve il permesso del CEO (`ops/bin/chiedi-permesso`), chiesto dal release-manager.
+
 ```zsh
 firebase deploy --only firestore:rules --project bagna-halloween --config /Volumes/Dev/repos/bagna-halloween/firebase.json
 ```
@@ -133,13 +135,15 @@ Variabili (Site settings, Environment variables), stesse di oggi piu' eventuali 
 
 | Variabile | Valore |
 |---|---|
-| `VITE_FIREBASE_*` | invariati |
+| `VITE_FIREBASE_*` | invariati, tranne `VITE_FIREBASE_AUTH_DOMAIN` (vedi sotto) |
+| `VITE_FIREBASE_AUTH_DOMAIN` | il dominio del sito servito: oggi `bagna-halloween.netlify.app`; `halloween.alxstudio.it` quando ci sara' il dominio (da autorizzare anche in Firebase Auth) |
 | `VITE_ADMIN_ROUTE` | facoltativa (default `/admin`); ora e' solo un indirizzo, non una protezione |
 | `VITE_MAP_URL` | link al PDF di ripiego (facoltativa) |
 | `VITE_MAP_IMAGE` | **non** impostarla in produzione (serve solo per la mappa segnaposto) |
 
 Non impostare mai `VITE_USE_EMULATORS` su Netlify. Le variabili segrete si scrivono solo con
-l'helper dell'HQ (`ops/bin/imposta-env`).
+l'helper dell'HQ: `python3 /Users/alexsiroli/AlxStudio/ops/bin/imposta-env netlify <progetto> <NOME> <ambiente>`
+(valore messo dal CEO nel Portachiavi da dashboard > Collegamenti).
 
 Prima un deploy di anteprima da `develop`.
 

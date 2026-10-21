@@ -40,6 +40,7 @@ env GOOGLE_APPLICATION_CREDENTIALS=/Volumes/Dev/privati/bagna-halloween/sa.json 
 - [ ] **Release-manager, applica** (stesso comando con `--apply` in fondo).
 
 ## 5. Pubblica le regole
+- [ ] `firebase deploy` dagli agenti oggi e' negato dal guard: prima del passo serve il permesso del CEO (`ops/bin/chiedi-permesso`), chiesto dal release-manager.
 - [ ] **Release-manager:**
 ```zsh
 firebase deploy --only firestore:rules --project bagna-halloween --config /Volumes/Dev/repos/bagna-halloween/firebase.json
@@ -49,6 +50,7 @@ Da questo momento il vecchio sito non salva piu' voti: passa subito al passo 6.
 
 ## 6. Sito (solo dopo il passo 5)
 - [ ] **Release-manager:** su Netlify NON impostare `VITE_MAP_IMAGE` ne' `VITE_USE_EMULATORS`. `VITE_ADMIN_ROUTE` e' facoltativa.
+- [ ] **Release-manager:** su Netlify `VITE_FIREBASE_AUTH_DOMAIN` deve valere il dominio del sito servito: oggi `bagna-halloween.netlify.app`, `halloween.alxstudio.it` quando ci sara' il dominio (da autorizzare anche in Firebase Auth). Le variabili si scrivono solo con `python3 /Users/alexsiroli/AlxStudio/ops/bin/imposta-env netlify <progetto> <NOME> <ambiente>` (valore messo dal CEO nel Portachiavi da dashboard > Collegamenti).
 - [ ] **Release-manager:** anteprima Netlify da `develop`.
 - [ ] **CEO, da telefono, sull'anteprima (prova generale):**
   - [ ] Home: "Edizione 2026 · votazioni chiuse".
