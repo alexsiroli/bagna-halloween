@@ -1,13 +1,15 @@
 // Prepara una nuova edizione. Di default e' una PROVA che non scrive nulla: aggiungi --apply.
 // Lo lancia il release-manager contro la produzione, DOPO l'export (vedi docs/EDIZIONE-2026.md):
-//   GOOGLE_APPLICATION_CREDENTIALS=/Volumes/Dev/privati/bagna-halloween/sa.json node scripts/prepare-edition.mjs \
-//     --from 2025 --to 2026 --export-dir /Volumes/Dev/privati/bagna-halloween --apply
+//   node /Volumes/Dev/repos/bagna-halloween/scripts/prepare-edition.mjs --from 2025 --to 2026 \
+//     --export-dir /Volumes/Dev/privati/bagna-halloween \
+//     --key /Volumes/Dev/privati/bagna-halloween/service-account.json --apply
+// --key ed --export-dir devono stare FUORI dal repo.
 // 1. Marca `edition: <from>` sulle case che non hanno ancora il campo.
 // 2. config/app: edition = <to>, votingOpen = false (si aprono dall'admin la sera dell'evento).
 // 3. config/results: classifica ritirata per la nuova edizione.
 // Non cancella niente: case e voti degli anni passati restano, filtrati per edizione.
-// Con FIRESTORE_EMULATOR_HOST impostato lavora sull'emulatore.
-import { applicationDefault, initializeApp } from 'firebase-admin/app';
+// Con FIRESTORE_EMULATOR_HOST impostato lavora sull'emulatore (--key non serve).
+import { cert, initializeApp } from 'firebase-admin/app';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -22,20 +24,22 @@ const to = Number(arg('to', 2026));
 const apply = process.argv.includes('--apply');
 
 if (!Number.isInteger(from) || !Number.isInteger(to) || to <= from) {
-  console.error('Uso: node scripts/prepare-edition.mjs --from 2025 --to 2026 [--export-dir <cartella>] [--apply]');
+  console.error('Uso: node scripts/prepare-edition.mjs --from 2025 --to 2026 --key <service-account.json> [--export-dir <cartella>] [--apply]');
   process.exit(1);
 }
 
 const emulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
-if (!emulator && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error('Imposta GOOGLE_APPLICATION_CREDENTIALS con il percorso del JSON del service account.');
+const key = arg('key', '');
+if (!emulator && !key) {
+  console.error('Passa --key <percorso del JSON del service account, fuori dal repo>.');
   process.exit(1);
 }
 
-if (!emulator) requireOutsideRepo(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'GOOGLE_APPLICATION_CREDENTIALS');
+if (!emulator) requireOutsideRepo(key, '--key');
 
 // L'export sta fuori dal repo: --export-dir e' la cartella data a export-edition.mjs --out.
 const exportDir = arg('export-dir', '');
+if (exportDir) requireOutsideRepo(exportDir, '--export-dir');
 const exportFile = join(exportDir, `edizione-${from}.json`);
 const exported = exportDir ? await access(exportFile).then(() => true, () => false) : false;
 if (!exported) {
@@ -49,7 +53,7 @@ if (!exported) {
 initializeApp(
   emulator
     ? { projectId: process.env.GCLOUD_PROJECT || 'demo-bagna-halloween' }
-    : { credential: applicationDefault() },
+    : { credential: cert(key) },
 );
 const db = getFirestore();
 
