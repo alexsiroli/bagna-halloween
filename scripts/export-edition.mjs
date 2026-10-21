@@ -1,30 +1,43 @@
 // Export in SOLA LETTURA di un'edizione: case, voti, config/app e config/results in JSON.
-// Lo lancia l'utente contro la produzione (vedi docs/EDIZIONE-2026.md):
-//   GOOGLE_APPLICATION_CREDENTIALS=/percorso/service-account.json node scripts/export-edition.mjs 2025
-// Scrive exports/edizione-<anno>.json. La cartella e' ignorata da git: contiene uid e nomi dei votanti.
-// Con FIRESTORE_EMULATOR_HOST impostato legge l'emulatore invece della produzione.
-import { applicationDefault, initializeApp } from 'firebase-admin/app';
+// Lo lancia il release-manager contro la produzione (vedi docs/EDIZIONE-2026.md):
+//   node /Volumes/Dev/repos/bagna-halloween/scripts/export-edition.mjs 2025 \
+//     --out /Volumes/Dev/privati/bagna-halloween --key /Volumes/Dev/privati/bagna-halloween/service-account.json
+// Scrive <out>/edizione-<anno>.json. --out e --key sono obbligatori e devono stare FUORI dal repo:
+// il file contiene uid e nomi dei votanti, la chiave da' accesso al database.
+// Con FIRESTORE_EMULATOR_HOST impostato legge l'emulatore invece della produzione (--key non serve).
+import { cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { requireOutsideRepo } from './outside-repo.mjs';
 
 // I documenti creati prima del campo `edition` appartengono al 2025.
 const LEGACY_EDITION = 2025;
 
 const edition = Number(process.argv[2]);
-if (!Number.isInteger(edition)) {
-  console.error('Uso: node scripts/export-edition.mjs <anno>   es. 2025');
+const arg = (name) => {
+  const index = process.argv.indexOf(`--${name}`);
+  return index > -1 ? process.argv[index + 1] : undefined;
+};
+const out = arg('out');
+if (!Number.isInteger(edition) || !out) {
+  console.error('Uso: node scripts/export-edition.mjs <anno> --out <cartella fuori dal repo> --key <service-account.json fuori dal repo>');
+  console.error('es.  node scripts/export-edition.mjs 2025 --out /Volumes/Dev/privati/bagna-halloween --key /Volumes/Dev/privati/bagna-halloween/service-account.json');
   process.exit(1);
 }
+requireOutsideRepo(out, '--out');
 
 const emulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
-if (!emulator && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  console.error('Imposta GOOGLE_APPLICATION_CREDENTIALS con il percorso del JSON del service account.');
+const key = arg('key');
+if (!emulator && !key) {
+  console.error('Passa --key <percorso del JSON del service account, fuori dal repo>.');
   process.exit(1);
 }
+if (!emulator) requireOutsideRepo(key, '--key');
 initializeApp(
   emulator
     ? { projectId: process.env.GCLOUD_PROJECT || 'demo-bagna-halloween' }
-    : { credential: applicationDefault() },
+    : { credential: cert(key) },
 );
 const db = getFirestore();
 
@@ -73,7 +86,7 @@ const output = {
   votes,
 };
 
-await mkdir('exports', { recursive: true });
-const file = `exports/edizione-${edition}.json`;
-await writeFile(file, `${JSON.stringify(output, null, 2)}\n`);
+await mkdir(resolve(out), { recursive: true, mode: 0o700 });
+const file = join(resolve(out), `edizione-${edition}.json`);
+await writeFile(file, `${JSON.stringify(output, null, 2)}\n`, { mode: 0o600 });
 console.log(`[export] ${file}: ${houses.length} case, ${votes.length} voti (edizione ${edition}).`);
