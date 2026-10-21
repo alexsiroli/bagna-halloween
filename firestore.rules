@@ -1,0 +1,71 @@
+rules_version = '2';
+
+// Regole Firestore di Halloween di Bagnarola.
+// Sono l'unica vera protezione: la route admin e i controlli dell'app le riflettono soltanto.
+// Test: npm test (emulatore, tests/rules.test.mjs).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function configPath(name) {
+      return /databases/$(database)/documents/config/$(name);
+    }
+
+    // Admin: login Google con email verificata presente in config/admins.emails.
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && exists(configPath('admins'))
+        && request.auth.token.email in get(configPath('admins')).data.emails;
+    }
+
+    match /config/{docId} {
+      // config/admins contiene email: la leggono solo gli admin.
+      allow read: if docId != 'admins' || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /houses/{houseId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /votes/{voteId} {
+      // I voti degli altri non si leggono: ognuno vede i suoi, l'admin tutti.
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if validVote();
+      // In modifica createdAt resta quello originale.
+      allow update: if validVote()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+
+      // Voto valido: tuo, dell'edizione corrente, intero da 6 a 10, a votazioni aperte,
+      // su una casa esistente e visibile (`houses/${edition}_${houseNumber}`), con id `${edition}_${uid}_${houseNumber}`,
+      // updatedAt = ora del server, createdAt timestamp non futuro.
+      function validVote() {
+        let v = request.resource.data;
+        let app = get(configPath('app')).data;
+        return signedIn()
+          && v.updatedAt == request.time
+          && v.createdAt is timestamp
+          && v.createdAt <= request.time
+          && app.votingOpen == true
+          && v.keys().hasOnly(['userId', 'houseNumber', 'score', 'edition', 'createdAt', 'updatedAt'])
+          && v.userId == request.auth.uid
+          && v.edition == app.edition
+          && v.houseNumber is int
+          && v.score is int
+          && v.score >= 6
+          && v.score <= 10
+          && get(/databases/$(database)/documents/houses/$(string(v.edition) + '_' + string(v.houseNumber))).data.get('visible', true) != false
+          && voteId == string(v.edition) + '_' + request.auth.uid + '_' + string(v.houseNumber);
+      }
+    }
+  }
+}

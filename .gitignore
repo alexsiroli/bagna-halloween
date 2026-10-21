@@ -24,3 +24,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Export delle edizioni (dati personali dei votanti)
+exports/
+
+# Playwright
+test-results/
+playwright-report/
