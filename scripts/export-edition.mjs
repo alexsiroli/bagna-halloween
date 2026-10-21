@@ -8,7 +8,7 @@
 import { cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { existsSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { requireOutsideRepo } from './outside-repo.mjs';
 import { ensurePrivateDir, exportFile, KEY_FILE, privateDir } from './private-dir.mjs';
@@ -90,4 +90,5 @@ const output = {
 await (arg('out') ? mkdir(resolve(out), { recursive: true, mode: 0o700 }) : ensurePrivateDir());
 const file = join(resolve(out), exportFile(edition));
 await writeFile(file, `${JSON.stringify(output, null, 2)}\n`, { mode: 0o600 });
+await chmod(file, 0o600); // mode vale solo alla creazione: un file gia' esistente puo' averli piu' larghi
 console.log(`[export] ${exportFile(edition)}: ${houses.length} case, ${votes.length} voti (edizione ${edition}).`);

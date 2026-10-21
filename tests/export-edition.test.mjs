@@ -129,6 +129,19 @@ test('private: import-key rifiuta un symlink', () => {
   assert.ok(existsSync(real));
 });
 
+test('private: clean lascia gli elementi estranei e non rimuove la cartella', () => {
+  const source = join(tmp, 'chiave2.json');
+  writeFileSync(source, 'X');
+  privateRun(['import-key', source]);
+  const dir = join(tmp, 'home', 'Privati', 'bagna-halloween');
+  writeFileSync(join(dir, 'altro.txt'), 'estraneo');
+  const result = privateRun(['clean']);
+  assert.match(result.stdout, /restano 1 elementi estranei/);
+  assert.ok(existsSync(join(dir, 'altro.txt')));
+  assert.ok(!existsSync(join(dir, 'service-account.json')));
+  rmSync(dir, { recursive: true });
+});
+
 test('private: import-key sposta il file con permessi 600, clean cancella tutto', () => {
   const source = join(tmp, 'chiave-consegnata.json');
   writeFileSync(source, 'SEGRETO');

@@ -208,8 +208,8 @@ il 2025.
 ## 7. Dopo l'evento
 
 - **Entro il 2026-11-30** (data fissa, da mettere nel calendario del release-manager) si
-  cancellano export, regole salvate e chiave. Release-manager, un solo comando (cancella ogni
-  file della cartella privata e poi la cartella, stampa solo il conteggio):
+  cancellano export, regole salvate e chiave. Release-manager, un solo comando (cancella i file
+  creati dagli script, poi la cartella se e' vuota, e stampa solo il conteggio):
   `node /Volumes/Dev/repos/bagna-halloween/scripts/private.mjs clean`. Poi scrive nella
   issue #7 la data di cancellazione.
 - **Voti in Firestore (2025 e 2026):** la durata di conservazione la decide il privacy-officer

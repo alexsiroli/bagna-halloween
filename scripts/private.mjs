@@ -5,7 +5,7 @@
 // Stampa solo nomi e conteggi, mai il contenuto dei file.
 import { chmod, copyFile, lstat, readdir, rename, rm, rmdir, unlink } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
-import { ensurePrivateDir, KEY_FILE, privateDir, RULES_FILE } from './private-dir.mjs';
+import { assertRealDir, ensurePrivateDir, KEY_FILE, privateDir, RULES_FILE } from './private-dir.mjs';
 import { requireOutsideRepo } from './outside-repo.mjs';
 
 const TARGETS = { 'import-key': KEY_FILE, 'import-rules': RULES_FILE };
@@ -45,9 +45,17 @@ if (command in TARGETS) {
   if (names === null) {
     console.log('[clean] niente da cancellare: la cartella non esiste.');
   } else {
-    for (const name of names) await rm(join(dir, name), { recursive: true, force: true });
-    await rmdir(dir);
-    console.log(`[clean] cancellati ${names.length} file e rimossa la cartella.`);
+    await assertRealDir(dir);
+    // Solo i file che creano gli script: altro contenuto non si tocca (e la cartella resta).
+    const known = names.filter((name) => name === KEY_FILE || name === RULES_FILE || /^edizione-\d+\.json$/.test(name));
+    for (const name of known) await rm(join(dir, name), { force: true });
+    const left = names.length - known.length;
+    if (left) {
+      console.log(`[clean] cancellati ${known.length} file; restano ${left} elementi estranei: la cartella non e' stata rimossa.`);
+    } else {
+      await rmdir(dir);
+      console.log(`[clean] cancellati ${known.length} file e rimossa la cartella.`);
+    }
   }
 } else {
   fail('Uso: node scripts/private.mjs import-key <file> | import-rules <file> | clean');

@@ -85,7 +85,7 @@ I passi 6-7 non la usano.
 - [ ] A fine serata "Metti in pausa", poi "Pubblica classifica": le case si accendono sulla mappa in ordine.
 
 ## Dopo l'evento
-- [ ] **Entro il 2026-11-30, release-manager** (data fissa, da mettere nel calendario): un solo comando cancella export, regole salvate e chiave (qualunque file ci sia) e rimuove la cartella:
+- [ ] **Entro il 2026-11-30, release-manager** (data fissa, da mettere nel calendario): un solo comando cancella export, regole salvate e chiave (`edizione-*.json`, `regole-pubblicate.rules`, `service-account.json`) e rimuove la cartella; se ci sono altri elementi li lascia e non rimuove la cartella:
 ```zsh
 node /Volumes/Dev/repos/bagna-halloween/scripts/private.mjs clean
 ```
