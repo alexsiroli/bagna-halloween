@@ -59,8 +59,9 @@ Chi: **CEO** in console, poi **release-manager** sul Mac mini.
 Console Firebase, Firestore, **Regole**. Il CEO copia il testo attuale e lo consegna dalla
 dashboard come file di testo; il release-manager lo salva con
 `node /Volumes/Dev/repos/bagna-halloween/scripts/private.mjs import-rules /Users/alexsiroli/AlxStudio/consegne/in-arrivo/<file>`
-(diventa `regole-pubblicate.rules` nella cartella privata) e lo confronta con
-`firestore.rules` del repo senza stamparlo per intero. Se oggi le regole permettono a chiunque di scrivere `houses` o
+(diventa `regole-pubblicate.rules` nella cartella privata). Il confronto con
+`firestore.rules` del repo si fa **prima** dell'import, sul file ancora in `consegne/in-arrivo/`:
+dopo, il file sta nella cartella privata e gli agenti non possono leggerlo. Se oggi le regole permettono a chiunque di scrivere `houses` o
 `config`, il sito e' esposto finche' non si arriva al passo 3: va scritto nella issue #7 e il
 controllo del passo 3b diventa obbligatorio anche sui dati 2025 (case modificate, admin aggiunti).
 

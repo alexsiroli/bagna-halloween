@@ -3,7 +3,7 @@
 //   node scripts/private.mjs import-rules <file>  sposta le regole pubblicate oggi (piano di ritorno, 600)
 //   node scripts/private.mjs clean                cancella export, regole e chiave, poi rimuove la cartella
 // Stampa solo nomi e conteggi, mai il contenuto dei file.
-import { chmod, copyFile, readdir, rename, rm, rmdir, stat, unlink } from 'node:fs/promises';
+import { chmod, copyFile, lstat, readdir, rename, rm, rmdir, unlink } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 import { ensurePrivateDir, KEY_FILE, privateDir, RULES_FILE } from './private-dir.mjs';
 import { requireOutsideRepo } from './outside-repo.mjs';
@@ -31,8 +31,9 @@ if (command in TARGETS) {
   if (!source) fail(`Uso: node scripts/private.mjs ${command} <percorso del file>`);
   const from = resolve(source);
   requireOutsideRepo(from, 'il file');
-  const info = await stat(from).catch(() => null);
-  if (!info?.isFile()) fail(`${from} non esiste o non e' un file.`);
+  // lstat: un symlink non e' un file, spostarlo lascerebbe l'originale al suo posto.
+  const info = await lstat(from).catch(() => null);
+  if (!info?.isFile()) fail(`${from} non esiste o non e' un file (i symlink non sono ammessi).`);
   const dir = await ensurePrivateDir();
   const to = join(dir, TARGETS[command]);
   await move(from, to);

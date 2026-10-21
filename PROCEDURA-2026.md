@@ -24,7 +24,7 @@ node /Volumes/Dev/repos/bagna-halloween/scripts/private.mjs import-key /Users/al
 
 ## 1. Salva le regole pubblicate oggi (piano di ritorno)
 - [ ] **CEO, in console:** Firestore > Regole, copia tutto il testo e consegnalo dalla dashboard come file di testo. E' il piano di ritorno.
-- [ ] **Release-manager:** salva il file (lo sposta nella cartella privata come `regole-pubblicate.rules`):
+- [ ] **Release-manager:** prima confronta il file consegnato con `firestore.rules` del repo (dopo l'import non e' piu' leggibile dagli agenti), poi salvalo (lo sposta nella cartella privata come `regole-pubblicate.rules`):
 ```zsh
 node /Volumes/Dev/repos/bagna-halloween/scripts/private.mjs import-rules /Users/alexsiroli/AlxStudio/consegne/in-arrivo/<file>
 ```

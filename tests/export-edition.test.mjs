@@ -118,6 +118,17 @@ test('private: import-key con file inesistente o dentro il repo esce con errore'
   assert.match(inside.stderr, /dentro il repo/);
 });
 
+test('private: import-key rifiuta un symlink', () => {
+  const real = join(tmp, 'vera.json');
+  writeFileSync(real, 'SEGRETO');
+  const sym = join(tmp, 'sym.json');
+  symlinkSync(real, sym);
+  const result = privateRun(['import-key', sym]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /symlink/);
+  assert.ok(existsSync(real));
+});
+
 test('private: import-key sposta il file con permessi 600, clean cancella tutto', () => {
   const source = join(tmp, 'chiave-consegnata.json');
   writeFileSync(source, 'SEGRETO');
