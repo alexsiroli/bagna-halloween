@@ -70,7 +70,7 @@ Su Netlify inserisci gli stessi valori in **Site settings → Build & deploy →
 4. In **Authentication, Settings, Authorized domains** aggiungi `localhost`, `127.0.0.1`, il
    dominio Firebase e quello pubblico (es. `bagna-halloween.netlify.app`).
 5. Cambio di edizione: `docs/EDIZIONE-2026.md` (export in sola lettura, preparazione,
-   deploy). `npm run firestore:init` resta per un progetto nuovo e vuoto.
+   deploy).
 
 ## Emulatori e test
 

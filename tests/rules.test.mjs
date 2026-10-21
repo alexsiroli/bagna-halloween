@@ -6,16 +6,30 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, getDocs, collection, query, setDoc, updateDoc, where } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  getDocs,
+  collection,
+  query,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
 
 const EDITION = 2026;
 let env;
 
+// Come Vote.jsx: createdAt e updatedAt sono serverTimestamp().
 const vote = (uid, houseNumber, score, extra = {}) => ({
   userId: uid,
   houseNumber,
   score,
   edition: EDITION,
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
   ...extra,
 });
 
@@ -71,7 +85,7 @@ test('case e config scrivibili solo dagli admin', async () => {
 test('un voto valido si crea e si modifica solo se e tuo', async () => {
   const alice = as('alice');
   await assertSucceeds(setDoc(doc(alice, 'votes/2026_alice_1'), vote('alice', 1, 8)));
-  await assertSucceeds(updateDoc(doc(alice, 'votes/2026_alice_1'), { score: 10 }));
+  await assertSucceeds(updateDoc(doc(alice, 'votes/2026_alice_1'), { score: 10, updatedAt: serverTimestamp() }));
   // Voto a nome di un altro, o con id che non corrisponde.
   await assertFails(setDoc(doc(alice, 'votes/2026_bob_1'), vote('bob', 1, 9)));
   await assertFails(setDoc(doc(alice, 'votes/2026_alice_2'), vote('alice', 1, 8)));
@@ -98,9 +112,44 @@ test('punteggio intero da 6 a 10', async () => {
   for (const score of [5, 11, 0, 7.5, '8']) {
     await assertFails(setDoc(doc(alice, 'votes/2026_alice_1'), vote('alice', 1, score)));
   }
-  for (const score of [6, 10]) {
-    await assertSucceeds(setDoc(doc(alice, 'votes/2026_alice_1'), vote('alice', 1, score)));
-  }
+  await assertSucceeds(setDoc(doc(alice, 'votes/2026_alice_1'), vote('alice', 1, 6)));
+  await assertSucceeds(updateDoc(doc(alice, 'votes/2026_alice_1'), { score: 10, updatedAt: serverTimestamp() }));
+});
+
+test('createdAt e updatedAt devono essere timestamp del server', async () => {
+  const alice = as('alice');
+  const ref = doc(alice, 'votes/2026_alice_1');
+  await assertFails(setDoc(ref, vote('alice', 1, 8, { createdAt: 'x' })));
+  await assertFails(setDoc(ref, vote('alice', 1, 8, { createdAt: 123 })));
+  // createdAt nel futuro e updatedAt scelto dal client.
+  await assertFails(setDoc(ref, vote('alice', 1, 8, { createdAt: Timestamp.fromMillis(Date.now() + 3600_000) })));
+  await assertFails(setDoc(ref, vote('alice', 1, 8, { updatedAt: Timestamp.fromMillis(Date.now() - 3600_000) })));
+  await assertFails(setDoc(ref, vote('alice', 1, 8, { updatedAt: 'x' })));
+  // Mancanti.
+  await assertFails(setDoc(ref, { userId: 'alice', houseNumber: 1, score: 8, edition: EDITION }));
+  await assertSucceeds(setDoc(ref, vote('alice', 1, 8)));
+});
+
+test('aggiornando un voto createdAt resta quello originale', async () => {
+  const created = Timestamp.fromMillis(Date.now() - 3600_000);
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), 'votes/2026_alice_1'), vote('alice', 1, 7, { createdAt: created, updatedAt: created })),
+  );
+  const ref = doc(as('alice'), 'votes/2026_alice_1');
+  await assertFails(setDoc(ref, vote('alice', 1, 9)));
+  await assertSucceeds(setDoc(ref, vote('alice', 1, 9, { createdAt: created })));
+});
+
+test('niente voti su case nascoste', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'houses/2026_2'), { number: 2, edition: EDITION, visible: false });
+    await setDoc(doc(db, 'houses/2026_3'), { number: 3, edition: EDITION });
+  });
+  const alice = as('alice');
+  await assertFails(setDoc(doc(alice, 'votes/2026_alice_2'), vote('alice', 2, 8)));
+  // Senza campo visible la casa conta come visibile.
+  await assertSucceeds(setDoc(doc(alice, 'votes/2026_alice_3'), vote('alice', 3, 8)));
 });
 
 test('niente voti a votazioni chiuse', async () => {

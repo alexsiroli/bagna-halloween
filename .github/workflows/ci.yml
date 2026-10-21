@@ -5,6 +5,9 @@ on:
   push:
     branches: [develop, main]
 
+permissions:
+  contents: read
+
 # Cancello di Alx Studio: i job devono essere verdi prima del merge (test e build obbligatori).
 jobs:
   web:
@@ -42,5 +45,5 @@ jobs:
           cache-dependency-path: ./package-lock.json
       - run: npm ci
       # firebase-tools non è tra le devDependencies (albero enorme): installato solo qui.
-      - run: npm install -g firebase-tools
+      - run: npm install -g firebase-tools@15.34.0
       - run: npm run test:rules
