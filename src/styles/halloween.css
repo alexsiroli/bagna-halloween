@@ -162,6 +162,7 @@ h3 {
 
 p {
   margin: 0;
+  text-wrap: pretty; /* niente parola orfana in fondo al paragrafo */
 }
 
 svg {
@@ -537,8 +538,9 @@ fieldset {
   border: 0;
 }
 
+/* Casa non trovata o numero mancante: e' un errore da correggere, quindi brace (finestra = acceso) */
 .field-message {
-  color: var(--finestra);
+  color: var(--brace);
   font-weight: 700;
 }
 
@@ -734,6 +736,7 @@ fieldset {
 .privacy-text ul {
   display: grid;
   gap: var(--space-2);
+  margin: 0; /* il ritmo lo da' il gap del pannello, come per i paragrafi */
   padding-left: var(--space-5);
 }
 
@@ -1343,8 +1346,9 @@ fieldset {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-4);
+  gap: var(--space-3) var(--space-4);
+  /* il doppio filetto occupa 7px: piu' respiro sopra e sotto, ai lati resta 16px per l'hashtag su una riga */
+  padding: var(--space-5) var(--space-4);
   border-radius: var(--radius-m);
   background: var(--ceramica);
   color: var(--smalto);
@@ -1353,7 +1357,7 @@ fieldset {
 
 .hashtag-plate__tag {
   font-family: var(--font-display);
-  font-size: clamp(1.2rem, 0.9rem + 2.4vw, 2.1rem);
+  font-size: clamp(1.15rem, 0.85rem + 2.4vw, 2.1rem);
   line-height: 1.1;
   overflow-wrap: anywhere;
 }
@@ -1424,6 +1428,8 @@ fieldset {
 .admin-switch {
   grid-template-columns: 1fr;
   align-items: center;
+  align-self: stretch; /* i due interruttori affiancati hanno la stessa altezza */
+  align-content: center;
 }
 
 .admin-switch h2 {
