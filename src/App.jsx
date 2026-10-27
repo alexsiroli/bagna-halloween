@@ -7,6 +7,7 @@ import AdminGate from './routes/AdminGate.jsx';
 import AlexSiroli from './routes/AlexSiroli.jsx';
 import Privacy from './routes/Privacy.jsx';
 import SiteFooter from './components/SiteFooter.jsx';
+import BackHomeLink from './components/BackHomeLink.jsx';
 
 // La route resta configurabile, ma la protezione vera sono login Google + config/admins + regole.
 const adminRouteRaw = import.meta.env.VITE_ADMIN_ROUTE || '/admin';
@@ -14,6 +15,7 @@ const adminRoute = adminRouteRaw.startsWith('/') ? adminRouteRaw : `/${adminRout
 
 const NotFound = () => (
   <div className="app-shell app-shell--narrow">
+    <BackHomeLink />
     <header className="page-head">
       <h1>Pagina non trovata</h1>
       <p>
