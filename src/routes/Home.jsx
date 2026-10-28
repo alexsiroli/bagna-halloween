@@ -34,7 +34,7 @@ function Home() {
           <MapTrifoldIcon className="home-link__icon" aria-hidden="true" weight="duotone" />
           <span className="home-link__text">
             <strong>Mappa del quartiere</strong>
-            <span>Trova le case al buio, con la torcia.</span>
+            <span>Trova le case sulla mappa.</span>
           </span>
           <ArrowRightIcon className="home-link__arrow" aria-hidden="true" weight="bold" />
         </Link>

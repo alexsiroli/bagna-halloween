@@ -141,7 +141,7 @@ repo) lo script si rifiuta di applicare.
 
 ### 5b. Revoca la chiave
 
-Subito dopo il passo 5: i passi 6 e 7 non la usano. Il **CEO**, in console Google Cloud, IAM,
+Subito dopo il passo 5 e dopo l'import della mappa (passo 6, punto 4: e' l'ultimo che usa la chiave); il passo 7 non la usa. Il **CEO**, in console Google Cloud, IAM,
 Account di servizio, elimina la chiave (e l'account di servizio, se creato apposta). Il
 **release-manager** scrive nella issue #7 le date di consegna e di revoca. Il file della chiave,
 ormai inerte, sparisce con il comando di pulizia del passo 7 (`clean` cancella tutto: non
@@ -157,6 +157,9 @@ preparare). Le posizioni sono dati della casa (`lat`, `lng`): si ricavano una vo
 1. **File elenco.** Lo prepara un agente dalla lista del CEO: CSV con intestazione
    `numero;titolo;via;civico;descrizione;lat;lng` (anche con la virgola, anche con BOM) oppure JSON con gli stessi
    campi in inglese. Esempio: `seeds/houses-2026.example.csv`. `lat` e `lng` si lasciano vuote.
+   **Il file con gli indirizzi non entra mai nel repo** (nemmeno in una PR o in un branch): la copia di lavoro sta in
+   `/Users/alexsiroli/AlxStudio/reports/piani/bagna-halloween-2026/case-2026.csv`, e anche `<elenco-posizioni.csv>` va
+   scritto fuori dal repo.
 2. **Geocodifica** (una volta sola, dal Mac, con rete): trova lat/lng da Nominatim, una richiesta ogni 1,1 s.
 
    ```zsh
@@ -167,7 +170,7 @@ preparare). Le posizioni sono dati della casa (`lat`, `lng`): si ricavano una vo
 3. **Controllo.** Apri `<elenco-posizioni.csv>` e guarda le posizioni; correggi a mano lat/lng sbagliate. Una posizione
    fuori dal riquadro di Cesenatico viene rifiutata dall'import.
 4. **Import.** Prima la prova (non scrive), poi `--apply`. Non cancella: elenca le case dell'edizione che non
-   sono nel file. Chiave e cartella privata come per `prepare-edition.mjs`.
+   sono nel file. Una casa gia' presente e nascosta dall'admin resta nascosta (`visible: true` solo alle nuove). Chiave e cartella privata come per `prepare-edition.mjs`.
 
    ```zsh
    node /Volumes/Dev/worktrees/bagna-halloween/<ticket>/scripts/import-houses.mjs --edition 2026 --file <elenco-posizioni.csv>

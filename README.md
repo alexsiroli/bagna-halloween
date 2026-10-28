@@ -11,7 +11,7 @@ Applicazione React + Vite per gestire la votazione delle case di Halloween, con 
 ## Funzionalità principali
 
 - Home mobile-first con stato dell'edizione e delle votazioni, mappa e contest fotografico.
-- Mappa del quartiere (`/mappa`) al buio con torcia e bottone "Accendi le luci"; le case sono
+- Mappa del quartiere (`/mappa`, Leaflet con tessere OpenStreetMap); le case sono
   posizionate dall'admin e, a classifica pubblicata, si accendono in ordine.
 - Pagina contest con l'hashtag dell'edizione (`#BagnaHalloween<anno>`).
 - Pagina voto protetta da login Google:
@@ -47,7 +47,6 @@ VITE_FIREBASE_PROJECT_ID=...
 VITE_FIREBASE_STORAGE_BUCKET=....appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
-VITE_MAP_URL=https://drive.google.com/...
 VITE_ADMIN_ROUTE=/admin
 ```
 
