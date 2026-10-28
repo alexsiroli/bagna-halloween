@@ -47,6 +47,8 @@ test('privacy: dal link accanto al login la pagina si apre', async ({ page }) =>
 
 test('mappa: segnaposto, scheda con Vota, case senza posizione in elenco', async ({ page }) => {
   await blockTiles(page);
+  // Mai il file reale dei punti: qui c'e' sempre "nessun file" (il server risponde con l'HTML dell'app).
+  await page.route('**/punti/*.json', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>x</title>' }));
   const errors = [];
   page.on('console', (msg) => {
     // Le tessere bloccate fanno scrivere un errore al browser: non e' un errore dell'app.
