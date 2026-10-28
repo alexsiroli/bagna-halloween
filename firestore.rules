@@ -22,10 +22,24 @@ service cloud.firestore {
         && request.auth.token.email in get(configPath('admins')).data.emails;
     }
 
+    // Nuovo elenco admin: solo emails e updatedAt cambiano, 1..50 email senza doppioni,
+    // e chi scrive resta in lista (nessuno si toglie, l'ultimo admin non sparisce).
+    function validAdmins() {
+      let next = request.resource.data;
+      return next.diff(resource.data).affectedKeys().hasOnly(['emails', 'updatedAt'])
+        && next.emails is list
+        && next.emails.size() >= 1
+        && next.emails.size() <= 50
+        && next.emails.toSet().size() == next.emails.size()
+        && request.auth.token.email in next.emails;
+    }
+
     match /config/{docId} {
       // config/admins contiene email: la leggono solo gli admin.
       allow read: if docId != 'admins' || isAdmin();
-      allow write: if isAdmin();
+      allow write: if docId != 'admins' && isAdmin();
+      // config/admins: mai create o delete dal client (si crea da console o script), update solo se valido.
+      allow update: if docId == 'admins' && isAdmin() && validAdmins();
     }
 
     match /houses/{houseId} {
