@@ -1,15 +1,15 @@
 {
   "note": "Strade chiuse al traffico dalle 18:30 alle 23:00 (dati di prova).",
   "points": [
-    { "type": "bar", "name": "Bar <b>DJ</b> set", "address": "Via di Prova 9", "lat": 44.2008, "lng": 12.3395 },
-    { "type": "food", "name": "Food truck di prova", "lat": 44.1998, "lng": 12.3388 },
-    { "type": "wc", "name": "Servizi igienici di prova", "lat": 44.1993, "lng": 12.3405 },
-    { "type": "parcheggio", "name": "Parcheggio di prova", "address": "Via del Parcheggio", "lat": 44.1986, "lng": 12.3432 },
-    { "type": "intrattenimento", "name": "Trampolieri di prova", "address": "Via Balitrona 22/C", "lat": 44.2003, "lng": 12.3415 },
+    { "type": "bar", "name": "Bar <b>DJ</b> set", "address": "Via di Prova 9", "lat": 44.2022, "lng": 12.3375 },
+    { "type": "food", "name": "Food truck di prova", "lat": 44.1952, "lng": 12.335 },
+    { "type": "wc", "name": "Servizi igienici di prova", "lat": 44.1952, "lng": 12.3445 },
+    { "type": "parcheggio", "name": "Parcheggio di prova", "address": "Via del Parcheggio", "lat": 44.2022, "lng": 12.3445 },
+    { "type": "intrattenimento", "name": "Trampolieri di prova", "address": "Via Balitrona 22/C", "lat": 44.2024, "lng": 12.341 },
     { "type": "giostra", "name": "Tipo sconosciuto: scartato", "lat": 44.2, "lng": 12.34 }
   ],
   "closedRoads": [
-    { "name": "Via Chiusa di Prova", "path": [[44.2011, 12.3381], [44.2002, 12.3399], [44.1994, 12.3418]] },
+    { "name": "Via Chiusa di Prova", "path": [[44.2018, 12.3335], [44.1998, 12.3375], [44.1975, 12.3345], [44.1958, 12.3385]] },
     { "name": "Una sola coordinata: scartata", "path": [[44.2, 12.34]] }
   ]
 }
