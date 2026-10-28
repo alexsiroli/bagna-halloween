@@ -221,3 +221,49 @@ test('regole: un voto fuori scala viene rifiutato', async () => {
   await expect(setDoc(ref, vote(5))).rejects.toMatchObject({ code: 'permission-denied' });
   await expect(setDoc(ref, vote(10))).resolves.toBeUndefined();
 });
+
+test('QR: /vota/1 dice quale casa si vota e dopo il login apre la scheda', async ({ page }) => {
+  await page.goto('/vota/1');
+  await expect(page.getByText('Stai per votare la casa 1 · La Casa delle Zucche')).toBeVisible();
+  await login(page, 'votante@esempio.test');
+  await expect(page.getByRole('dialog', { name: 'Casa 1' })).toBeVisible();
+  await expect(page).toHaveURL(/\/vota\/1$/);
+});
+
+test('QR: chi ha gia votato la casa ritrova il suo voto riaprendo /vota/1 e /vote?casa=1', async ({ page }) => {
+  await page.goto('/vote');
+  await login(page, 'votante@esempio.test');
+  await page.getByLabel('Numero della casa').fill('1');
+  await page.getByRole('button', { name: 'Cerca' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Casa 1' });
+  // Come sopra: se il seed ha gia 7, toccarlo lo toglierebbe.
+  const seven = dialog.getByRole('radio', { name: '7 su 10' });
+  const score = (await seven.getAttribute('aria-checked')) === 'true' ? 8 : 7;
+  await dialog.getByRole('radio', { name: `${score} su 10` }).click();
+  await dialog.getByRole('button', { name: 'Salva voto' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Voto salvato' })).toContainText(`casa 1, ${score} su 10`);
+
+  for (const url of ['/vota/1', '/vote?casa=1']) {
+    await page.goto(url);
+    const reopened = page.getByRole('dialog', { name: 'Casa 1' });
+    await expect(reopened).toBeVisible();
+    await expect(reopened.getByRole('radio', { name: `${score} su 10` })).toHaveAttribute('aria-checked', 'true');
+    await expect(reopened.getByRole('button', { name: 'Salva voto' })).toBeEnabled();
+  }
+});
+
+for (const numero of ['999', 'abc']) {
+  test(`QR: /vota/${numero} mostra un messaggio chiaro con e senza login`, async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (err) => errors.push(err.message));
+    await page.goto(`/vota/${numero}`);
+    const notice = page.getByRole('main').getByText(/non esiste in questa edizione/);
+    await expect(notice).toBeVisible();
+    await expect(page.getByRole('main').getByRole('link', { name: 'mappa' })).toHaveAttribute('href', '/mappa');
+    await login(page, 'votante@esempio.test');
+    await expect(page.getByText('Votante di prova')).toBeVisible();
+    await expect(notice).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+}
