@@ -1,12 +1,12 @@
 // QR per i cartelli A4 (uno del sito, uno per casa). SVG vettoriali: si stampano a qualsiasi dimensione.
-//   node scripts/qr.mjs --numbers 1-40 --out <cartella> [--base-url https://bagna-halloween.netlify.app]
+//   node scripts/qr.mjs --numbers 1-40 --out <cartella> [--base-url https://halloween.alxstudio.it]
 // Scrive qr-sito.svg (<base>/) e qr-casa-<numero>.svg (<base>/vota/<numero>). --numbers: intervalli e liste (1-12,15,20-22).
 import qrcode from 'qrcode-generator';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const DEFAULT_BASE_URL = 'https://bagna-halloween.netlify.app';
+export const DEFAULT_BASE_URL = 'https://halloween.alxstudio.it';
 const MAX_NUMBER = 9999; // evita intervalli enormi per errore di battitura
 const QUIET_ZONE = 4; // moduli di margine bianco intorno al QR
 
@@ -16,7 +16,7 @@ export function normalizeBase(base) {
   try {
     url = new URL(base);
   } catch {
-    throw new Error('--base-url non valido: deve essere un URL completo, es. https://bagna-halloween.netlify.app');
+    throw new Error('--base-url non valido: deve essere un URL completo, es. https://halloween.alxstudio.it');
   }
   if (!/^https?:$/.test(url.protocol)) throw new Error('--base-url non valido: deve iniziare con http:// o https://');
   return url.href.replace(/\/+$/, '');
@@ -63,7 +63,7 @@ function main() {
     const index = process.argv.indexOf(`--${name}`);
     return index > -1 ? process.argv[index + 1] : undefined;
   };
-  const usage = 'Uso: node scripts/qr.mjs --numbers 1-40 --out <cartella> [--base-url https://bagna-halloween.netlify.app]';
+  const usage = 'Uso: node scripts/qr.mjs --numbers 1-40 --out <cartella> [--base-url https://halloween.alxstudio.it]';
   try {
     const out = arg('out');
     // Senza il controllo su "--", "--out --numbers 1" creerebbe una cartella chiamata "--numbers".

@@ -50,7 +50,7 @@ VITE_FIREBASE_APP_ID=...
 VITE_ADMIN_ROUTE=/admin
 ```
 
-> Il dominio configurato viene usato come fallback in locale. In produzione l’app forza automaticamente l’hostname corrente (es. `bagna-halloween.netlify.app`) per evitare errori di login con Google.
+> `VITE_FIREBASE_AUTH_DOMAIN` vale per locale, emulatore, `netlify.app` e deploy preview. Solo quando il sito è servito da `halloween.alxstudio.it` l’app usa quell’hostname come dominio di login (same-origin, grazie al proxy `/__/auth/*` di `netlify.toml`), senza dipendere dalla variabile.
 
 Su Netlify inserisci gli stessi valori in **Site settings → Build & deploy → Environment**.
 
@@ -67,7 +67,7 @@ Su Netlify inserisci gli stessi valori in **Site settings → Build & deploy →
 3. Regole: `firestore.rules` (versionate, testate). Pubblicazione:
    `firebase deploy --only firestore:rules --project <id>`.
 4. In **Authentication, Settings, Authorized domains** aggiungi `localhost`, `127.0.0.1`, il
-   dominio Firebase e quello pubblico (es. `bagna-halloween.netlify.app`).
+   dominio Firebase e quelli pubblici (`halloween.alxstudio.it`, `bagna-halloween.netlify.app`).
 5. Cambio di edizione: `docs/EDIZIONE-2026.md` (export in sola lettura, preparazione,
    deploy).
 
@@ -91,7 +91,7 @@ Per la mappa con la classifica accesa: `node scripts/seed-emulator.mjs --results
 ## QR per i cartelli
 
 ```bash
-node scripts/qr.mjs --numbers 1-40 --out <cartella> [--base-url https://bagna-halloween.netlify.app]
+node scripts/qr.mjs --numbers 1-40 --out <cartella> [--base-url https://halloween.alxstudio.it]
 ```
 
 Scrive SVG vettoriali: `qr-sito.svg` (porta a `<base>/`) e `qr-casa-<numero>.svg` (porta a `<base>/vota/<numero>`).

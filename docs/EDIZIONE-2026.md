@@ -199,7 +199,7 @@ Variabili (Site settings, Environment variables), stesse di oggi piu' eventuali 
 | Variabile | Valore |
 |---|---|
 | `VITE_FIREBASE_*` | invariati, tranne `VITE_FIREBASE_AUTH_DOMAIN` (vedi sotto) |
-| `VITE_FIREBASE_AUTH_DOMAIN` | il dominio del sito servito: oggi `bagna-halloween.netlify.app`; `halloween.alxstudio.it` quando ci sara' il dominio (da autorizzare anche in Firebase Auth) |
+| `VITE_FIREBASE_AUTH_DOMAIN` | resta `bagna-halloween.netlify.app` (fallback per netlify.app, preview, locale); su `halloween.alxstudio.it` il codice usa l'hostname stesso, da autorizzare in Firebase Auth |
 | `VITE_ADMIN_ROUTE` | facoltativa (default `/admin`); ora e' solo un indirizzo, non una protezione |
 
 Non impostare mai `VITE_USE_EMULATORS` su Netlify. Le variabili segrete si scrivono solo con

@@ -1,8 +1,12 @@
 import { initializeApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
+import { resolveAuthDomain } from './authDomain.js';
 
-const resolvedAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+const resolvedAuthDomain = resolveAuthDomain(
+  window.location.hostname,
+  import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+);
 
 if (!resolvedAuthDomain) {
   console.warn('Firebase auth domain is not configured. Set VITE_FIREBASE_AUTH_DOMAIN.');
