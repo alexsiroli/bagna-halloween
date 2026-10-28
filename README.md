@@ -89,6 +89,15 @@ Il seed crea 12 case inventate con via, civico e posizione (due senza), 40 votan
 dell'emulatore: `admin@esempio.test` (admin), `votante@esempio.test`, `curioso@esempio.test`.
 Per la mappa con la classifica accesa: `node scripts/seed-emulator.mjs --results`.
 
+## QR per i cartelli
+
+```bash
+node scripts/qr.mjs --numbers 1-40 --out <cartella> [--base-url https://bagna-halloween.netlify.app]
+```
+
+Scrive SVG vettoriali: `qr-sito.svg` (porta a `<base>/`) e `qr-casa-<numero>.svg` (porta a `<base>/vota/<numero>`).
+`--numbers` accetta intervalli e liste (`1-12,15,20-22`).
+
 ## Build e deploy
 
 ```bash
