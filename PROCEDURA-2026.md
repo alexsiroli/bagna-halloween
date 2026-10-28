@@ -10,7 +10,7 @@ Da fare entro il **25 ottobre**, con le votazioni chiuse. Il dettaglio di ogni p
 - [ ] Dashboard > Collegamenti: Firebase `bagna-halloween` collegato.
 - [ ] Console Firebase: piano **Blaze** con avviso di spesa a 5 euro.
 - [ ] Chiave per gli script. Consigliato: in Google Cloud > IAM crea un account di servizio dedicato con il solo ruolo **Cloud Datastore User** e genera da li' la chiave JSON. In alternativa, Console Firebase > Impostazioni progetto > Account di servizio > "Genera nuova chiave privata" (ruoli piu' ampi). Consegna il JSON dalla dashboard (Consegne). Non aprirlo, non inoltrarlo.
-- [ ] Immagine `public/mappa-2026.webp` pronta (circa 2400 px, sotto 600 KB), vedi guida §6. Arriva in `develop` con una PR, non con un commit su `main`.
+- [ ] Elenco delle case (CSV/JSON) pronto, vedi guida §6 "Mappa 2026".
 
 ## Prima di iniziare (release-manager)
 - [ ] **Cartella privata.** Sta in home, fuori dal repo, e gli script la usano da soli (creata con permessi 700, file 600): **non nominarla mai nei comandi**, il guard li blocca. Non si legge e non si elenca; gli script stampano solo nomi e conteggi.
@@ -69,15 +69,15 @@ I passi 6-7 non la usano.
 - [ ] **Release-manager:** il file della chiave, ormai revocata e quindi inerte, si cancella con il comando di pulizia (sotto) insieme a export e regole; se si vuole toglierlo prima, `clean` cancella tutto, quindi solo dopo che export e regole non servono piu'. Scrive nella issue #7 le date di consegna e di revoca.
 
 ## 6. Sito (solo dopo il passo 5)
-- [ ] **Release-manager:** su Netlify NON impostare `VITE_MAP_IMAGE` ne' `VITE_USE_EMULATORS`. `VITE_ADMIN_ROUTE` e' facoltativa.
+- [ ] **Release-manager:** su Netlify NON impostare `VITE_USE_EMULATORS`. `VITE_ADMIN_ROUTE` e' facoltativa.
 - [ ] **Release-manager:** su Netlify `VITE_FIREBASE_AUTH_DOMAIN` deve valere il dominio del sito servito: oggi `bagna-halloween.netlify.app`, `halloween.alxstudio.it` quando ci sara' il dominio (da autorizzare anche in Firebase Auth). Le variabili si scrivono solo con `python3 /Users/alexsiroli/AlxStudio/ops/bin/imposta-env netlify <progetto> <NOME> <ambiente>` (valore messo dal CEO nel Portachiavi da dashboard > Collegamenti).
 - [ ] **Release-manager:** anteprima Netlify da `develop`.
 - [ ] **CEO, da telefono, sull'anteprima (prova generale):**
   - [ ] Home: "Edizione 2026 · votazioni chiuse".
   - [ ] Admin con un account non in lista: risponde "non autorizzato".
-  - [ ] Admin con il tuo account: aggiungi le case 2026 e posiziona ognuna cliccando sulla mappa.
+  - [ ] Admin con il tuo account: aggiungi le case 2026 e posiziona ognuna toccando la mappa.
   - [ ] Apri le votazioni, vota una casa, controlla "I miei voti", poi rimetti in pausa.
-  - [ ] Mappa: la torcia segue il dito e "Accendi le luci" funziona.
+  - [ ] Mappa: i segnaposto si vedono, tocca una casa e "Vota" porta alla votazione.
 - [ ] **Release-manager:** apre la PR di release `develop` verso `main`. **CEO:** conferma dalla dashboard (Serve te > Release pronta). Il release-manager esegue il merge solo dopo quella conferma.
 
 ## 7. La sera del 31 ottobre (CEO, dall'area admin)

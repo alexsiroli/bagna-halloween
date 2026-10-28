@@ -151,20 +151,33 @@ lanciarlo prima, export e regole servono ancora).
 
 ### Mappa 2026
 
-Serve un'immagine `public/mappa-2026.webp`, larga circa 2000-2400 px e sotto i 600 KB. Dal
-PDF dell'organizzazione, per esempio con ImageMagick:
+La mappa nasce dagli indirizzi delle case (Leaflet + tessere OpenStreetMap, nessuna immagine da
+preparare). Le posizioni sono dati della casa (`lat`, `lng`): si ricavano una volta sola, qui, non a ogni visita.
 
-```zsh
-magick -density 200 "/Users/alexsiroli/AlxStudio/consegne/in-arrivo/mappa-2026.pdf[0]" -resize 2400x -quality 80 /Volumes/Dev/worktrees/bagna-halloween/<ticket>/public/mappa-2026.webp
-```
+1. **File elenco.** Lo prepara un agente dalla lista del CEO: CSV con intestazione
+   `numero;titolo;via;civico;descrizione;lat;lng` (anche con la virgola, anche con BOM) oppure JSON con gli stessi
+   campi in inglese. Esempio: `seeds/houses-2026.example.csv`. `lat` e `lng` si lasciano vuote.
+2. **Geocodifica** (una volta sola, dal Mac, con rete): trova lat/lng da Nominatim, una richiesta ogni 1,1 s.
 
-oppure con `ffmpeg` da un PNG esportato: `ffmpeg -i /Users/alexsiroli/AlxStudio/consegne/in-arrivo/mappa-2026.png -vf scale=2400:-1 -quality 80 /Volumes/Dev/worktrees/bagna-halloween/<ticket>/public/mappa-2026.webp`.
-`<ticket>` e' il worktree del ticket della mappa (`ops/bin/wt bagna-halloween <ticket> <slug>`), non
-il checkout principale. Il file arriva in `develop` con una PR come ogni altra modifica. Finche' il file manca, la
-pagina Mappa mostra il link al PDF (`VITE_MAP_URL` o `/map.pdf`).
+   ```zsh
+   node /Volumes/Dev/worktrees/bagna-halloween/<ticket>/scripts/geocode-houses.mjs --file <elenco.csv> --out <elenco-posizioni.csv>
+   ```
 
-Il vecchio `public/map.pdf` (14 MB) resta solo come ripiego: quando la webp c'e' si puo'
-togliere e lasciare `VITE_MAP_URL` puntato al PDF su Drive.
+   Elenca le righe non trovate: restano senza posizione (compaiono sotto la mappa) finche' l'admin non le posiziona.
+3. **Controllo.** Apri `<elenco-posizioni.csv>` e guarda le posizioni; correggi a mano lat/lng sbagliate. Una posizione
+   fuori dal riquadro di Cesenatico viene rifiutata dall'import.
+4. **Import.** Prima la prova (non scrive), poi `--apply`. Non cancella: elenca le case dell'edizione che non
+   sono nel file. Chiave e cartella privata come per `prepare-edition.mjs`.
+
+   ```zsh
+   node /Volumes/Dev/worktrees/bagna-halloween/<ticket>/scripts/import-houses.mjs --edition 2026 --file <elenco-posizioni.csv>
+   node /Volumes/Dev/worktrees/bagna-halloween/<ticket>/scripts/import-houses.mjs --edition 2026 --file <elenco-posizioni.csv> --apply
+   ```
+
+5. **Ritocco dall'admin.** Area admin, Modifica casa: tocca la mappa nel punto giusto e salva. Il segnaposto si
+   sposta nella mappa pubblica al ricarico.
+
+`<ticket>` e' il worktree del ticket, non il checkout principale.
 
 ### Netlify (release-manager)
 
@@ -175,8 +188,6 @@ Variabili (Site settings, Environment variables), stesse di oggi piu' eventuali 
 | `VITE_FIREBASE_*` | invariati, tranne `VITE_FIREBASE_AUTH_DOMAIN` (vedi sotto) |
 | `VITE_FIREBASE_AUTH_DOMAIN` | il dominio del sito servito: oggi `bagna-halloween.netlify.app`; `halloween.alxstudio.it` quando ci sara' il dominio (da autorizzare anche in Firebase Auth) |
 | `VITE_ADMIN_ROUTE` | facoltativa (default `/admin`); ora e' solo un indirizzo, non una protezione |
-| `VITE_MAP_URL` | link al PDF di ripiego (facoltativa) |
-| `VITE_MAP_IMAGE` | **non** impostarla in produzione (serve solo per la mappa segnaposto) |
 
 Non impostare mai `VITE_USE_EMULATORS` su Netlify. Le variabili segrete si scrivono solo con
 l'helper dell'HQ: `python3 /Users/alexsiroli/AlxStudio/ops/bin/imposta-env netlify <progetto> <NOME> <ambiente>`
@@ -188,10 +199,10 @@ Prima un deploy di anteprima da `develop`.
 
 1. Home: "Edizione 2026 · votazioni chiuse".
 2. Area admin con un account **non** in lista: deve dire "non autorizzato".
-3. Area admin con il tuo account: aggiungi le case 2026, posiziona ognuna cliccando sulla
+3. Area admin con il tuo account: aggiungi le case 2026, posiziona ognuna toccando la
    mappa, poi "Apri votazioni".
 4. Vota una casa, controlla "I miei voti", poi rimetti in pausa.
-5. Mappa: la torcia segue il dito e "Accendi le luci" funziona.
+5. Mappa: i segnaposto si vedono, tocca una casa e "Vota" porta alla votazione.
 
 ### Produzione
 
