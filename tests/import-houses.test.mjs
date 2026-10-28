@@ -10,16 +10,20 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 const EDITION = 2999; // fuori dal seed
 const emulator = process.env.FIRESTORE_EMULATOR_HOST;
+// Progetto proprio: rules.test.mjs gira in parallelo e svuota demo-bagna-halloween.
+const PROJECT = 'demo-import-houses';
+// Senza credenziali l'SDK sonda il server dei metadati Google per ~15 s: sull'emulatore non serve.
+process.env.GCE_METADATA_HOST ??= '127.0.0.1:9';
 
 test('import: visible solo per le case nuove, una casa nascosta dall\'admin resta nascosta', { skip: !emulator }, async () => {
   const file = join(mkdtempSync(join(tmpdir(), 'import-houses-')), 'case.csv');
   writeFileSync(file, 'numero;titolo;via;civico\n1;Nascosta;Via Po;1\n2;Nuova;Via Po;2\n');
-  initializeApp({ projectId: 'demo-bagna-halloween' });
+  initializeApp({ projectId: PROJECT });
   const db = getFirestore();
   await db.doc(`houses/${EDITION}_1`).set({ number: 1, edition: EDITION, title: 'Vecchio', visible: false });
 
   execFileSync(process.execPath, ['scripts/import-houses.mjs', '--edition', String(EDITION), '--file', file, '--apply'], {
-    env: { ...process.env, GCLOUD_PROJECT: 'demo-bagna-halloween' },
+    env: { ...process.env, GCLOUD_PROJECT: PROJECT },
     stdio: 'pipe',
   });
 
