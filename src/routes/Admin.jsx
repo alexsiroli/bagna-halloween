@@ -15,6 +15,7 @@ import Sheet from '../components/Sheet.jsx';
 import { db } from '../firebase.js';
 import { logout } from '../auth.js';
 import { hasPosition, houseAddress, houseId, useAppConfig, useConfigDoc, useHouses } from '../data.js';
+import { isKind } from '../mapKinds.js';
 
 const emptyHouse = {
   id: null,
@@ -23,11 +24,13 @@ const emptyHouse = {
   description: '',
   street: '',
   civic: '',
+  kind: '',
   visible: true,
   lat: '',
   lng: '',
 };
 
+const KIND_OPTIONS = { spettacolo: 'Spettacolo', addobbi: 'Addobbi' };
 const POSITION_ERROR = 'Posizione incompleta: compila latitudine e longitudine, oppure lasciale vuote entrambe.';
 
 const SORT_LABELS = { houseNumber: 'Casa', scoreAverage: 'Media voto', count: 'Voti' };
@@ -157,6 +160,7 @@ function Admin({ user }) {
         description: house.description || '',
         street: house.street || '',
         civic: house.civic || '',
+        kind: isKind(house.kind) ? house.kind : '',
         visible: house.visible !== false,
         lat: Number.isFinite(house.lat) ? house.lat : '',
         lng: Number.isFinite(house.lng) ? house.lng : '',
@@ -205,6 +209,7 @@ function Admin({ user }) {
       description: form.description || '',
       street: form.street.trim(),
       civic: form.civic.trim(),
+      kind: form.kind,
       visible: form.visible !== false,
       edition,
       lat: placed ? lat : null,
@@ -514,6 +519,18 @@ function Admin({ user }) {
               value={modalState.data.title}
               onChange={(event) => updateForm({ title: event.target.value })}
             />
+          </div>
+
+          <div className="field">
+            <label htmlFor="house-kind">Tipo</label>
+            <select id="house-kind" value={modalState.data.kind} onChange={(event) => updateForm({ kind: event.target.value })}>
+              <option value="">—</option>
+              {Object.entries(KIND_OPTIONS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="field">

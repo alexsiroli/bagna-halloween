@@ -1,4 +1,5 @@
 // Smoke sugli emulatori Firebase (seed: scripts/seed-emulator.mjs). Mai la produzione.
+import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import { initializeApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
@@ -17,6 +18,10 @@ async function login(page, email) {
 
 // Le tessere OpenStreetMap non si scaricano mai nei test: i segnaposto non ne dipendono.
 const blockTiles = (page) => page.route('**://tile.openstreetmap.org/**', (route) => route.abort());
+
+// File dei punti di prova al posto di public/punti/<edizione>.json (che non esiste finche' non si genera).
+const PUNTI = fileURLToPath(new URL('./fixtures/punti.json', import.meta.url));
+const servePoints = (page) => page.route('**/punti/*.json', (route) => route.fulfill({ path: PUNTI, contentType: 'application/json' }));
 
 test('home: edizione dalla config e accesso al voto', async ({ page }) => {
   await page.goto('/');
@@ -66,12 +71,88 @@ test('mappa: segnaposto, scheda con Vota, case senza posizione in elenco', async
   await expect(page.getByRole('link', { name: 'Vota la casa 12' })).toHaveAttribute('href', '/vota/12');
   expect(errors).toEqual([]);
 
+  // Senza file dei punti (qui il server risponde con l'HTML dell'app) restano solo le case e la legenda dei loro tipi.
+  await expect(page.getByRole('button', { name: /^Bar:/ })).toHaveCount(0);
+  await expect(page.locator('.map-legend')).toContainText('Casa addobbata');
+  await expect(page.locator('.map-legend')).not.toContainText('Bar');
+
   // «Vota» nella scheda porta alla pagina di voto della casa (rotta /vota/:numero), non a una 404.
   await page.getByRole('button', { name: /^Casa 1, La Casa delle Zucche/ }).click();
   await page.getByRole('dialog', { name: 'Casa 1' }).getByRole('link', { name: 'Vota' }).click();
   await expect(page).toHaveURL(/\/vota\/1$/);
   await expect(page.getByText('Stai per votare la casa 1 · La Casa delle Zucche')).toBeVisible();
 });
+
+test('mappa: tipi di casa, punti di servizio e strade chiuse da file', async ({ page }) => {
+  await blockTiles(page);
+  await servePoints(page);
+  const errors = [];
+  page.on('console', (msg) => {
+    if (msg.type() === 'error' && !msg.location().url.includes('tile.openstreetmap.org')) errors.push(msg.text());
+  });
+  page.on('pageerror', (err) => errors.push(err.message));
+
+  await page.goto('/mappa');
+  // 10 case + 5 punti validi (il tipo sconosciuto e la strada con un solo punto sono scartati).
+  await expect(page.locator('.leaflet-marker-icon')).toHaveCount(15);
+  await expect(page.locator('.leaflet-overlay-pane path')).toHaveCount(1);
+  await expect(page.locator('.leaflet-overlay-pane path.leaflet-interactive')).toHaveCount(0);
+
+  // Il tipo e' nel nome accessibile e nel glifo del segnaposto.
+  const show = page.getByRole('button', { name: 'Casa 3, La Cripta del Fornaio, spettacolo: apri la scheda' });
+  const decor = page.getByRole('button', { name: 'Casa 4, Ragnatele in Giardino, casa addobbata: apri la scheda' });
+  await expect(show.locator('svg')).toHaveCount(1);
+  await expect(decor.locator('svg')).toHaveCount(1);
+  expect(await show.innerHTML()).not.toBe(await decor.innerHTML());
+  await expect(page.getByRole('button', { name: /^Casa 5, La Strega del Canale: apri/ }).locator('svg')).toHaveCount(0);
+
+  // Legenda in testo, solo i tipi presenti, con la nota del file.
+  const legend = page.locator('.map-legend');
+  for (const label of ['Spettacolo', 'Casa addobbata', 'Bar', 'Food truck', 'Servizi igienici', 'Parcheggio', 'Intrattenimento', 'Strada chiusa']) {
+    await expect(legend.getByRole('listitem').filter({ hasText: label })).toHaveCount(1);
+  }
+  await expect(legend).toContainText('dalle 18:30 alle 23:00');
+
+  // Un tocco su un punto: nome e indirizzo (come testo), niente Vota.
+  await page.getByRole('button', { name: 'Bar: Bar <b>DJ</b> set' }).click();
+  const popup = page.locator('.leaflet-popup');
+  await expect(popup).toContainText('Bar <b>DJ</b> set');
+  await expect(popup).toContainText('Via di Prova 9');
+  await expect(popup.locator('b')).toHaveCount(0);
+  await expect(popup.getByRole('link')).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  // Elenco degli spettacoli: case con Vota, punti di intrattenimento senza.
+  const shows = page.locator('section', { has: page.getByRole('heading', { name: 'Spettacoli' }) });
+  await expect(shows.getByRole('link', { name: /^Vota la casa/ })).toHaveCount(4);
+  await expect(shows.getByRole('link', { name: 'Vota la casa 3' })).toHaveAttribute('href', '/vota/3');
+  await expect(shows.getByRole('listitem').filter({ hasText: 'Trampolieri di prova' })).toContainText('Via Balitrona 22/C');
+  await expect(shows.getByRole('listitem').filter({ hasText: 'Trampolieri di prova' }).getByRole('link')).toHaveCount(0);
+
+  // La scheda della casa porta l'etichetta del tipo.
+  await show.click();
+  await expect(page.getByRole('dialog', { name: 'Casa 3' })).toContainText('Spettacolo');
+  expect(errors).toEqual([]);
+});
+
+for (const [name, contentType, body] of [
+  ['HTML del redirect', 'text/html', '<!doctype html><title>x</title>'],
+  ['JSON non valido', 'application/json', '{ rotto'],
+]) {
+  test(`mappa: file dei punti con ${name} = nessun punto, nessun errore`, async ({ page }) => {
+    await blockTiles(page);
+    await page.route('**/punti/*.json', (route) => route.fulfill({ contentType, body }));
+    const errors = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error' && !msg.location().url.includes('tile.openstreetmap.org')) errors.push(msg.text());
+    });
+    page.on('pageerror', (err) => errors.push(err.message));
+    await page.goto('/mappa');
+    await expect(page.locator('.leaflet-marker-icon')).toHaveCount(10);
+    await expect(page.locator('.leaflet-overlay-pane path')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+}
 
 test('voto: login emulatore, zucche, voto salvato', async ({ page }) => {
   await page.goto('/vote');
@@ -131,6 +212,33 @@ test('admin: tocco sulla mappa posiziona la casa, il segnaposto compare in /mapp
     await expect(page.getByRole('link', { name: 'Vota la casa 11' })).toHaveCount(0);
   } finally {
     // Rimette la casa senza posizione (campi tolti con l'updateMask): il seed resta com'era.
+    await request.patch(url, { headers: { Authorization: 'Bearer owner' }, data: { fields: {} } });
+  }
+});
+
+test('admin: il tipo della casa si sceglie nel modulo e compare sulla mappa', async ({ page, request }) => {
+  await blockTiles(page);
+  const url =
+    'http://127.0.0.1:8181/v1/projects/demo-bagna-halloween/databases/(default)/documents/houses/2026_5?updateMask.fieldPaths=kind';
+  try {
+    await page.goto('/admin');
+    await login(page, 'admin@esempio.test');
+    await page.getByRole('button', { name: 'Modifica casa 1', exact: true }).click();
+    const first = page.getByRole('dialog', { name: 'Modifica casa 1' });
+    await expect(first.getByLabel('Tipo')).toHaveValue('spettacolo');
+    await first.getByRole('button', { name: 'Annulla' }).click();
+
+    await page.getByRole('button', { name: 'Modifica casa 5', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Modifica casa 5' });
+    await expect(dialog.getByLabel('Tipo')).toHaveValue('');
+    await dialog.getByLabel('Tipo').selectOption('addobbi');
+    await dialog.getByRole('button', { name: 'Salva' }).click();
+    await expect(dialog).toBeHidden();
+
+    await page.goto('/mappa');
+    await expect(page.getByRole('button', { name: /^Casa 5, La Strega del Canale, casa addobbata: apri/ })).toBeVisible();
+  } finally {
+    // Toglie il campo (updateMask senza valore): il seed resta com'era.
     await request.patch(url, { headers: { Authorization: 'Bearer owner' }, data: { fields: {} } });
   }
 });
