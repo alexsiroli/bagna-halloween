@@ -155,8 +155,9 @@ La mappa nasce dagli indirizzi delle case (Leaflet + tessere OpenStreetMap, ness
 preparare). Le posizioni sono dati della casa (`lat`, `lng`): si ricavano una volta sola, qui, non a ogni visita.
 
 1. **File elenco.** Lo prepara un agente dalla lista del CEO: CSV con intestazione
-   `numero;titolo;via;civico;descrizione;lat;lng` (anche con la virgola, anche con BOM) oppure JSON con gli stessi
-   campi in inglese. Esempio: `seeds/houses-2026.example.csv`. `lat` e `lng` si lasciano vuote.
+   `numero;titolo;via;civico;descrizione;tipo;lat;lng` (anche con la virgola, anche con BOM) oppure JSON con gli stessi
+   campi in inglese. Esempio: `seeds/houses-2026.example.csv`. `lat` e `lng` si lasciano vuote. `tipo` (JSON `kind`) e'
+   `spettacolo`, `addobbi` o vuoto; vuoto non cambia il tipo gia' scelto dall'admin.
    **Il file con gli indirizzi non entra mai nel repo** (nemmeno in una PR o in un branch): la copia di lavoro sta in
    `/Users/alexsiroli/AlxStudio/reports/piani/bagna-halloween-2026/case-2026.csv`, e anche `<elenco-posizioni.csv>` va
    scritto fuori dal repo.
@@ -179,6 +180,15 @@ preparare). Le posizioni sono dati della casa (`lat`, `lng`): si ricavano una vo
 
 5. **Ritocco dall'admin.** Area admin, Modifica casa: tocca la mappa nel punto giusto e salva. Il segnaposto si
    sposta nella mappa pubblica al ricarico.
+
+6. **Punti di servizio e strade chiuse.** Dal CSV `tipo;nome;lat;lng;precisione[;indirizzo]` (tipi: bar, food-truck, servizi-igienici,
+   parcheggio, intrattenimento, strada-chiusa con una riga di inizio e una di fine per strada) si genera il file letto dalla mappa.
+   Prima la prova, poi `--out` (il file e' pubblico e va nel repo; senza file la mappa funziona come prima):
+
+   ```zsh
+   node /Volumes/Dev/worktrees/bagna-halloween/<ticket>/scripts/points-file.mjs --file <punti.csv> --note "Strade chiuse al traffico dalle 18:30 alle 23:00."
+   node /Volumes/Dev/worktrees/bagna-halloween/<ticket>/scripts/points-file.mjs --file <punti.csv> --note "..." --out /Volumes/Dev/worktrees/bagna-halloween/<ticket>/public/punti/2026.json
+   ```
 
 `<ticket>` e' il worktree del ticket, non il checkout principale.
 
