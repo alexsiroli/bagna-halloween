@@ -1,7 +1,7 @@
 // Importa l'elenco delle case di un'edizione da CSV/JSON. Di default e' una PROVA: aggiungi --apply.
 //   node scripts/import-houses.mjs --edition 2026 --file <elenco.csv|json> [--key <service-account.json>] [--apply]
 // Formato del file e geocodifica: scripts/houses-file.mjs, scripts/geocode-houses.mjs, docs/EDIZIONE-2026.md.
-// Scrive con merge houses/<edition>_<numero> (visible: true). Non cancella: elenca le case
+// Scrive con merge houses/<edition>_<numero> (visible: true solo alle case nuove: una casa nascosta dall'admin resta nascosta). Non cancella: elenca le case
 // dell'edizione che non sono nel file. Con FIRESTORE_EMULATOR_HOST lavora sull'emulatore;
 // altrimenti la chiave sta nella cartella privata, fuori dal repo (come prepare-edition.mjs).
 import { cert, initializeApp } from 'firebase-admin/app';
@@ -50,6 +50,7 @@ const db = getFirestore();
 
 const inFile = new Set(houses.map((house) => house.number));
 const existing = await db.collection('houses').where('edition', '==', edition).get();
+const existingNumbers = new Set(existing.docs.map((docSnap) => docSnap.get('number')));
 const missing = existing.docs.filter((docSnap) => !inFile.has(docSnap.get('number')));
 
 console.log(`[piano] ${emulator ? 'EMULATORE' : 'PRODUZIONE'}, edizione ${edition}: ${houses.length} case nel file`);
@@ -70,9 +71,11 @@ for (let start = 0; start < houses.length; start += 400) {
   houses.slice(start, start + 400).forEach(({ lat, lng, ...house }) => {
     // Senza posizione nel file non si scrive lat/lng: un ritocco fatto dall'admin non va perso.
     const position = lat === null ? {} : { lat, lng };
+    // visible solo se la casa e' nuova: per le esistenti lo decide l'admin.
+    const visible = existingNumbers.has(house.number) ? {} : { visible: true };
     batch.set(
       db.doc(`houses/${edition}_${house.number}`),
-      { ...house, ...position, edition, visible: true, updatedAt: now },
+      { ...house, ...position, ...visible, edition, updatedAt: now },
       { merge: true },
     );
   });
