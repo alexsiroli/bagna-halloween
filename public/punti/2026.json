@@ -1,0 +1,211 @@
+{
+  "note": "Strade chiuse al traffico dalle 18:30 alle 23:00. Posizioni indicative, ricavate dalla mappa degli organizzatori.",
+  "points": [
+    {
+      "type": "bar",
+      "name": "Bar e DJ set",
+      "address": "Via Walter Tobagi 9",
+      "lat": 44.163445,
+      "lng": 12.341995
+    },
+    {
+      "type": "intrattenimento",
+      "name": "Trampolieri e spettacolo di fuoco",
+      "address": "Siropack Italia, Via Balitrona 22/C",
+      "lat": 44.163339,
+      "lng": 12.339861
+    },
+    {
+      "type": "parcheggio",
+      "name": "Parcheggio",
+      "address": "Zona Italtecnica",
+      "lat": 44.164548,
+      "lng": 12.339262
+    },
+    {
+      "type": "parcheggio",
+      "name": "Parcheggio",
+      "address": "Via Balitrona",
+      "lat": 44.164548,
+      "lng": 12.340436
+    },
+    {
+      "type": "parcheggio",
+      "name": "Parcheggio",
+      "address": "Via Balitrona",
+      "lat": 44.163116,
+      "lng": 12.338963
+    },
+    {
+      "type": "parcheggio",
+      "name": "Parcheggio",
+      "address": "Via Balitrona angolo Via Don Fiori",
+      "lat": 44.162864,
+      "lng": 12.341154
+    },
+    {
+      "type": "parcheggio",
+      "name": "Parcheggio",
+      "address": "Via Don Fiori",
+      "lat": 44.162849,
+      "lng": 12.34271
+    },
+    {
+      "type": "parcheggio",
+      "name": "Parcheggio",
+      "address": "Centro Sportivo di Bagnarola",
+      "lat": 44.164674,
+      "lng": 12.345047
+    },
+    {
+      "type": "parcheggio",
+      "name": "Parcheggio",
+      "address": "Via Vittorio Bachelet, lato sud",
+      "lat": 44.1629,
+      "lng": 12.345758
+    },
+    {
+      "type": "wc",
+      "name": "Servizi igienici",
+      "address": "Via Walter Tobagi, lato sud",
+      "lat": 44.162975,
+      "lng": 12.341643
+    },
+    {
+      "type": "wc",
+      "name": "Servizi igienici",
+      "address": "Via Don Fiori",
+      "lat": 44.16296,
+      "lng": 12.343027
+    },
+    {
+      "type": "wc",
+      "name": "Servizi igienici",
+      "address": "Via Vittorio Bachelet, Centro Sportivo",
+      "lat": 44.164185,
+      "lng": 12.344996
+    },
+    {
+      "type": "wc",
+      "name": "Servizi igienici",
+      "address": "Via Vittorio Bachelet, chiesa",
+      "lat": 44.163766,
+      "lng": 12.345313
+    },
+    {
+      "type": "food",
+      "name": "Food truck",
+      "address": "Via Balitrona",
+      "lat": 44.162814,
+      "lng": 12.339598
+    },
+    {
+      "type": "food",
+      "name": "Food truck",
+      "address": "Via Walter Tobagi, lato sud",
+      "lat": 44.162985,
+      "lng": 12.341852
+    },
+    {
+      "type": "food",
+      "name": "Food truck",
+      "address": "Via Walter Tobagi, lato sud",
+      "lat": 44.162985,
+      "lng": 12.342329
+    },
+    {
+      "type": "food",
+      "name": "Food truck",
+      "address": "Via Vittorio Bachelet angolo Via Massimo D'Antona",
+      "lat": 44.163807,
+      "lng": 12.345008
+    },
+    {
+      "type": "food",
+      "name": "Food truck",
+      "address": "Via Vittorio Bachelet angolo Via Almerici",
+      "lat": 44.163419,
+      "lng": 12.345091
+    }
+  ],
+  "closedRoads": [
+    {
+      "name": "Via Aldo Moro",
+      "path": [
+        [
+          44.16522,
+          12.3419
+        ],
+        [
+          44.16539,
+          12.34471
+        ]
+      ]
+    },
+    {
+      "name": "Via Marco Biagi",
+      "path": [
+        [
+          44.16433,
+          12.342091
+        ],
+        [
+          44.164543,
+          12.344786
+        ]
+      ]
+    },
+    {
+      "name": "Via Massimo D'Antona",
+      "path": [
+        [
+          44.163647,
+          12.34217
+        ],
+        [
+          44.16387,
+          12.344884
+        ]
+      ]
+    },
+    {
+      "name": "Via Walter Tobagi",
+      "path": [
+        [
+          44.165472,
+          12.341965
+        ],
+        [
+          44.162901,
+          12.3422
+        ]
+      ]
+    },
+    {
+      "name": "Via Vittorio Bachelet",
+      "path": [
+        [
+          44.16539,
+          12.34471
+        ],
+        [
+          44.163433,
+          12.345059
+        ]
+      ]
+    },
+    {
+      "name": "Tratto verso Via Don Fiori",
+      "path": [
+        [
+          44.163328,
+          12.343885
+        ],
+        [
+          44.16298,
+          12.3451
+        ]
+      ]
+    }
+  ]
+}

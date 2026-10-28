@@ -1,5 +1,5 @@
-numero;titolo;via;civico;descrizione;lat;lng
-1;La Casa delle Zucche;Via Cesenatico;12;Cento zucche intagliate sul muretto.;;
-2;Il Maniero Stregato;Via Cesenatico;48/A;Fumo dal cancello e scheletri che salutano.;;
-3;La Cripta del Fornaio;Via Canale Bonificazione;7;Il garage diventa una cripta.;44.1980;12.3330
-4;Ragnatele in Giardino;Via Cesenatico;103;Un ragno gigante sulla siepe.;;
+numero;titolo;via;civico;descrizione;tipo;lat;lng
+1;La Casa delle Zucche;Via Cesenatico;12;Cento zucche intagliate sul muretto.;spettacolo;;
+2;Il Maniero Stregato;Via Cesenatico;48/A;Fumo dal cancello e scheletri che salutano.;addobbi;;
+3;La Cripta del Fornaio;Via Canale Bonificazione;7;Il garage diventa una cripta.;;44.1980;12.3330
+4;Ragnatele in Giardino;Via Cesenatico;103;Un ragno gigante sulla siepe.;addobbi;;

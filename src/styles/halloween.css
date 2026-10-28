@@ -49,6 +49,14 @@
   --ceramica: #f4efe4;
   --smalto: #1c2f7a;
 
+  /* Tipi di casa e di punto (mappa e legenda); arancio fantasma e mattone seguono la legenda degli organizzatori */
+  --tipo-spettacolo: var(--zucca);
+  --tipo-addobbi: #5b3a9e;
+  --punto-bar: #3ccfc0;
+  --punto-wc: #7fb0ff;
+  --punto-parcheggio: #dfe3f0;
+  --strada-chiusa: #d9533a;
+
   --font-display: 'Bowlby One', 'Arial Black', sans-serif;
   --font-body: 'Atkinson Hyperlegible Next', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
@@ -1167,19 +1175,93 @@ fieldset {
   place-items: center;
 }
 
-.pin__plate {
-  display: grid;
+/* Colori dei tipi (case e punti): due luminosita' ben diverse, cosi' si distinguono anche in scala di grigi */
+[data-t='spettacolo'],
+[data-t='intrattenimento'] {
+  --chip-bg: var(--tipo-spettacolo);
+  --chip-fg: var(--notte-950);
+}
+
+[data-t='addobbi'] {
+  --chip-bg: var(--tipo-addobbi);
+  --chip-fg: var(--luna);
+}
+
+[data-t='bar'] {
+  --chip-bg: var(--punto-bar);
+  --chip-fg: var(--notte-950);
+}
+
+[data-t='food'] {
+  --chip-bg: var(--finestra);
+  --chip-fg: var(--notte-950);
+}
+
+[data-t='wc'] {
+  --chip-bg: var(--punto-wc);
+  --chip-fg: var(--notte-950);
+}
+
+[data-t='parcheggio'] {
+  --chip-bg: var(--punto-parcheggio);
+  --chip-fg: var(--notte-950);
+}
+
+[data-t='strada'] {
+  --chip-bg: var(--strada-chiusa);
+  --chip-fg: var(--luna);
+}
+
+/* Polilinea delle strade chiuse sulla mappa (className di Leaflet) */
+.road-closed {
+  stroke: var(--strada-chiusa);
+}
+
+.glyph {
+  display: block;
+  width: 1em;
+  height: 1em;
+}
+
+.chip {
+  display: inline-grid;
+  flex: none;
   place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  font-size: 1.05rem;
+}
+
+.chip--point {
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 1.15rem;
+  box-shadow: 0 0 0 2px rgb(7 11 23 / 0.85);
+}
+
+.pin__plate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
   min-width: 2rem;
   height: 1.7rem;
   padding: 0 0.35rem;
   border-radius: var(--radius-s);
-  background: var(--ceramica);
-  color: var(--smalto);
+  background: var(--chip-bg, var(--ceramica));
+  color: var(--chip-fg, var(--smalto));
   font-family: var(--font-display);
   font-size: 0.9rem;
   line-height: 1;
   box-shadow: 0 0 0 3px rgb(7 11 23 / 0.7), 0 0 18px 4px rgb(255 214 120 / 0.4);
+}
+
+.pin__plate .glyph {
+  width: 1.2rem;
+  height: 1.2rem;
 }
 
 .pin-wrap:focus-visible .pin__plate {
@@ -1230,6 +1312,53 @@ fieldset {
   color: var(--nebbia);
 }
 
+.kind-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  color: var(--luna);
+  font-size: var(--step--1);
+}
+
+.map-dialog .kind-tag {
+  justify-self: start;
+  margin-top: 0;
+}
+
+.map-legend__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.map-legend__list li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Punti di servizio: il popup segue il tema notte */
+.house-map .leaflet-popup-content-wrapper,
+.house-map .leaflet-popup-tip {
+  background: var(--notte-800);
+  color: var(--luna);
+  border: 1px solid var(--notte-600);
+}
+
+.house-map .leaflet-popup-content {
+  margin: var(--space-3) var(--space-4);
+  font: inherit;
+}
+
+.house-map .leaflet-popup-content p {
+  margin: var(--space-1) 0 0;
+  color: var(--nebbia);
+}
+
 /* Telefono: targhe piu' piccole (l'area da toccare resta 44px), bagliore piu' stretto */
 @media (max-width: 639px) {
   .pin__plate {
@@ -1237,7 +1366,13 @@ fieldset {
     height: 1.35rem;
     padding: 0 0.25rem;
     font-size: 0.75rem;
+    gap: 0.15rem;
     box-shadow: 0 0 0 2px rgb(7 11 23 / 0.7), 0 0 12px 3px rgb(255 214 120 / 0.4);
+  }
+
+  .pin__plate .glyph {
+    width: 1rem;
+    height: 1rem;
   }
 
   .pin__rank {

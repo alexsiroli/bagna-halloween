@@ -33,6 +33,14 @@ componenti non ci sono colori scritti a mano.
 | `--brace` | `#ff7a6b` | errori (6.8:1) |
 | `--ceramica` | `#f4efe4` | targa civica |
 | `--smalto` | `#1c2f7a` | numero sulla targa (10.5:1) |
+| `--tipo-spettacolo` | `var(--zucca)` | casa e punto «spettacolo»/«intrattenimento» |
+| `--tipo-addobbi` | `#5b3a9e` | casa addobbata |
+| `--punto-bar` | `#3ccfc0` | punto «bar» |
+| `--punto-wc` | `#7fb0ff` | punto «servizi igienici» |
+| `--punto-parcheggio` | `#dfe3f0` | punto «parcheggio» |
+| `--strada-chiusa` | `#d9533a` | strade chiuse (linea e chip) |
+
+Arancio fantasma (`--tipo-spettacolo`) e mattone (`--strada-chiusa`) seguono la legenda della mappa degli organizzatori.
 
 Strategia: un fondo notturno pieno, una sola luce d'azione (lampione). Zucca e finestra hanno
 un significato fisso: zucca = voto, finestra = acceso/aperto. Lo stato non e' mai affidato al

@@ -1,6 +1,6 @@
 // Legge e valida l'elenco delle case (CSV o JSON). Lo usano import-houses e geocode-houses.
-// CSV: intestazione numero;titolo;via;civico;descrizione;lat;lng (separatore ; o , dall'intestazione).
-// JSON: array con gli stessi campi in inglese (number, title, street, civic, description, lat, lng).
+// CSV: intestazione numero;titolo;via;civico;descrizione;tipo;lat;lng (tipo: spettacolo | addobbi | vuoto; separatore ; o , dall'intestazione).
+// JSON: array con gli stessi campi in inglese (number, title, street, civic, description, kind, lat, lng).
 import { readFileSync, writeFileSync } from 'node:fs';
 
 // Riquadro plausibile attorno a Cesenatico: fuori da qui un punto e' quasi certamente un errore.
@@ -8,10 +8,11 @@ export const BOUNDS = { latMin: 44.0, latMax: 44.4, lngMin: 12.1, lngMax: 12.6 }
 export const inBounds = (lat, lng) =>
   lat >= BOUNDS.latMin && lat <= BOUNDS.latMax && lng >= BOUNDS.lngMin && lng <= BOUNDS.lngMax;
 
-const CSV_COLUMNS = { numero: 'number', titolo: 'title', via: 'street', civico: 'civic', descrizione: 'description', lat: 'lat', lng: 'lng' };
+const CSV_COLUMNS = { numero: 'number', titolo: 'title', via: 'street', civico: 'civic', descrizione: 'description', tipo: 'kind', lat: 'lat', lng: 'lng' };
+export const KINDS = ['spettacolo', 'addobbi'];
 
 // Righe di celle; gestisce virgolette, "" e a capo dentro le virgolette.
-function parseCsv(text, sep) {
+export function parseCsv(text, sep) {
   const rows = [[]];
   let cell = '';
   let quoted = false;
@@ -38,13 +39,17 @@ function parseCsv(text, sep) {
   return rows.filter((row) => row.some((c) => c.trim() !== ''));
 }
 
-function csvToObjects(text) {
+// Lo usa anche points-file: `columns` mappa i nomi dell'intestazione sui campi.
+export function csvToObjects(text, columns = CSV_COLUMNS) {
   const head = text.split(/\r?\n/, 1)[0];
   const rows = parseCsv(text, head.split(';').length > head.split(',').length ? ';' : ',');
-  const columns = rows[0].map((name) => CSV_COLUMNS[name.trim().toLowerCase()]);
-  const unknown = rows[0].filter((_, index) => !columns[index]);
+  const fields = rows[0].map((name) => {
+    const key = name.trim().toLowerCase();
+    return Object.hasOwn(columns, key) ? columns[key] : undefined;
+  });
+  const unknown = rows[0].filter((_, index) => !fields[index]);
   if (unknown.length) throw new Error(`Intestazione: colonne sconosciute (${unknown.join(', ')}).`);
-  return rows.slice(1).map((cells) => Object.fromEntries(columns.map((name, index) => [name, (cells[index] ?? '').trim()])));
+  return rows.slice(1).map((cells) => Object.fromEntries(fields.map((name, index) => [name, (cells[index] ?? '').trim()])));
 }
 
 const coord = (value, name, where) => {
@@ -81,7 +86,9 @@ export function readHousesFile(path) {
     if ((lat === null) !== (lng === null)) throw new Error(`${where}: lat e lng vanno indicati insieme.`);
     if (lat !== null && !inBounds(lat, lng)) throw new Error(`${where}: posizione fuori dal riquadro di Cesenatico (${lat}, ${lng}).`);
     const str = (key) => String(item[key] ?? '').trim();
-    return { number, title, street: str('street'), civic: str('civic'), description: str('description'), lat, lng };
+    const kind = str('kind').toLowerCase();
+    if (kind && !KINDS.includes(kind)) throw new Error(`${where}: tipo non valido (${item.kind}): ammessi ${KINDS.join(', ')}, oppure vuoto.`);
+    return { number, title, street: str('street'), civic: str('civic'), description: str('description'), kind, lat, lng };
   });
 }
 

@@ -23,6 +23,17 @@ Via e civico di una casa, come li comunica l'organizzazione.
 Il punto della casa sulla mappa (latitudine e longitudine), ricavato una volta dall'indirizzo e corretto a mano se serve.
 _Da evitare_: coordinate x/y
 
+**Tipo di casa**:
+spettacolo (la casa offre uno spettacolo o un intrattenimento) oppure addobbi (casa decorata). Si votano allo stesso modo.
+_Da evitare_: categoria
+
+**Punto di servizio**:
+Un luogo dell'evento che non si vota (bar, food truck, servizi igienici, parcheggio, intrattenimento), con nome e posizione.
+_Da evitare_: POI, punto di interesse
+
+**Strada chiusa**:
+Un tratto chiuso al traffico durante l'evento, disegnato sulla mappa come linea.
+
 **Voto**:
 Il punteggio da 6 a 10 che un votante dà a una casa; uno per casa per votante, modificabile finché la votazione è aperta.
 
@@ -35,5 +46,6 @@ Il file con numero, titolo, indirizzo ed eventuale posizione di ogni casa, da cu
 ## Relazioni
 
 - Un'**Edizione** ha molte **Case**; il **Numero** è unico solo dentro l'edizione.
-- Una **Casa** ha un **Indirizzo** e al più una **Posizione**; senza posizione non compare sulla mappa ma si vota lo stesso.
+- Una **Casa** ha un **Indirizzo** e al più una **Posizione**; senza posizione non compare sulla mappa ma si vota lo stesso; può avere un **Tipo di casa**.
+- I **Punti di servizio** e le **Strade chiuse** di un'**Edizione** stanno in un file dati (`public/punti/<edizione>.json`), non nel database.
 - Ogni **QR** di casa porta alla votazione della casa con quel **Numero** nell'edizione corrente.

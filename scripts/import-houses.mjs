@@ -58,7 +58,7 @@ const missing = existing.docs.filter((docSnap) => !inFile.has(docSnap.get('numbe
 console.log(`[piano] ${emulator ? 'EMULATORE' : 'PRODUZIONE'}, edizione ${edition}: ${houses.length} case nel file`);
 houses.forEach((house) => {
   const where = house.lat === null ? 'senza posizione' : `${house.lat}, ${house.lng}`;
-  console.log(`         casa ${house.number}: ${house.title} (${house.street} ${house.civic}`.trimEnd() + `) ${where}`);
+  console.log(`         casa ${house.number}: ${house.title} (${house.street} ${house.civic}`.trimEnd() + `) ${where}${house.kind ? `, tipo ${house.kind}` : ''}`);
 });
 missing.forEach((docSnap) => console.log(`[non nel file] houses/${docSnap.id} (casa ${docSnap.get('number')}): resta com'e'`));
 
@@ -70,7 +70,9 @@ if (!apply) {
 const now = FieldValue.serverTimestamp();
 for (let start = 0; start < houses.length; start += 400) {
   const batch = db.batch();
-  houses.slice(start, start + 400).forEach(({ lat, lng, ...house }) => {
+  houses.slice(start, start + 400).forEach(({ lat, lng, kind, ...house }) => {
+    // Come la posizione: senza tipo nel file non si scrive `kind`, un tipo messo dall'admin non va perso.
+    if (kind) house.kind = kind;
     // Senza posizione nel file non si scrive lat/lng: un ritocco fatto dall'admin non va perso.
     const position = lat === null ? {} : { lat, lng };
     // visible solo se la casa e' nuova: per le esistenti lo decide l'admin.
