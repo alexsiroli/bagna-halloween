@@ -1568,6 +1568,33 @@ fieldset {
   gap: var(--space-2);
 }
 
+.admin-emails__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-emails__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--notte-600);
+  overflow-wrap: anywhere;
+}
+
+.admin-emails__row:first-child {
+  border-top: 0;
+}
+
+.admin-emails__form {
+  display: grid;
+  gap: var(--space-3);
+}
+
 .table-scroll {
   overflow-x: auto;
 }
