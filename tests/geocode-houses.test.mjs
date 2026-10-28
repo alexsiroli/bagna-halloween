@@ -33,6 +33,14 @@ test('interroga solo le righe senza coordinate, con indirizzo e User-Agent', asy
   assert.deepEqual(sleeps, [1100]); // una pausa tra le due richieste, non prima della prima
 });
 
+test('civico vuoto: la query non ha spazi in piu', async () => {
+  const fetchFn = fakeFetch([['Via X angolo Via Y,', [{ lat: '44.19', lon: '12.33' }]]]);
+  const { houses } = await geocodeHouses([house(1, 'Via X angolo Via Y', '')], { fetch: fetchFn, sleep: async () => {} });
+
+  assert.equal(fetchFn.calls[0].url.searchParams.get('q'), 'Via X angolo Via Y, Bagnarola, Cesenatico, Italia');
+  assert.equal(houses[0].lat, 44.19);
+});
+
 test('risposta fuori dal riquadro, errore HTTP o indirizzo mancante: riga non trovata', async () => {
   const fetchFn = fakeFetch([
     ['Via Lontana', [{ lat: '48.85', lon: '2.35' }]],

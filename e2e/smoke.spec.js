@@ -33,7 +33,11 @@ test('privacy: dal link accanto al login la pagina si apre', async ({ page }) =>
   await expect(page).toHaveURL(/\/privacy$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Privacy' })).toBeVisible();
   await expect(page.getByText('privacy@alxstudio.it').first()).toBeVisible();
-  await expect(page.getByText(/OpenStreetMap Foundation/)).toBeVisible();
+  await expect(page.getByText('La mappa non usa cookie.')).toBeVisible();
+  await expect(page.getByText(/La mappa è di OpenStreetMap Foundation.*OpenStreetMap non lavora per noi/)).toBeVisible();
+  await expect(page.getByText('Google e Netlify trattano i dati per nostro conto.')).toBeVisible();
+  await expect(page.getByText(/^OpenStreetMap Foundation/)).toHaveCount(0); // non e' piu' tra i destinatari "per nostro conto"
+  await expect(page.getByText(/via e numero civico, pubblicati con il consenso/)).toBeVisible();
 });
 
 test('mappa: segnaposto, scheda con Vota, case senza posizione in elenco', async ({ page }) => {
@@ -61,6 +65,12 @@ test('mappa: segnaposto, scheda con Vota, case senza posizione in elenco', async
   await expect(page.getByRole('link', { name: 'Vota la casa 11' })).toHaveAttribute('href', '/vota/11');
   await expect(page.getByRole('link', { name: 'Vota la casa 12' })).toHaveAttribute('href', '/vota/12');
   expect(errors).toEqual([]);
+
+  // «Vota» nella scheda porta alla pagina di voto della casa (rotta /vota/:numero), non a una 404.
+  await page.getByRole('button', { name: /^Casa 1, La Casa delle Zucche/ }).click();
+  await page.getByRole('dialog', { name: 'Casa 1' }).getByRole('link', { name: 'Vota' }).click();
+  await expect(page).toHaveURL(/\/vota\/1$/);
+  await expect(page.getByText('Stai per votare la casa 1 · La Casa delle Zucche')).toBeVisible();
 });
 
 test('voto: login emulatore, zucche, voto salvato', async ({ page }) => {
@@ -122,6 +132,37 @@ test('admin: tocco sulla mappa posiziona la casa, il segnaposto compare in /mapp
   } finally {
     // Rimette la casa senza posizione (campi tolti con l'updateMask): il seed resta com'era.
     await request.patch(url, { headers: { Authorization: 'Bearer owner' }, data: { fields: {} } });
+  }
+});
+
+test('admin: il selettore si centra sulla casa in modifica, una sola coordinata non si salva', async ({ page }) => {
+  await blockTiles(page);
+  await page.goto('/admin');
+  await login(page, 'admin@esempio.test');
+
+  const insideMap = async (dialog) => {
+    const map = await dialog.locator('.house-map--picker').boundingBox();
+    const pin = await dialog.locator('.leaflet-marker-icon').boundingBox();
+    expect(pin.x).toBeGreaterThanOrEqual(map.x);
+    expect(pin.x + pin.width).toBeLessThanOrEqual(map.x + map.width);
+    expect(pin.y).toBeGreaterThanOrEqual(map.y);
+    expect(pin.y + pin.height).toBeLessThanOrEqual(map.y + map.height);
+  };
+
+  // Due aperture di case diverse: ogni volta il segnaposto e' dentro la vista, non resta quella di prima.
+  for (const number of [1, 5]) {
+    await page.getByRole('button', { name: `Modifica casa ${number}` }).click();
+    const dialog = page.getByRole('dialog', { name: `Modifica casa ${number}` });
+    await expect(dialog.locator('.leaflet-marker-icon')).toHaveCount(1);
+    await insideMap(dialog);
+    if (number === 5) {
+      await dialog.getByLabel('Longitudine').fill('');
+      await dialog.getByRole('button', { name: 'Salva' }).click();
+      await expect(dialog.getByRole('alert')).toContainText('Posizione incompleta');
+      await expect(dialog).toBeVisible();
+    }
+    await dialog.getByRole('button', { name: 'Annulla' }).click();
+    await expect(dialog).toBeHidden();
   }
 });
 
