@@ -1,0 +1,39 @@
+# Halloween di Bagnarola
+
+Votazione delle case addobbate per Halloween a Bagnarola di Cesenatico.
+
+## Linguaggio
+
+**Edizione**:
+L'anno della manifestazione; case, voti e classifica appartengono a un'edizione.
+_Da evitare_: anno, stagione
+
+**Casa**:
+Un'abitazione addobbata che partecipa a un'edizione, identificata dal suo **Numero**.
+_Da evitare_: partecipante, iscritto
+
+**Numero**:
+Il numero della targa di una casa in un'edizione, unico nell'edizione; è quello stampato sul cartello e nel QR.
+_Da evitare_: id, codice
+
+**Indirizzo**:
+Via e civico di una casa, come li comunica l'organizzazione.
+
+**Posizione**:
+Il punto della casa sulla mappa (latitudine e longitudine), ricavato una volta dall'indirizzo e corretto a mano se serve.
+_Da evitare_: coordinate x/y
+
+**Voto**:
+Il punteggio da 6 a 10 che un votante dà a una casa; uno per casa per votante, modificabile finché la votazione è aperta.
+
+**Classifica**:
+L'ordine delle case che l'admin pubblica a votazione chiusa.
+
+**Elenco delle case**:
+Il file con numero, titolo, indirizzo ed eventuale posizione di ogni casa, da cui si caricano le case di un'edizione.
+
+## Relazioni
+
+- Un'**Edizione** ha molte **Case**; il **Numero** è unico solo dentro l'edizione.
+- Una **Casa** ha un **Indirizzo** e al più una **Posizione**; senza posizione non compare sulla mappa ma si vota lo stesso.
+- Ogni **QR** di casa porta alla votazione della casa con quel **Numero** nell'edizione corrente.
