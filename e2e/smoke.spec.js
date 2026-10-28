@@ -15,6 +15,9 @@ async function login(page, email) {
   await popup.waitForEvent('close');
 }
 
+// Le tessere OpenStreetMap non si scaricano mai nei test: i segnaposto non ne dipendono.
+const blockTiles = (page) => page.route('**://tile.openstreetmap.org/**', (route) => route.abort());
+
 test('home: edizione dalla config e accesso al voto', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Halloween di Bagnarola');
@@ -30,6 +33,44 @@ test('privacy: dal link accanto al login la pagina si apre', async ({ page }) =>
   await expect(page).toHaveURL(/\/privacy$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Privacy' })).toBeVisible();
   await expect(page.getByText('privacy@alxstudio.it').first()).toBeVisible();
+  await expect(page.getByText('La mappa non usa cookie.')).toBeVisible();
+  await expect(page.getByText(/La mappa è di OpenStreetMap Foundation.*OpenStreetMap non lavora per noi/)).toBeVisible();
+  await expect(page.getByText('Google e Netlify trattano i dati per nostro conto.')).toBeVisible();
+  await expect(page.getByText(/^OpenStreetMap Foundation/)).toHaveCount(0); // non e' piu' tra i destinatari "per nostro conto"
+  await expect(page.getByText(/via e numero civico, pubblicati con il consenso/)).toBeVisible();
+});
+
+test('mappa: segnaposto, scheda con Vota, case senza posizione in elenco', async ({ page }) => {
+  await blockTiles(page);
+  const errors = [];
+  page.on('console', (msg) => {
+    // Le tessere bloccate fanno scrivere un errore al browser: non e' un errore dell'app.
+    if (msg.type() === 'error' && !msg.location().url.includes('tile.openstreetmap.org')) errors.push(msg.text());
+  });
+  page.on('pageerror', (err) => errors.push(err.message));
+
+  await page.goto('/mappa');
+  await expect(page.locator('.leaflet-marker-icon')).toHaveCount(10);
+  await expect(page.getByText('© OpenStreetMap')).toBeVisible();
+
+  await page.getByRole('button', { name: /^Casa 1, La Casa delle Zucche/ }).click();
+  const dialog = page.getByRole('dialog', { name: 'Casa 1' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('Via Cesenatico 12');
+  await expect(dialog.getByRole('link', { name: 'Vota' })).toHaveAttribute('href', '/vota/1');
+  await dialog.getByRole('button', { name: 'Chiudi' }).click();
+  await expect(dialog).toBeHidden();
+
+  // Le due case senza lat/lng non hanno segnaposto ma si votano dall'elenco.
+  await expect(page.getByRole('link', { name: 'Vota la casa 11' })).toHaveAttribute('href', '/vota/11');
+  await expect(page.getByRole('link', { name: 'Vota la casa 12' })).toHaveAttribute('href', '/vota/12');
+  expect(errors).toEqual([]);
+
+  // «Vota» nella scheda porta alla pagina di voto della casa (rotta /vota/:numero), non a una 404.
+  await page.getByRole('button', { name: /^Casa 1, La Casa delle Zucche/ }).click();
+  await page.getByRole('dialog', { name: 'Casa 1' }).getByRole('link', { name: 'Vota' }).click();
+  await expect(page).toHaveURL(/\/vota\/1$/);
+  await expect(page.getByText('Stai per votare la casa 1 · La Casa delle Zucche')).toBeVisible();
 });
 
 test('voto: login emulatore, zucche, voto salvato', async ({ page }) => {
@@ -64,14 +105,76 @@ test('admin: rifiuta chi non e in lista, accetta un admin', async ({ page }) => 
   await expect(page.getByRole('heading', { name: 'Gestione case' })).toBeVisible();
 });
 
+test('admin: tocco sulla mappa posiziona la casa, il segnaposto compare in /mappa', async ({ page, request }) => {
+  await blockTiles(page);
+  const url =
+    'http://127.0.0.1:8181/v1/projects/demo-bagna-halloween/databases/(default)/documents/houses/2026_11?updateMask.fieldPaths=lat&updateMask.fieldPaths=lng';
+  try {
+    await page.goto('/admin');
+    await login(page, 'admin@esempio.test');
+    await page.getByRole('button', { name: 'Modifica casa 11' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Modifica casa 11' });
+    await expect(dialog.getByLabel('Via')).toHaveValue('Via Cesenatico');
+    await expect(dialog.getByLabel('Latitudine')).toHaveValue('');
+
+    await dialog.locator('.house-map--picker').click();
+    await expect(dialog.getByLabel('Latitudine')).not.toHaveValue('');
+    await expect(dialog.getByLabel('Longitudine')).not.toHaveValue('');
+    await expect(dialog.locator('.leaflet-marker-icon')).toHaveCount(1);
+    await dialog.getByRole('button', { name: 'Salva' }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByText('sulla mappa').first()).toBeVisible();
+
+    // Il ricarico e' una nuova sessione: la mappa pubblica rilegge le case.
+    await page.goto('/mappa');
+    await expect(page.getByRole('button', { name: /^Casa 11, Il Portico delle Candele/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Vota la casa 11' })).toHaveCount(0);
+  } finally {
+    // Rimette la casa senza posizione (campi tolti con l'updateMask): il seed resta com'era.
+    await request.patch(url, { headers: { Authorization: 'Bearer owner' }, data: { fields: {} } });
+  }
+});
+
+test('admin: il selettore si centra sulla casa in modifica, una sola coordinata non si salva', async ({ page }) => {
+  await blockTiles(page);
+  await page.goto('/admin');
+  await login(page, 'admin@esempio.test');
+
+  const insideMap = async (dialog) => {
+    const map = await dialog.locator('.house-map--picker').boundingBox();
+    const pin = await dialog.locator('.leaflet-marker-icon').boundingBox();
+    expect(pin.x).toBeGreaterThanOrEqual(map.x);
+    expect(pin.x + pin.width).toBeLessThanOrEqual(map.x + map.width);
+    expect(pin.y).toBeGreaterThanOrEqual(map.y);
+    expect(pin.y + pin.height).toBeLessThanOrEqual(map.y + map.height);
+  };
+
+  // Due aperture di case diverse: ogni volta il segnaposto e' dentro la vista, non resta quella di prima.
+  for (const number of [1, 5]) {
+    await page.getByRole('button', { name: `Modifica casa ${number}`, exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: `Modifica casa ${number}` });
+    await expect(dialog.locator('.leaflet-marker-icon')).toHaveCount(1);
+    await insideMap(dialog);
+    if (number === 5) {
+      await dialog.getByLabel('Longitudine').fill('');
+      await dialog.getByRole('button', { name: 'Salva' }).click();
+      await expect(dialog.getByRole('alert')).toContainText('Posizione incompleta');
+      await expect(dialog).toBeVisible();
+    }
+    await dialog.getByRole('button', { name: 'Annulla' }).click();
+    await expect(dialog).toBeHidden();
+  }
+});
+
 test('carico: le case si leggono una volta per sessione (Home, Mappa, Voto, Mappa)', async ({ page, request }) => {
   const url =
     'http://127.0.0.1:8181/v1/projects/demo-bagna-halloween/databases/(default)/documents/houses/2026_3?updateMask.fieldPaths=title';
   // "Bearer owner" salta le regole, solo sull'emulatore.
   const setTitle = (title) =>
     request.patch(url, { headers: { Authorization: 'Bearer owner' }, data: { fields: { title: { stringValue: title } } } });
-  const house3 = (title) => page.getByRole('link', { name: new RegExp(`Casa 3, ${title}`) });
+  const house3 = (title) => page.getByRole('button', { name: new RegExp(`Casa 3, ${title}`) });
 
+  await blockTiles(page);
   await page.goto('/');
   await page.getByRole('link', { name: /Mappa del quartiere/ }).click();
   await expect(house3('La Cripta del Fornaio')).toBeVisible();

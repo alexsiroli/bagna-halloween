@@ -31,8 +31,8 @@ numero civico vero. Nessun prodotto generico di sondaggi conosce le vie di Bagna
 ## Operating Context
 - Evento serale all'aperto, 31 ottobre, circa 18-23 *(dedotto)*.
 - Accesso con Google (un voto per persona per casa, modificabile finche' le votazioni sono aperte).
-- Mappa del percorso: storicamente un PDF da 14 MB; dal 2026 un'immagine webp fornita
-  dall'organizzazione con le case posizionate dall'admin.
+- Mappa del percorso: storicamente un PDF da 14 MB; dal 2026 una mappa interattiva (OpenStreetMap)
+  costruita dagli indirizzi delle case, con le posizioni ritoccabili dall'admin.
 - Contest fotografico parallelo su Instagram con hashtag dell'edizione.
 - Ogni anno una nuova edizione (2025, 2026, ...): le case e i voti appartengono a un'edizione.
 - Deploy statico su Netlify, backend Firebase (Auth Google + Firestore).
@@ -51,7 +51,7 @@ numero civico vero. Nessun prodotto generico di sondaggi conosce le vie di Bagna
 - Icone e favicon esistenti in `public/` (zucca).
 
 ## Evidence on Hand
-- Nessuna foto reale delle case nel repo; nessuna mappa 2026 ancora (la fornira' l'utente).
+- Nessuna foto reale delle case nel repo; l'elenco delle case 2026 arriva dall'organizzazione.
 - Non inventare premi, sponsor, orari o numeri di partecipanti: non sono documentati.
 
 ## Product Principles

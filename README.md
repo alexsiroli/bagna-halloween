@@ -11,7 +11,7 @@ Applicazione React + Vite per gestire la votazione delle case di Halloween, con 
 ## Funzionalità principali
 
 - Home mobile-first con stato dell'edizione e delle votazioni, mappa e contest fotografico.
-- Mappa del quartiere (`/mappa`) al buio con torcia e bottone "Accendi le luci"; le case sono
+- Mappa del quartiere (`/mappa`, Leaflet con tessere OpenStreetMap); le case sono
   posizionate dall'admin e, a classifica pubblicata, si accendono in ordine.
 - Pagina contest con l'hashtag dell'edizione (`#BagnaHalloween<anno>`).
 - Pagina voto protetta da login Google:
@@ -47,7 +47,6 @@ VITE_FIREBASE_PROJECT_ID=...
 VITE_FIREBASE_STORAGE_BUCKET=....appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
-VITE_MAP_URL=https://drive.google.com/...
 VITE_ADMIN_ROUTE=/admin
 ```
 
@@ -62,8 +61,8 @@ Su Netlify inserisci gli stessi valori in **Site settings → Build & deploy →
    - `config/app`: `{ votingOpen, edition }` (es. `edition: 2026`).
    - `config/admins`: `{ emails: [...] }` email Google degli organizzatori, in minuscolo.
    - `config/results`: `{ edition, published, ranking: [numeri casa in ordine] }`.
-   - `houses/<edizione>_<numero>`: `{ number, title, description, visible, edition, x, y }`
-     con `x, y` in % della mappa.
+   - `houses/<edizione>_<numero>`: `{ number, title, description, street, civic, lat, lng, visible, edition }`
+     con `lat, lng` WGS84 (opzionali: senza posizione la casa sta in elenco sotto la mappa).
    - `votes/<edizione>_<uid>_<numero>`: `{ userId, houseNumber, score, edition, createdAt, updatedAt }`.
 3. Regole: `firestore.rules` (versionate, testate). Pubblicazione:
    `firebase deploy --only firestore:rules --project <id>`.
@@ -85,7 +84,7 @@ npm run seed:emulator  # con FIRESTORE_EMULATOR_HOST e FIREBASE_AUTH_EMULATOR_HO
 npm run dev:emulator   # app su http://localhost:4101 collegata agli emulatori
 ```
 
-Il seed crea 12 case inventate sulla mappa segnaposto, 40 votanti finti e tre utenti Google
+Il seed crea 12 case inventate con via, civico e posizione (due senza), 40 votanti finti e tre utenti Google
 dell'emulatore: `admin@esempio.test` (admin), `votante@esempio.test`, `curioso@esempio.test`.
 Per la mappa con la classifica accesa: `node scripts/seed-emulator.mjs --results`.
 
