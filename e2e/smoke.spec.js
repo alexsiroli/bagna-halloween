@@ -268,6 +268,9 @@ test('admin: il selettore si centra sulla casa in modifica, una sola coordinata 
       await dialog.getByRole('button', { name: 'Salva' }).click();
       await expect(dialog.getByRole('alert')).toContainText('Posizione incompleta');
       await expect(dialog).toBeVisible();
+      // Modificando il modulo l'avviso sparisce, senza aspettare un nuovo Salva.
+      await dialog.getByLabel('Longitudine').fill('11.5');
+      await expect(dialog.getByRole('alert')).toHaveCount(0);
     }
     await dialog.getByRole('button', { name: 'Annulla' }).click();
     await expect(dialog).toBeHidden();

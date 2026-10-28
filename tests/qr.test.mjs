@@ -60,3 +60,28 @@ test('CLI: errori chiari con exit 1 e nessun file scritto', () => {
   }
   assert.equal(existsSync(out), false);
 });
+
+test('CLI: --out senza valore o seguito da un altro flag e\' un errore, non una cartella "--numbers"', () => {
+  for (const args of [['--numbers', '1', '--out'], ['--out', '--numbers', '1']]) {
+    const result = spawnSync('node', [script, ...args], { encoding: 'utf8', cwd: tmp });
+    assert.equal(result.status, 1, JSON.stringify(args));
+    assert.match(result.stderr, /--out/);
+    assert.equal(existsSync(join(tmp, '--numbers')), false);
+  }
+});
+
+test('--base-url: normalizzato con URL, mai "//vota"; solo http(s)', () => {
+  assert.equal(houseUrl('HTTPS://Esempio.it//', 3), 'https://esempio.it/vota/3');
+  assert.equal(siteUrl('http://localhost:5173'), 'http://localhost:5173/');
+  for (const bad of ['esempio.it', 'ftp://esempio.it', 'javascript:alert(1)']) {
+    assert.throws(() => siteUrl(bad), /--base-url/, bad);
+  }
+});
+
+test('CLI: se la libreria lancia una stringa (testo troppo lungo) il messaggio e\' leggibile', () => {
+  const out = join(tmp, 'lungo');
+  const result = run(['--numbers', '1', '--out', out, '--base-url', `https://esempio.it/${'a'.repeat(3000)}`]);
+  assert.equal(result.status, 1);
+  assert.doesNotMatch(result.stderr, /undefined/);
+  assert.match(result.stderr, /overflow|troppo/i);
+});
