@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { collection, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 import { GoogleLogoIcon, MagnifyingGlassIcon, SignOutIcon } from '@phosphor-icons/react';
 import BackHomeLink from '../components/BackHomeLink.jsx';
@@ -17,6 +17,8 @@ function Vote() {
   const { houses, loading: loadingHouses, error: housesError } = useHouses(edition);
   const [votes, setVotes] = useState([]);
   const [loadingVotes, setLoadingVotes] = useState(false);
+  // Vero solo dopo il primo snapshot (o errore): prima votesMap e' vuota e la scheda si aprirebbe senza il voto.
+  const [votesReady, setVotesReady] = useState(false);
   const [error, setError] = useState('');
   const [searchValue, setSearchValue] = useState('');
   const [searchMessage, setSearchMessage] = useState('');
@@ -29,10 +31,12 @@ function Vote() {
     if (!user) {
       setVotes([]);
       setLoadingVotes(false);
+      setVotesReady(false);
       return undefined;
     }
 
     setLoadingVotes(true);
+    setVotesReady(false);
     const votesQuery = query(
       collection(db, 'votes'),
       where('userId', '==', user.uid),
@@ -43,10 +47,12 @@ function Vote() {
       (snapshot) => {
         setVotes(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
         setLoadingVotes(false);
+        setVotesReady(true);
       },
       (err) => {
         console.error('Errore caricando i voti', err);
         setLoadingVotes(false);
+        setVotesReady(true);
         setError('Impossibile recuperare i tuoi voti.');
       },
     );
@@ -124,14 +130,26 @@ function Vote() {
   );
 
   // Arrivo dalla mappa: /vote?casa=12 apre subito la casa (dopo il login).
-  const requestedHouse = Number(searchParams.get('casa'));
+  // Arrivo dal QR: /vota/12 (l'URL resta; il messaggio per numeri sbagliati e' nel render).
+  const { numero } = useParams();
+  const requestedHouse = Number(numero ?? searchParams.get('casa'));
+  const qrOpened = useRef(false);
+  const qrHouse = numero === undefined ? null : houses.find((item) => item.number === requestedHouse);
+  const qrInvalid = numero !== undefined && !loadingHouses && !housesError && !qrHouse;
   useEffect(() => {
-    if (!user || loadingHouses || !requestedHouse) return;
+    if (!user || loadingHouses || !votesReady || !requestedHouse) return;
+    if (numero !== undefined) {
+      if (qrHouse && !qrOpened.current) {
+        qrOpened.current = true;
+        openHouseModal(qrHouse);
+      }
+      return;
+    }
     const house = houses.find((item) => item.number === requestedHouse);
     if (house) openHouseModal(house);
     else setSearchMessage(`Nessuna casa ${requestedHouse} trovata (forse è nascosta).`);
     setSearchParams({}, { replace: true });
-  }, [user, loadingHouses, houses, requestedHouse, openHouseModal, setSearchParams]);
+  }, [user, loadingHouses, votesReady, houses, requestedHouse, numero, qrHouse, openHouseModal, setSearchParams]);
 
   const closeModal = () => {
     setModalState({ open: false, house: null, score: 0 });
@@ -210,9 +228,24 @@ function Vote() {
         </div>
       )}
 
+      {qrInvalid && (
+        <div className="notice" role="status">
+          La casa {numero} non esiste in questa edizione.{' '}
+          {user ? 'Cerca il numero giusto qui sotto o apri la ' : 'Controlla il numero sul cartello o apri la '}
+          <Link to="/mappa">mappa</Link>.
+        </div>
+      )}
+
       {user === null && (
         <section className="panel login-panel">
           <h2>Accedi per votare</h2>
+          {qrHouse && (
+            <p>
+              <strong>
+                Stai per votare la casa {qrHouse.number} · {qrHouse.title || 'Senza titolo'}
+              </strong>
+            </p>
+          )}
           <p>Usa il tuo account Google per esprimere i voti. Un voto per casa, modificabile finché le votazioni sono aperte.</p>
           <button type="button" className="primary-btn primary-btn--xl" onClick={handleLogin}>
             <GoogleLogoIcon aria-hidden="true" weight="bold" /> Accedi con Google
