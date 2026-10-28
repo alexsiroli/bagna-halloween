@@ -118,3 +118,27 @@ test('regole: un voto fuori scala viene rifiutato', async () => {
   await expect(setDoc(ref, vote(5))).rejects.toMatchObject({ code: 'permission-denied' });
   await expect(setDoc(ref, vote(10))).resolves.toBeUndefined();
 });
+
+test('QR: /vota/1 dice quale casa si vota e dopo il login apre la scheda', async ({ page }) => {
+  await page.goto('/vota/1');
+  await expect(page.getByText('Stai per votare la casa 1 · La Casa delle Zucche')).toBeVisible();
+  await login(page, 'votante@esempio.test');
+  await expect(page.getByRole('dialog', { name: 'Casa 1' })).toBeVisible();
+  await expect(page).toHaveURL(/\/vota\/1$/);
+});
+
+for (const numero of ['999', 'abc']) {
+  test(`QR: /vota/${numero} mostra un messaggio chiaro con e senza login`, async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (err) => errors.push(err.message));
+    await page.goto(`/vota/${numero}`);
+    const notice = page.getByRole('main').getByText(/non esiste in questa edizione/);
+    await expect(notice).toBeVisible();
+    await expect(page.getByRole('main').getByRole('link', { name: 'mappa' })).toHaveAttribute('href', '/mappa');
+    await login(page, 'votante@esempio.test');
+    await expect(page.getByText('Votante di prova')).toBeVisible();
+    await expect(notice).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+}

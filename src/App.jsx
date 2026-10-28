@@ -33,6 +33,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/contest" element={<Contest />} />
           <Route path="/vote" element={<Vote />} />
+          <Route path="/vota/:numero" element={<Vote />} />
           <Route path="/mappa" element={<MapPage />} />
           <Route path={adminRoute} element={<AdminGate />} />
           <Route path="/alex-siroli" element={<AlexSiroli />} />
