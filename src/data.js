@@ -8,6 +8,9 @@ export const FALLBACK_EDITION = 2026;
 export const houseId = (edition, number) => `${edition}_${number}`;
 export const voteId = (edition, uid, houseNumber) => `${edition}_${uid}_${houseNumber}`;
 
+export const houseAddress = (house) => [house.street, house.civic].filter(Boolean).join(' ');
+export const hasPosition = (house) => Number.isFinite(house.lat) && Number.isFinite(house.lng);
+
 // undefined = in caricamento, null = documento assente o non leggibile.
 export function useConfigDoc(id) {
   const [data, setData] = useState(undefined);

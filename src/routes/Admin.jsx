@@ -10,20 +10,22 @@ import {
   where,
 } from 'firebase/firestore';
 import { CaretDownIcon, CaretUpIcon, EyeIcon, EyeSlashIcon, PencilSimpleIcon, PlusIcon, SignOutIcon, TrophyIcon } from '@phosphor-icons/react';
-import NightMap from '../components/NightMap.jsx';
+import HouseMap from '../components/HouseMap.jsx';
 import Sheet from '../components/Sheet.jsx';
 import { db } from '../firebase.js';
 import { logout } from '../auth.js';
-import { houseId, useAppConfig, useConfigDoc, useHouses } from '../data.js';
+import { hasPosition, houseAddress, houseId, useAppConfig, useConfigDoc, useHouses } from '../data.js';
 
 const emptyHouse = {
   id: null,
   number: '',
   title: '',
   description: '',
+  street: '',
+  civic: '',
   visible: true,
-  x: '',
-  y: '',
+  lat: '',
+  lng: '',
 };
 
 const SORT_LABELS = { houseNumber: 'Casa', scoreAverage: 'Media voto', count: 'Voti' };
@@ -148,9 +150,11 @@ function Admin({ user }) {
         number: house.number,
         title: house.title || '',
         description: house.description || '',
+        street: house.street || '',
+        civic: house.civic || '',
         visible: house.visible !== false,
-        x: Number.isFinite(house.x) ? house.x : '',
-        y: Number.isFinite(house.y) ? house.y : '',
+        lat: Number.isFinite(house.lat) ? house.lat : '',
+        lng: Number.isFinite(house.lng) ? house.lng : '',
       },
       mode: 'edit',
     });
@@ -182,16 +186,19 @@ function Admin({ user }) {
       'houses',
       modalState.mode === 'edit' ? form.id : houseId(edition, numericNumber),
     );
-    const x = Number.parseFloat(form.x);
-    const y = Number.parseFloat(form.y);
+    const lat = Number.parseFloat(form.lat);
+    const lng = Number.parseFloat(form.lng);
+    const placed = Number.isFinite(lat) && Number.isFinite(lng);
     const payload = {
       number: numericNumber,
       title: form.title || '',
       description: form.description || '',
+      street: form.street.trim(),
+      civic: form.civic.trim(),
       visible: form.visible !== false,
       edition,
-      x: Number.isFinite(x) ? x : null,
-      y: Number.isFinite(y) ? y : null,
+      lat: placed ? lat : null,
+      lng: placed ? lng : null,
       updatedAt: serverTimestamp(),
     };
     if (modalState.mode === 'create') {
@@ -270,13 +277,12 @@ function Admin({ user }) {
     return formatter.format(date);
   };
 
-  // In modalita' "posiziona" la casa in modifica si vede nella sua posizione nuova.
+  // Il selettore mostra solo il segnaposto della casa in modifica, nel punto scritto nei campi.
   const pickerHouses = useMemo(() => {
-    const form = modalState.data;
-    const number = Number.parseInt(form.number, 10);
-    const edited = { ...form, number, x: Number.parseFloat(form.x), y: Number.parseFloat(form.y) };
-    return [...houses.filter((house) => house.number !== number), edited];
-  }, [houses, modalState.data]);
+    const { number, title, lat, lng } = modalState.data;
+    const point = { number: Number.parseInt(number, 10), title, lat: Number.parseFloat(lat), lng: Number.parseFloat(lng) };
+    return hasPosition(point) ? [point] : [];
+  }, [modalState.data]);
 
   const shownError = error || housesError;
 
@@ -362,9 +368,10 @@ function Admin({ user }) {
                     Casa {house.number}: {house.title || 'Senza titolo'}
                   </h3>
                   <p>
+                    {houseAddress(house) ? `${houseAddress(house)} · ` : ''}
                     {house.visible !== false ? 'Visibile' : 'Nascosta'}
                     {' · '}
-                    {Number.isFinite(house.x) ? 'sulla mappa' : 'da posizionare sulla mappa'}
+                    {hasPosition(house) ? 'sulla mappa' : 'da posizionare sulla mappa'}
                   </p>
                 </div>
                 <div className="admin-actions">
@@ -508,37 +515,60 @@ function Admin({ user }) {
             />
           </div>
 
+          <div className="house-form__grid house-form__grid--address">
+            <div className="field">
+              <label htmlFor="house-street">Via</label>
+              <input
+                id="house-street"
+                type="text"
+                value={modalState.data.street}
+                onChange={(event) => updateForm({ street: event.target.value })}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="house-civic">Civico</label>
+              <input
+                id="house-civic"
+                type="text"
+                value={modalState.data.civic}
+                onChange={(event) => updateForm({ civic: event.target.value })}
+              />
+            </div>
+          </div>
+
           <fieldset className="field house-form__map">
             <legend>Posizione sulla mappa</legend>
-            <p className="muted">Clicca sulla mappa nel punto della casa, oppure scrivi le coordinate in %.</p>
-            <NightMap
+            <p className="muted">Tocca la mappa nel punto della casa, oppure scrivi latitudine e longitudine.</p>
+            <HouseMap
+              className="house-map--picker"
               houses={pickerHouses}
-              pickedNumber={Number.parseInt(modalState.data.number, 10)}
-              onPick={({ x, y }) => updateForm({ x, y })}
+              onPick={({ lat, lng }) => updateForm({ lat, lng })}
             />
             <div className="house-form__grid">
               <div className="field">
-                <label htmlFor="house-x">X (%)</label>
+                <label htmlFor="house-lat">Latitudine</label>
                 <input
-                  id="house-x"
+                  id="house-lat"
                   type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  value={modalState.data.x}
-                  onChange={(event) => updateForm({ x: event.target.value })}
+                  inputMode="decimal"
+                  step="any"
+                  min="-90"
+                  max="90"
+                  value={modalState.data.lat}
+                  onChange={(event) => updateForm({ lat: event.target.value })}
                 />
               </div>
               <div className="field">
-                <label htmlFor="house-y">Y (%)</label>
+                <label htmlFor="house-lng">Longitudine</label>
                 <input
-                  id="house-y"
+                  id="house-lng"
                   type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  value={modalState.data.y}
-                  onChange={(event) => updateForm({ y: event.target.value })}
+                  inputMode="decimal"
+                  step="any"
+                  min="-180"
+                  max="180"
+                  value={modalState.data.lng}
+                  onChange={(event) => updateForm({ lng: event.target.value })}
                 />
               </div>
             </div>

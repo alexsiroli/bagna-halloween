@@ -87,16 +87,14 @@ Vocabolario unico, l'**accensione**: una luce che prende con due guizzi e poi re
   il podio con un bagliore piu' ampio e il piazzamento.
 
 Con `prefers-reduced-motion: reduce` le animazioni finiscono subito nello stato finale
-(niente guizzi, niente scorrimenti) e la mappa parte con le luci accese.
+(niente guizzi, niente scorrimenti).
 
-## Gesto caratteristico: la torcia
+## La mappa
 
-`/mappa` mostra il quartiere al buio (mappa desaturata al 30% di luminosita'); un secondo
-strato a piena luce e' ritagliato da una `mask-image` radiale che segue dito o puntatore.
-La posizione viene scritta direttamente sullo stile dello strato (nessun re-render). Le case
-restano sempre visibili come targhe luminose, cliccabili per votare. Sul telefono un dito
-muove la torcia e due dita zoomano (`touch-action: pinch-zoom`). Il bottone "Accendi le
-luci" spegne l'effetto per tastiera, reduced motion o semplice comodita'.
+`/mappa` usa Leaflet con tessere OpenStreetMap scurite via CSS (`filter` sul solo strato delle
+tessere: le targhe restano a piena luce). Le case sono targhe (`.pin__plate`, area da toccare
+44px) nello stile della targa civica; il tocco apre il foglio con la scheda e il bottone Vota.
+Le case senza posizione stanno in un elenco sotto la mappa.
 
 ## Schermate chiave
 
@@ -104,13 +102,7 @@ luci" spegne l'effetto per tastiera, reduced motion o semplice comodita'.
    edizione e votazioni, quartiere illustrato, "Vota le case" 64px, poi Mappa e Contest.
 2. **Voto**: login, poi campo numero grande + Cerca, filo di lampadine, "I miei voti" come
    lista di targhe; il voto si da' in un foglio dal basso, raggiungibile col pollice.
-3. **Mappa**: torcia, targhe cliccabili, classifica sotto quando e' pubblica.
+3. **Mappa**: tessere OpenStreetMap scurite, targhe toccabili, classifica sotto quando e' pubblica.
 4. **Contest**: l'hashtag dell'edizione su una targa, copiabile con un tocco.
 5. **Admin**: interruttori votazioni e classifica, case con posizionamento sulla mappa,
    statistiche ordinabili, grafico a fasce.
-
-## Mappa segnaposto
-
-`public/mappa-segnaposto.svg` e' dichiaratamente finta (cartiglio "MAPPA SEGNAPOSTO", vie
-inventate) e serve solo a sviluppo e screenshot (`VITE_MAP_IMAGE` in `.env.emulator`).
-In produzione l'app usa `public/mappa-2026.webp`; se manca, mostra il link al PDF.

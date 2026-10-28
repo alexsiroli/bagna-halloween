@@ -8,7 +8,7 @@ function Privacy() {
       <BackHomeLink />
       <header className="page-head">
         <h1>Privacy</h1>
-        <p>Ultimo aggiornamento: 20 ottobre 2026</p>
+        <p>Ultimo aggiornamento: 28 ottobre 2026</p>
       </header>
 
       <article className="panel privacy-text">
@@ -37,7 +37,7 @@ function Privacy() {
           Non pubblichiamo chi ha votato cosa. I voti sono visibili solo agli organizzatori autorizzati, con
           l'identificativo dell'account.
         </p>
-        <p>Le case in mappa mostrano numero, nome e foto, pubblicati con l'adesione dei partecipanti.</p>
+        <p>Le case in mappa mostrano numero, nome, indirizzo e foto, pubblicati con l'adesione dei partecipanti.</p>
 
         <h2>Cookie e strumenti</h2>
         <p>
@@ -49,6 +49,10 @@ function Privacy() {
         <ul>
           <li>Google (Firebase: accesso e database). I dati sono nella regione [REGIONE FIREBASE].</li>
           <li>Netlify (hosting del sito, che registra tecnicamente le visite).</li>
+          <li>
+            OpenStreetMap Foundation (le immagini della mappa: il browser le scarica dai suoi server, che vedono il tuo
+            indirizzo IP).
+          </li>
         </ul>
         <p>
           Questi fornitori trattano i dati per nostro conto. Alcuni possono trattarli anche fuori dall'Unione Europea

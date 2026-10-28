@@ -23,20 +23,20 @@ const TEST_USERS = {
   curious: { uid: 'curioso-test', email: 'curioso@esempio.test', displayName: 'Curioso di prova' },
 };
 
-// Case inventate, posizionate sulla mappa segnaposto (x, y in % dell'immagine).
+// Case inventate: via, civico e posizione (lat, lng). Le ultime due sono senza posizione (null).
 const HOUSES = [
-  [1, 'La Casa delle Zucche', 'Cento zucche intagliate sul muretto e una sulla cassetta della posta.', 25, 24.4],
-  [2, 'Il Maniero Stregato', 'Fumo dal cancello, scheletri che salutano e un organo che suona da solo.', 25, 40],
-  [3, 'La Cripta del Fornaio', 'Il garage diventa una cripta: attenti ai biscotti a forma di dita.', 35, 50],
-  [4, 'Ragnatele in Giardino', 'Un ragno gigante sulla siepe e ragnatele fino al secondo piano.', 45, 50],
-  [5, 'La Strega del Canale', 'Una strega cucina nel pentolone sul balcone. Si sente il profumo.', 51.7, 40],
-  [6, 'Villa Pipistrello', 'Pipistrelli di carta a centinaia e luci viola nelle finestre.', 61.7, 33.3],
-  [7, 'Il Cimitero dei Nonni', 'Lapidi di polistirolo con epitaffi in dialetto romagnolo.', 71.7, 33.3],
-  [8, 'La Soffitta Infestata', 'Una finestra in alto si accende e si spegne. Chi c\'e\' lassu\'?', 77.5, 43.3],
-  [9, 'Il Laboratorio di Frankenstein', 'Scintille, provette e un mostro che si alza ogni dieci minuti.', 88.3, 50],
-  [10, 'La Casa dei Fantasmi', 'Lenzuola che volano nel cortile e sussurri dal pozzo.', 77.5, 62.2],
-  [11, 'Il Portico delle Candele', 'Duecento candele sui gradini e un gatto nero vero (si chiama Ombra).', 25, 62.2],
-  [12, 'La Locanda degli Zombie', 'Zombie camerieri servono succo di mela "di palude".', 37.5, 69.4],
+  [1, 'La Casa delle Zucche', 'Cento zucche intagliate sul muretto e una sulla cassetta della posta.', 'Via Cesenatico', '12', 44.2005, 12.338],
+  [2, 'Il Maniero Stregato', 'Fumo dal cancello, scheletri che salutano e un organo che suona da solo.', 'Via Cesenatico', '48/A', 44.2012, 12.3402],
+  [3, 'La Cripta del Fornaio', 'Il garage diventa una cripta: attenti ai biscotti a forma di dita.', 'Via Canale', '7', 44.2, 12.3425],
+  [4, 'Ragnatele in Giardino', 'Un ragno gigante sulla siepe e ragnatele fino al secondo piano.', 'Via Canale', '21', 44.1991, 12.3441],
+  [5, 'La Strega del Canale', 'Una strega cucina nel pentolone sul balcone. Si sente il profumo.', 'Via Cesenatico', '103', 44.1983, 12.336],
+  [6, 'Villa Pipistrello', 'Pipistrelli di carta a centinaia e luci viola nelle finestre.', 'Via del Mare', '5', 44.1975, 12.3385],
+  [7, 'Il Cimitero dei Nonni', 'Lapidi di polistirolo con epitaffi in dialetto romagnolo.', 'Via del Mare', '18', 44.1969, 12.341],
+  [8, 'La Soffitta Infestata', 'Una finestra in alto si accende e si spegne. Chi c\'e\' lassu\'?', 'Via del Mare', '32', 44.1962, 12.3436],
+  [9, 'Il Laboratorio di Frankenstein', 'Scintille, provette e un mostro che si alza ogni dieci minuti.', 'Via dei Pini', '2', 44.199, 12.334],
+  [10, 'La Casa dei Fantasmi', 'Lenzuola che volano nel cortile e sussurri dal pozzo.', 'Via dei Pini', '9', 44.201, 12.335],
+  [11, 'Il Portico delle Candele', 'Duecento candele sui gradini e un gatto nero vero (si chiama Ombra).', 'Via Cesenatico', '150', null, null],
+  [12, 'La Locanda degli Zombie', 'Zombie camerieri servono succo di mela "di palude".', 'Via Canale', '40', null, null],
 ];
 
 // Generatore deterministico: stessi voti a ogni seed.
@@ -70,9 +70,10 @@ async function seedFirestore({ results }) {
   batch.set(db.doc('houses/1'), { number: 1, title: 'Casa 2025 (vecchia)', description: '', visible: true });
   batch.set(db.doc('houses/2'), { number: 2, title: 'Casa 2025 (vecchia)', description: '', visible: true });
 
-  for (const [number, title, description, x, y] of HOUSES) {
+  for (const [number, title, description, street, civic, lat, lng] of HOUSES) {
     batch.set(db.doc(`houses/${EDITION}_${number}`), {
-      number, title, description, x, y, edition: EDITION, visible: true,
+      number, title, description, street, civic, edition: EDITION, visible: true,
+      ...(lat === null ? {} : { lat, lng }),
     });
   }
 

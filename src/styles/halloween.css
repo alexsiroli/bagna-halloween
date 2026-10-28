@@ -1111,99 +1111,63 @@ fieldset {
   color: var(--luna);
 }
 
-/* ---------- Mappa al buio ---------- */
-.night-map {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.night-map__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.night-map__hint {
-  color: var(--nebbia);
-  font-size: var(--step--1);
-}
-
-.night-map__frame {
-  position: relative;
-  overflow: hidden;
+/* ---------- Mappa (Leaflet + OpenStreetMap) ---------- */
+.house-map {
+  height: min(62dvh, 540px);
+  min-height: 320px;
   border-radius: var(--radius-l);
   border: 1px solid var(--notte-600);
   background: var(--notte-950);
-  user-select: none;
-  -webkit-user-select: none;
+  font: inherit;
+  z-index: 0; /* i pannelli di Leaflet arrivano a z-index 1000: restano dentro la mappa */
+  isolation: isolate;
 }
 
-.night-map[data-lights='off'] .night-map__frame {
-  touch-action: pinch-zoom; /* un dito muove la torcia, due dita zoomano */
-}
-
-.night-map[data-picking='true'] .night-map__frame {
+.house-map--picker {
+  height: 260px;
+  min-height: 0;
   cursor: crosshair;
 }
 
-.night-map__base,
-.night-map__lit {
-  display: block;
-  width: 100%;
-  height: auto;
-  pointer-events: none;
+/* Tessere scurite per il tema notte: inversione + tinta, le strade restano leggibili */
+.house-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(200deg) grayscale(0.5) brightness(0.8) contrast(0.95);
 }
 
-.night-map__base {
-  filter: grayscale(0.55) brightness(0.3) contrast(1.15);
-  transition: filter var(--dur-slow) var(--ease-out);
+.house-map .leaflet-bar a,
+.house-map .leaflet-touch .leaflet-bar a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  background: var(--notte-800);
+  color: var(--luna);
+  border-color: var(--notte-600);
 }
 
-.night-map__lit {
-  position: absolute;
-  inset: 0;
-  height: 100%;
-  object-fit: fill;
-  filter: sepia(0.3) saturate(1.15);
-  -webkit-mask-image: radial-gradient(closest-side, #000 55%, rgb(0 0 0 / 0.55) 78%, transparent 100%);
-  mask-image: radial-gradient(closest-side, #000 55%, rgb(0 0 0 / 0.55) 78%, transparent 100%);
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 240px 240px;
-  mask-size: 240px 240px;
-  -webkit-mask-position: 50% 45%;
-  mask-position: 50% 45%;
-  transition: opacity var(--dur-slow) var(--ease-out);
+.house-map .leaflet-control-attribution {
+  background: rgb(7 11 23 / 0.8);
+  color: var(--nebbia);
 }
 
-.night-map[data-lights='on'] .night-map__base {
-  filter: none;
+.house-map .leaflet-control-attribution a {
+  color: var(--luna);
 }
 
-.night-map[data-lights='on'] .night-map__lit {
-  opacity: 0;
-}
-
-.night-map__markers {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.map-marker {
-  position: absolute;
+.pin-wrap {
   display: grid;
   place-items: center;
-  min-width: 44px;
-  min-height: 44px;
-  transform: translate(-50%, -50%);
-  pointer-events: auto;
-  text-decoration: none;
+  background: none;
+  border: 0;
   -webkit-tap-highlight-color: transparent;
 }
 
-.map-marker__plate {
+.pin {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.pin__plate {
   display: grid;
   place-items: center;
   min-width: 2rem;
@@ -1216,14 +1180,14 @@ fieldset {
   font-size: 0.9rem;
   line-height: 1;
   box-shadow: 0 0 0 3px rgb(7 11 23 / 0.7), 0 0 18px 4px rgb(255 214 120 / 0.4);
-  transition: transform var(--dur-fast) var(--ease-out);
 }
 
-.map-marker:active .map-marker__plate {
-  transform: scale(0.94);
+.pin-wrap:focus-visible .pin__plate {
+  outline: 3px solid var(--lampione);
+  outline-offset: 3px;
 }
 
-.map-marker__rank {
+.pin__rank {
   position: absolute;
   top: -2px;
   right: -6px;
@@ -1235,18 +1199,40 @@ fieldset {
   font-weight: 800;
 }
 
-.map-marker[data-ranked='true'] {
+.pin[data-ranked='true'] {
   animation: lamp-on 520ms linear both;
   animation-delay: calc(250ms + var(--order) * 110ms);
 }
 
-.map-marker[data-podium='true'] {
-  z-index: 1;
+.pin[data-podium='true'] .pin__plate {
+  min-width: 2.4rem;
+  height: 2rem;
+  font-size: 1.05rem;
+  box-shadow: 0 0 0 3px rgb(7 11 23 / 0.7), 0 0 26px 8px rgb(255 214 120 / 0.55);
+}
+
+.house-map .leaflet-marker-pane:has(.pin[data-ranked='true']) .pin[data-ranked='false'] {
+  opacity: 0.45;
+}
+
+/* Admin: il segnaposto della casa in modifica, non toccabile */
+.house-map[data-picking='true'] .pin__plate {
+  background: var(--lampione);
+  color: var(--notte-900);
+}
+
+.map-dialog {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.map-dialog__address {
+  color: var(--nebbia);
 }
 
 /* Telefono: targhe piu' piccole (l'area da toccare resta 44px), bagliore piu' stretto */
 @media (max-width: 639px) {
-  .map-marker__plate {
+  .pin__plate {
     min-width: 1.55rem;
     height: 1.35rem;
     padding: 0 0.25rem;
@@ -1254,48 +1240,12 @@ fieldset {
     box-shadow: 0 0 0 2px rgb(7 11 23 / 0.7), 0 0 12px 3px rgb(255 214 120 / 0.4);
   }
 
-  .map-marker__rank {
+  .pin__rank {
     top: 0;
     right: -4px;
     font-size: 0.65rem;
     padding: 0 4px;
   }
-}
-
-.map-marker[data-podium='true'] .map-marker__plate {
-  min-width: 2.4rem;
-  height: 2rem;
-  font-size: 1.05rem;
-  box-shadow: 0 0 0 3px rgb(7 11 23 / 0.7), 0 0 26px 8px rgb(255 214 120 / 0.55);
-}
-
-.night-map__frame:has(.map-marker[data-ranked='true']) .map-marker[data-ranked='false'] {
-  opacity: 0.45;
-}
-
-.night-map[data-picking='true'] .map-marker {
-  opacity: 0.6;
-}
-
-.night-map[data-picking='true'] .map-marker__plate {
-  box-shadow: 0 1px 3px rgb(7 11 23 / 0.5);
-}
-
-.night-map[data-picking='true'] .map-marker[data-picked='true'] {
-  opacity: 1;
-}
-
-.night-map[data-picking='true'] .map-marker[data-picked='true'] .map-marker__plate {
-  background: var(--lampione);
-  color: var(--notte-900);
-}
-
-.night-map--missing {
-  justify-items: start;
-  padding: var(--space-5) var(--space-4);
-  border: 1px dashed var(--notte-500);
-  border-radius: var(--radius-l);
-  color: var(--nebbia);
 }
 
 .ranking-list {
@@ -1443,6 +1393,9 @@ fieldset {
 
 .house-list {
   display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .house-row {
@@ -1581,6 +1534,10 @@ fieldset {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
+}
+
+.house-form__grid--address {
+  grid-template-columns: 2fr 1fr;
 }
 
 .house-form__map {
