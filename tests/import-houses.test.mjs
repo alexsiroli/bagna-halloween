@@ -17,10 +17,10 @@ process.env.GCE_METADATA_HOST ??= '127.0.0.1:9';
 
 test('import: visible solo per le case nuove, una casa nascosta dall\'admin resta nascosta', { skip: !emulator }, async () => {
   const file = join(mkdtempSync(join(tmpdir(), 'import-houses-')), 'case.csv');
-  writeFileSync(file, 'numero;titolo;via;civico\n1;Nascosta;Via Po;1\n2;Nuova;Via Po;2\n');
+  writeFileSync(file, 'numero;titolo;via;civico;tipo\n1;Nascosta;Via Po;1;\n2;Nuova;Via Po;2;spettacolo\n');
   initializeApp({ projectId: PROJECT });
   const db = getFirestore();
-  await db.doc(`houses/${EDITION}_1`).set({ number: 1, edition: EDITION, title: 'Vecchio', visible: false });
+  await db.doc(`houses/${EDITION}_1`).set({ number: 1, edition: EDITION, title: 'Vecchio', visible: false, kind: 'addobbi' });
 
   execFileSync(process.execPath, ['scripts/import-houses.mjs', '--edition', String(EDITION), '--file', file, '--apply'], {
     env: { ...process.env, GCLOUD_PROJECT: PROJECT },
@@ -32,6 +32,8 @@ test('import: visible solo per le case nuove, una casa nascosta dall\'admin rest
   assert.equal(hidden.visible, false);
   assert.equal(hidden.title, 'Nascosta');
   assert.equal(fresh.visible, true);
+  assert.equal(fresh.kind, 'spettacolo');
+  assert.equal(hidden.kind, 'addobbi'); // tipo vuoto nel file: quello dell'admin resta
 
   await Promise.all([db.doc(`houses/${EDITION}_1`).delete(), db.doc(`houses/${EDITION}_2`).delete()]);
 });

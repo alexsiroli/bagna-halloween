@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { readHousesFile } from '../scripts/houses-file.mjs';
+import { readHousesFile, writeHousesFile } from '../scripts/houses-file.mjs';
 
 const dir = mkdtempSync(join(tmpdir(), 'houses-file-'));
 const write = (name, text) => {
@@ -21,8 +21,8 @@ test('CSV con punto e virgola, BOM, virgolette e virgola decimale', () => {
       '2;Il Maniero;Via Po;;;;\n',
   );
   assert.deepEqual(readHousesFile(path), [
-    { number: 1, title: 'La Casa; delle "Zucche"', street: 'Via Roma', civic: '12/A', description: 'Due\nrighe', lat: 44.1951, lng: 12.3391 },
-    { number: 2, title: 'Il Maniero', street: 'Via Po', civic: '', description: '', lat: null, lng: null },
+    { number: 1, title: 'La Casa; delle "Zucche"', street: 'Via Roma', civic: '12/A', description: 'Due\nrighe', kind: '', lat: 44.1951, lng: 12.3391 },
+    { number: 2, title: 'Il Maniero', street: 'Via Po', civic: '', description: '', kind: '', lat: null, lng: null },
   ]);
 });
 
@@ -34,8 +34,24 @@ test('CSV con virgola riconosciuta dall\'intestazione', () => {
 test('JSON con campi in inglese', () => {
   const path = write('c.json', JSON.stringify([{ number: 4, title: 'Ragnatele', street: 'Via Po', lat: 44.19, lng: 12.33 }]));
   assert.deepEqual(readHousesFile(path), [
-    { number: 4, title: 'Ragnatele', street: 'Via Po', civic: '', description: '', lat: 44.19, lng: 12.33 },
+    { number: 4, title: 'Ragnatele', street: 'Via Po', civic: '', description: '', kind: '', lat: 44.19, lng: 12.33 },
   ]);
+});
+
+test('colonna tipo: spettacolo, addobbi o vuoto; JSON con kind', () => {
+  const head = 'numero;titolo;tipo\n';
+  const path = write('k1.csv', `${head}1;A;Spettacolo\n2;B;addobbi\n3;C;\n`);
+  assert.deepEqual(readHousesFile(path).map((h) => h.kind), ['spettacolo', 'addobbi', '']);
+  assert.equal(readHousesFile(write('k2.json', JSON.stringify([{ number: 1, title: 'A', kind: 'addobbi' }])))[0].kind, 'addobbi');
+  rejects(write('k3.csv', `${head}1;A;balletto\n`), /riga 2.*tipo.*balletto.*spettacolo, addobbi/i);
+  rejects(write('k4.json', JSON.stringify([{ number: 1, title: 'A', kind: 'x' }])), /riga 1.*tipo/i);
+});
+
+test('scrittura e rilettura mantengono il tipo', () => {
+  const path = join(dir, 'w.csv');
+  const houses = [{ number: 1, title: 'A', street: '', civic: '', description: '', kind: 'spettacolo', lat: null, lng: null }];
+  writeHousesFile(path, houses);
+  assert.deepEqual(readHousesFile(path), houses);
 });
 
 test('errori con numero di riga', () => {

@@ -68,7 +68,9 @@ if (!apply) {
 const now = FieldValue.serverTimestamp();
 for (let start = 0; start < houses.length; start += 400) {
   const batch = db.batch();
-  houses.slice(start, start + 400).forEach(({ lat, lng, ...house }) => {
+  houses.slice(start, start + 400).forEach(({ lat, lng, kind, ...house }) => {
+    // Come la posizione: senza tipo nel file non si scrive `kind`, un tipo messo dall'admin non va perso.
+    if (kind) house.kind = kind;
     // Senza posizione nel file non si scrive lat/lng: un ritocco fatto dall'admin non va perso.
     const position = lat === null ? {} : { lat, lng };
     // visible solo se la casa e' nuova: per le esistenti lo decide l'admin.
