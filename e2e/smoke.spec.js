@@ -151,7 +151,7 @@ test('admin: il selettore si centra sulla casa in modifica, una sola coordinata 
 
   // Due aperture di case diverse: ogni volta il segnaposto e' dentro la vista, non resta quella di prima.
   for (const number of [1, 5]) {
-    await page.getByRole('button', { name: `Modifica casa ${number}` }).click();
+    await page.getByRole('button', { name: `Modifica casa ${number}`, exact: true }).click();
     const dialog = page.getByRole('dialog', { name: `Modifica casa ${number}` });
     await expect(dialog.locator('.leaflet-marker-icon')).toHaveCount(1);
     await insideMap(dialog);
