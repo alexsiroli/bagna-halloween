@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
+import { POINT_LABELS } from './mapKinds.js';
 
 // Punti di servizio e strade chiuse di un'edizione: public/punti/<edizione>.json (lo scrive scripts/points-file.mjs).
 // Un solo punto di lettura e validazione: tutto cio' che e' malformato si scarta, la mappa non si rompe mai.
-export const POINT_TYPES = ['bar', 'food', 'wc', 'parcheggio', 'intrattenimento'];
+export const POINT_TYPES = Object.keys(POINT_LABELS);
 const EMPTY = { note: '', points: [], closedRoads: [] };
 
 const isCoord = (lat, lng) =>

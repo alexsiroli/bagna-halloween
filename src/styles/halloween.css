@@ -49,6 +49,14 @@
   --ceramica: #f4efe4;
   --smalto: #1c2f7a;
 
+  /* Tipi di casa e di punto (mappa e legenda); arancio fantasma e mattone seguono la legenda degli organizzatori */
+  --tipo-spettacolo: var(--zucca);
+  --tipo-addobbi: #5b3a9e;
+  --punto-bar: #3ccfc0;
+  --punto-wc: #7fb0ff;
+  --punto-parcheggio: #dfe3f0;
+  --strada-chiusa: #d9533a;
+
   --font-display: 'Bowlby One', 'Arial Black', sans-serif;
   --font-body: 'Atkinson Hyperlegible Next', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
@@ -1170,17 +1178,17 @@ fieldset {
 /* Colori dei tipi (case e punti): due luminosita' ben diverse, cosi' si distinguono anche in scala di grigi */
 [data-t='spettacolo'],
 [data-t='intrattenimento'] {
-  --chip-bg: var(--zucca);
+  --chip-bg: var(--tipo-spettacolo);
   --chip-fg: var(--notte-950);
 }
 
 [data-t='addobbi'] {
-  --chip-bg: #5b3a9e;
+  --chip-bg: var(--tipo-addobbi);
   --chip-fg: var(--luna);
 }
 
 [data-t='bar'] {
-  --chip-bg: #3ccfc0;
+  --chip-bg: var(--punto-bar);
   --chip-fg: var(--notte-950);
 }
 
@@ -1190,18 +1198,23 @@ fieldset {
 }
 
 [data-t='wc'] {
-  --chip-bg: #7fb0ff;
+  --chip-bg: var(--punto-wc);
   --chip-fg: var(--notte-950);
 }
 
 [data-t='parcheggio'] {
-  --chip-bg: #dfe3f0;
+  --chip-bg: var(--punto-parcheggio);
   --chip-fg: var(--notte-950);
 }
 
 [data-t='strada'] {
-  --chip-bg: #d9533a; /* mattone, come BRICK in src/mapKinds.js */
+  --chip-bg: var(--strada-chiusa);
   --chip-fg: var(--luna);
+}
+
+/* Polilinea delle strade chiuse sulla mappa (className di Leaflet) */
+.road-closed {
+  stroke: var(--strada-chiusa);
 }
 
 .glyph {

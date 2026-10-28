@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { BRICK, glyphSvg, isKind, KIND_LABELS, POINT_LABELS } from '../mapKinds.js';
+import { glyphSvg, isKind, KIND_LABELS, POINT_LABELS } from '../mapKinds.js';
 
 // Bagnarola di Cesenatico: vista di ripiego finche' nessuna casa ha una posizione.
 const CENTER = [44.2, 12.34];
@@ -115,7 +115,7 @@ function HouseMap({ houses, ranking = null, services: servicesData = NO_SERVICES
     servicesLayer.current.clearLayers();
     if (picking) return;
     const { points, closedRoads } = servicesData;
-    closedRoads.forEach((road) => L.polyline(road.path, { color: BRICK, weight: 5, opacity: 0.9, interactive: false }).addTo(servicesLayer.current));
+    closedRoads.forEach((road) => L.polyline(road.path, { className: 'road-closed', weight: 5, opacity: 0.9, interactive: false }).addTo(servicesLayer.current));
     points.forEach((point) => {
       const label = `${POINT_LABELS[point.type]}: ${point.name}`;
       const marker = L.marker([point.lat, point.lng], {
@@ -128,7 +128,9 @@ function HouseMap({ houses, ranking = null, services: servicesData = NO_SERVICES
         title: label,
       }).addTo(servicesLayer.current);
       marker.getElement().setAttribute('aria-label', label);
-      marker.bindPopup(popupNode(point), { closeButton: false });
+      marker.bindPopup(popupNode(point));
+      // Leaflet lo etichetta «Close popup»: l'app e' in italiano.
+      marker.on('popupopen', ({ popup }) => popup.getElement().querySelector('.leaflet-popup-close-button')?.setAttribute('aria-label', 'Chiudi'));
     });
     // Senza case sulla mappa si inquadrano punti e strade; con le case resta la vista sulle case.
     const coords = [...points.map((point) => [point.lat, point.lng]), ...closedRoads.flatMap((road) => road.path)];

@@ -38,7 +38,7 @@ export function convertPoints(text, { note = '' } = {}) {
   rows.forEach((row, index) => {
     const where = `riga ${index + 2}`;
     const type = row.type.toLowerCase();
-    if (type !== ROAD && !(type in TYPES)) {
+    if (type !== ROAD && !Object.hasOwn(TYPES, type)) {
       throw new Error(`${where}: tipo sconosciuto (${row.type}). Ammessi: ${[...Object.keys(TYPES), ROAD].join(', ')}.`);
     }
     if (!row.name) throw new Error(`${where}: nome mancante.`);

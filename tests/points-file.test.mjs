@@ -67,6 +67,8 @@ test('errori: tipo sconosciuto con elenco, riquadro, numero, nome, intestazione'
   fails(`${HEAD}bar;B;abc;12.34;alta\n`, /riga 2.*lat/i);
   fails(`${HEAD}bar;;44.2;12.34;alta\n`, /riga 2.*nome/i);
   fails('tipo;nome;colore\nbar;B;rosso\n', /colonne sconosciute.*colore/i);
+  fails(`${HEAD}constructor;B;44.2;12.3;alta\n`, /tipo sconosciuto/i);
+  fails(`${HEAD}__proto__;B;44.2;12.3;alta\n`, /tipo sconosciuto/i);
 });
 
 test('CLI: prova di default, --out scrive', () => {

@@ -43,7 +43,10 @@ export function parseCsv(text, sep) {
 export function csvToObjects(text, columns = CSV_COLUMNS) {
   const head = text.split(/\r?\n/, 1)[0];
   const rows = parseCsv(text, head.split(';').length > head.split(',').length ? ';' : ',');
-  const fields = rows[0].map((name) => columns[name.trim().toLowerCase()]);
+  const fields = rows[0].map((name) => {
+    const key = name.trim().toLowerCase();
+    return Object.hasOwn(columns, key) ? columns[key] : undefined;
+  });
   const unknown = rows[0].filter((_, index) => !fields[index]);
   if (unknown.length) throw new Error(`Intestazione: colonne sconosciute (${unknown.join(', ')}).`);
   return rows.slice(1).map((cells) => Object.fromEntries(fields.map((name, index) => [name, (cells[index] ?? '').trim()])));

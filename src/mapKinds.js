@@ -10,8 +10,6 @@ export const POINT_LABELS = {
 };
 export const isKind = (kind) => Object.hasOwn(KIND_LABELS, kind);
 export const ROAD_LABEL = 'Strada chiusa';
-// Mattone: strade chiuse, come sulla mappa degli organizzatori.
-export const BRICK = '#d9533a';
 
 const text = (char, size) =>
   `<text x="12" y="17.5" text-anchor="middle" font-size="${size}" font-weight="800" fill="currentColor" font-family="Arial, sans-serif">${char}</text>`;
@@ -32,4 +30,4 @@ const GLYPHS = {
 };
 
 export const glyphSvg = (name) =>
-  `<svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${GLYPHS[name] ?? ''}</svg>`;
+  `<svg class="glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${Object.hasOwn(GLYPHS, name) ? GLYPHS[name] : ''}</svg>`;

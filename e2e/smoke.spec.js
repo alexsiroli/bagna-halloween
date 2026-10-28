@@ -97,7 +97,7 @@ test('mappa: tipi di casa, punti di servizio e strade chiuse da file', async ({ 
   await expect(page.locator('.leaflet-marker-icon')).toHaveCount(15);
   await expect(page.locator('.leaflet-overlay-pane path')).toHaveCount(1);
   await expect(page.locator('.leaflet-overlay-pane path.leaflet-interactive')).toHaveCount(0);
-
+  await expect(page.locator('.leaflet-overlay-pane path')).toHaveCSS('stroke', 'rgb(217, 83, 58)'); // --strada-chiusa
   // Il tipo e' nel nome accessibile e nel glifo del segnaposto.
   const show = page.getByRole('button', { name: 'Casa 3, La Cripta del Fornaio, spettacolo: apri la scheda' });
   const decor = page.getByRole('button', { name: 'Casa 4, Ragnatele in Giardino, casa addobbata: apri la scheda' });
@@ -121,6 +121,10 @@ test('mappa: tipi di casa, punti di servizio e strade chiuse da file', async ({ 
   await expect(popup.locator('b')).toHaveCount(0);
   await expect(popup.getByRole('link')).toHaveCount(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  // Si chiude anche da tastiera: il bottone ha un nome accessibile.
+  await popup.getByRole('button', { name: 'Chiudi' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(popup).toHaveCount(0);
 
   // Elenco degli spettacoli: case con Vota, punti di intrattenimento senza.
   const shows = page.locator('section', { has: page.getByRole('heading', { name: 'Spettacoli' }) });

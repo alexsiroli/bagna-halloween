@@ -58,7 +58,7 @@ const missing = existing.docs.filter((docSnap) => !inFile.has(docSnap.get('numbe
 console.log(`[piano] ${emulator ? 'EMULATORE' : 'PRODUZIONE'}, edizione ${edition}: ${houses.length} case nel file`);
 houses.forEach((house) => {
   const where = house.lat === null ? 'senza posizione' : `${house.lat}, ${house.lng}`;
-  console.log(`         casa ${house.number}: ${house.title} (${house.street} ${house.civic}`.trimEnd() + `) ${where}`);
+  console.log(`         casa ${house.number}: ${house.title} (${house.street} ${house.civic}`.trimEnd() + `) ${where}${house.kind ? `, tipo ${house.kind}` : ''}`);
 });
 missing.forEach((docSnap) => console.log(`[non nel file] houses/${docSnap.id} (casa ${docSnap.get('number')}): resta com'e'`));
 

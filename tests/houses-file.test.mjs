@@ -64,6 +64,7 @@ test('errori con numero di riga', () => {
   rejects(write('d6.csv', `${head}1;A;;;;48.85;2.35\n`), /riga 2.*riquadro/i);
   rejects(write('d7.csv', `${head}1;A;;;;abc;12.3\n`), /riga 2.*lat/i);
   rejects(write('d8.csv', 'numero;nome\n1;A\n'), /intestazione.*nome/i);
+  rejects(write('d8b.csv', 'numero;titolo;__proto__\n1;A;x\n'), /colonne sconosciute.*__proto__/i);
   rejects(write('d9.json', JSON.stringify([{ number: 1, title: 'A' }, { number: -2, title: 'B' }])), /riga 2.*numero/i);
   rejects(write('d10.json', '{}'), /array/i);
 });
