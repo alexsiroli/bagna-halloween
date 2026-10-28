@@ -37,27 +37,38 @@ function Privacy() {
           Non pubblichiamo chi ha votato cosa. I voti sono visibili solo agli organizzatori autorizzati, con
           l'identificativo dell'account.
         </p>
-        <p>Le case in mappa mostrano numero, nome, indirizzo e foto, pubblicati con l'adesione dei partecipanti.</p>
+        <p>
+          Le case in mappa mostrano numero, nome dello spettacolo (o "Casa n."), via e numero civico, pubblicati con il
+          consenso dei partecipanti. Non pubblichiamo il cognome delle famiglie. Chi ospita può chiedere in qualsiasi
+          momento di togliere la propria casa dalla mappa, scrivendo a privacy@alxstudio.it.
+        </p>
 
         <h2>Cookie e strumenti</h2>
         <p>
           Nessun analytics, nessuna pubblicità, nessun cookie di terzi. Il browser conserva solo i dati tecnici della
           tua sessione di accesso, necessari per tenerti collegato. Per questo non c'è un banner dei cookie.
         </p>
+        <p>
+          La mappa non usa cookie. Per mostrarla, il tuo browser scarica le immagini direttamente da OpenStreetMap (vedi
+          sotto).
+        </p>
 
         <h2>Chi li riceve</h2>
         <ul>
           <li>Google (Firebase: accesso e database). I dati sono nella regione [REGIONE FIREBASE].</li>
           <li>Netlify (hosting del sito, che registra tecnicamente le visite).</li>
-          <li>
-            OpenStreetMap Foundation (le immagini della mappa: il browser le scarica dai suoi server, che vedono il tuo
-            indirizzo IP).
-          </li>
         </ul>
         <p>
-          Questi fornitori trattano i dati per nostro conto. Alcuni possono trattarli anche fuori dall'Unione Europea
+          Google e Netlify trattano i dati per nostro conto. Alcuni possono trattarli anche fuori dall'Unione Europea
           (ad esempio negli USA): in quel caso si usano le clausole contrattuali standard della Commissione europea o
           il Data Privacy Framework.
+        </p>
+        <p>
+          La mappa è di OpenStreetMap Foundation. Le immagini non passano da noi: le scarica il tuo browser dai suoi
+          server, che vedono il tuo indirizzo IP, il tipo di browser e il sito da cui arrivi. OpenStreetMap non lavora
+          per noi: usa questi dati per conto proprio, secondo la sua informativa (osmfoundation.org/wiki/Privacy_Policy),
+          e i suoi server possono trovarsi anche fuori dall'Unione Europea. Lo facciamo per mostrarti dove sono le case.
+          Non c'è nessun cookie, e non colleghiamo la tua visita alla mappa al tuo voto.
         </p>
 
         <h2>Per quanto tempo</h2>
