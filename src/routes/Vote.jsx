@@ -17,6 +17,8 @@ function Vote() {
   const { houses, loading: loadingHouses, error: housesError } = useHouses(edition);
   const [votes, setVotes] = useState([]);
   const [loadingVotes, setLoadingVotes] = useState(false);
+  // Vero solo dopo il primo snapshot (o errore): prima votesMap e' vuota e la scheda si aprirebbe senza il voto.
+  const [votesReady, setVotesReady] = useState(false);
   const [error, setError] = useState('');
   const [searchValue, setSearchValue] = useState('');
   const [searchMessage, setSearchMessage] = useState('');
@@ -29,10 +31,12 @@ function Vote() {
     if (!user) {
       setVotes([]);
       setLoadingVotes(false);
+      setVotesReady(false);
       return undefined;
     }
 
     setLoadingVotes(true);
+    setVotesReady(false);
     const votesQuery = query(
       collection(db, 'votes'),
       where('userId', '==', user.uid),
@@ -43,10 +47,12 @@ function Vote() {
       (snapshot) => {
         setVotes(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
         setLoadingVotes(false);
+        setVotesReady(true);
       },
       (err) => {
         console.error('Errore caricando i voti', err);
         setLoadingVotes(false);
+        setVotesReady(true);
         setError('Impossibile recuperare i tuoi voti.');
       },
     );
@@ -131,7 +137,7 @@ function Vote() {
   const qrHouse = numero === undefined ? null : houses.find((item) => item.number === requestedHouse);
   const qrInvalid = numero !== undefined && !loadingHouses && !housesError && !qrHouse;
   useEffect(() => {
-    if (!user || loadingHouses || !requestedHouse) return;
+    if (!user || loadingHouses || !votesReady || !requestedHouse) return;
     if (numero !== undefined) {
       if (qrHouse && !qrOpened.current) {
         qrOpened.current = true;
@@ -143,7 +149,7 @@ function Vote() {
     if (house) openHouseModal(house);
     else setSearchMessage(`Nessuna casa ${requestedHouse} trovata (forse è nascosta).`);
     setSearchParams({}, { replace: true });
-  }, [user, loadingHouses, houses, requestedHouse, numero, qrHouse, openHouseModal, setSearchParams]);
+  }, [user, loadingHouses, votesReady, houses, requestedHouse, numero, qrHouse, openHouseModal, setSearchParams]);
 
   const closeModal = () => {
     setModalState({ open: false, house: null, score: 0 });
