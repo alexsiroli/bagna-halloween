@@ -50,7 +50,7 @@ VITE_FIREBASE_APP_ID=...
 VITE_ADMIN_ROUTE=/admin
 ```
 
-> `VITE_FIREBASE_AUTH_DOMAIN` vale per locale, emulatore, `netlify.app` e deploy preview. Solo quando il sito è servito da `halloween.alxstudio.it` l’app usa quell’hostname come dominio di login (same-origin, grazie al proxy `/__/auth/*` di `netlify.toml`), senza dipendere dalla variabile.
+> `VITE_FIREBASE_AUTH_DOMAIN` vale `bagna-halloween.firebaseapp.com` ovunque. Il login usa il popup (`signInWithPopup`), che funziona da qualsiasi dominio autorizzato: ogni dominio da cui si apre il sito (compresa una deploy preview su cui si vuole provare il login) va aggiunto in Firebase Auth > Authorized domains.
 
 Su Netlify inserisci gli stessi valori in **Site settings → Build & deploy → Environment**.
 

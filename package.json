@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "emulators": "firebase emulators:start --only firestore,auth --project demo-bagna-halloween",
     "seed:emulator": "node scripts/seed-emulator.mjs",
-    "test": "firebase emulators:exec --only firestore,auth --project demo-bagna-halloween \"node --test tests/rules.test.mjs tests/export-edition.test.mjs tests/qr.test.mjs tests/auth-domain.test.mjs tests/houses-file.test.mjs tests/points-file.test.mjs tests/points.test.mjs tests/geocode-houses.test.mjs tests/import-houses.test.mjs && node scripts/seed-emulator.mjs && playwright test\"",
+    "test": "firebase emulators:exec --only firestore,auth --project demo-bagna-halloween \"node --test tests/rules.test.mjs tests/export-edition.test.mjs tests/qr.test.mjs tests/houses-file.test.mjs tests/points-file.test.mjs tests/points.test.mjs tests/geocode-houses.test.mjs tests/import-houses.test.mjs && node scripts/seed-emulator.mjs && playwright test\"",
     "test:rules": "firebase emulators:exec --only firestore --project demo-bagna-halloween \"node --test tests/rules.test.mjs\""
   },
   "dependencies": {
