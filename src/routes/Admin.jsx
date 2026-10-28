@@ -28,6 +28,8 @@ const emptyHouse = {
   lng: '',
 };
 
+const POSITION_ERROR = 'Posizione incompleta: compila latitudine e longitudine, oppure lasciale vuote entrambe.';
+
 const SORT_LABELS = { houseNumber: 'Casa', scoreAverage: 'Media voto', count: 'Voti' };
 
 function Admin({ user }) {
@@ -137,8 +139,11 @@ function Admin({ user }) {
   const maxVotesInSlot = votesBySlot.reduce((max, slot) => Math.max(max, slot.count), 0);
   const totalVotes = votesBySlot.reduce((sum, slot) => sum + slot.count, 0);
 
+  // Il selettore si apre sulla casa in modifica se e' posizionata, altrimenti sulle case gia' posizionate.
+  const startPoints = (house) => (house && hasPosition(house) ? [house] : houses.filter(hasPosition));
+
   const openCreateHouse = () => {
-    setModalState({ open: true, data: emptyHouse, mode: 'create' });
+    setModalState({ open: true, data: emptyHouse, mode: 'create', startAt: startPoints() });
     setError('');
   };
 
@@ -157,6 +162,7 @@ function Admin({ user }) {
         lng: Number.isFinite(house.lng) ? house.lng : '',
       },
       mode: 'edit',
+      startAt: startPoints(house),
     });
     setError('');
   };
@@ -188,6 +194,10 @@ function Admin({ user }) {
     );
     const lat = Number.parseFloat(form.lat);
     const lng = Number.parseFloat(form.lng);
+    if (Number.isFinite(lat) !== Number.isFinite(lng)) {
+      setError(POSITION_ERROR);
+      return;
+    }
     const placed = Number.isFinite(lat) && Number.isFinite(lng);
     const payload = {
       number: numericNumber,
@@ -303,7 +313,7 @@ function Admin({ user }) {
         </div>
       </header>
 
-      {shownError && (
+      {shownError && !modalState.open && (
         <div className="notice notice--error" role="alert">
           <strong>Attenzione:</strong> {shownError}
         </div>
@@ -542,6 +552,7 @@ function Admin({ user }) {
             <HouseMap
               className="house-map--picker"
               houses={pickerHouses}
+              startAt={modalState.startAt}
               onPick={({ lat, lng }) => updateForm({ lat, lng })}
             />
             <div className="house-form__grid">
@@ -573,6 +584,12 @@ function Admin({ user }) {
               </div>
             </div>
           </fieldset>
+
+          {shownError && (
+            <div className="notice notice--error" role="alert">
+              <strong>Attenzione:</strong> {shownError}
+            </div>
+          )}
 
           <div className="dialog-actions">
             <button type="button" className="secondary-btn" onClick={closeModal} disabled={saving}>

@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 // Bagnarola di Cesenatico: vista di ripiego finche' nessuna casa ha una posizione.
 const CENTER = [44.2, 12.34];
 const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 const round = (value) => Math.round(value * 1e6) / 1e6;
 
 // Solo numeri nell'HTML: niente testo dei partecipanti dentro innerHTML.
@@ -25,8 +25,9 @@ const pinHtml = (number, rank) => {
  * - ranking: numeri in ordine di classifica (se pubblicata): le prime tre portano il badge.
  * - onSelect(house): tocco su un segnaposto (mappa pubblica).
  * - onPick({lat, lng}): modalita' admin, un tocco sulla mappa sceglie il punto; i segnaposto non sono toccabili.
+ * - startAt: punti su cui il selettore si centra all'apertura (uno: zoom sulla casa; piu' di uno: li inquadra tutti).
  */
-function HouseMap({ houses, ranking = null, onSelect, onPick, className = '' }) {
+function HouseMap({ houses, ranking = null, onSelect, onPick, startAt = [], className = '' }) {
   const ref = useRef(null);
   const map = useRef(null);
   const layer = useRef(null);
@@ -34,18 +35,24 @@ function HouseMap({ houses, ranking = null, onSelect, onPick, className = '' }) 
   const handlers = useRef({});
   handlers.current = { onSelect, onPick };
   const picking = Boolean(onPick);
-  const [initial] = useState(() => houses[0] ?? null); // vista iniziale del selettore: dove sta gia' la casa
+  const [start] = useState(startAt); // letto una volta: scrivere nei campi non deve spostare la mappa
 
   useEffect(() => {
     const instance = L.map(ref.current, {
-      center: initial && picking ? [initial.lat, initial.lng] : CENTER,
-      zoom: initial && picking ? 17 : 15,
+      center: CENTER,
+      zoom: 15,
       scrollWheelZoom: false, // sul desktop la rotella deve scorrere la pagina
     });
     L.tileLayer(TILES, { attribution: ATTRIBUTION, maxZoom: 19 }).addTo(instance);
     instance.on('click', (event) => handlers.current.onPick?.({ lat: round(event.latlng.lat), lng: round(event.latlng.lng) }));
-    // Dentro il dialog la mappa nasce con dimensione zero: va ricalcolata quando si apre.
-    const resize = new ResizeObserver(() => instance.invalidateSize());
+    // Dentro il dialog la mappa nasce con dimensione zero: si ricalcola e solo allora si inquadra la vista iniziale.
+    let framed = !picking || start.length === 0;
+    const resize = new ResizeObserver(() => {
+      instance.invalidateSize();
+      if (framed || !ref.current.clientWidth) return;
+      framed = true;
+      instance.fitBounds(L.latLngBounds(start.map((house) => [house.lat, house.lng])), { padding: [48, 48], maxZoom: 17 });
+    });
     resize.observe(ref.current);
     map.current = instance;
     layer.current = L.layerGroup().addTo(instance);
@@ -54,7 +61,7 @@ function HouseMap({ houses, ranking = null, onSelect, onPick, className = '' }) 
       resize.disconnect();
       instance.remove();
     };
-  }, [initial, picking]);
+  }, [start, picking]);
 
   useEffect(() => {
     layer.current.clearLayers();
@@ -77,7 +84,7 @@ function HouseMap({ houses, ranking = null, onSelect, onPick, className = '' }) 
       map.current.fitBounds(L.latLngBounds(houses.map((house) => [house.lat, house.lng])), { padding: [48, 48], maxZoom: 17 });
       fitted.current = true;
     }
-  }, [houses, ranking, picking, initial]);
+  }, [houses, ranking, picking]);
 
   return <div ref={ref} className={`house-map ${className}`} data-picking={picking} />;
 }
