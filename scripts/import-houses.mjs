@@ -41,6 +41,8 @@ if (!emulator && !existsSync(key)) {
   process.exit(1);
 }
 
+// Senza credenziali l'SDK sonda il server dei metadati Google per ~15 s: sull'emulatore non serve.
+if (emulator) process.env.GCE_METADATA_HOST ??= '127.0.0.1:9';
 initializeApp(
   emulator
     ? { projectId: process.env.GCLOUD_PROJECT || 'demo-bagna-halloween' }

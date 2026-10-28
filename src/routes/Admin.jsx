@@ -171,8 +171,10 @@ function Admin({ user }) {
     setModalState({ open: false, data: emptyHouse, mode: 'create' });
   };
 
-  const updateForm = (patch) =>
+  const updateForm = (patch) => {
+    setError((current) => (current === POSITION_ERROR ? '' : current));
     setModalState((prev) => ({ ...prev, data: { ...prev.data, ...patch } }));
+  };
 
   const handleHouseSubmit = async (event) => {
     event.preventDefault();
