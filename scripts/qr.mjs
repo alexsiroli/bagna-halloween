@@ -10,9 +10,19 @@ export const DEFAULT_BASE_URL = 'https://bagna-halloween.netlify.app';
 const MAX_NUMBER = 9999; // evita intervalli enormi per errore di battitura
 const QUIET_ZONE = 4; // moduli di margine bianco intorno al QR
 
-const stripSlashes = (base) => base.replace(/\/+$/, '');
-export const siteUrl = (base) => `${stripSlashes(base)}/`;
-export const houseUrl = (base, number) => `${stripSlashes(base)}/vota/${number}`;
+// Base normalizzata da URL (schema e host in minuscolo), senza slash finali: mai "//vota".
+export function normalizeBase(base) {
+  let url;
+  try {
+    url = new URL(base);
+  } catch {
+    throw new Error('--base-url non valido: deve essere un URL completo, es. https://bagna-halloween.netlify.app');
+  }
+  if (!/^https?:$/.test(url.protocol)) throw new Error('--base-url non valido: deve iniziare con http:// o https://');
+  return url.href.replace(/\/+$/, '');
+}
+export const siteUrl = (base) => `${normalizeBase(base)}/`;
+export const houseUrl = (base, number) => `${normalizeBase(base)}/vota/${number}`;
 
 export function parseNumbers(spec) {
   const fail = (why) => {
@@ -56,16 +66,16 @@ function main() {
   const usage = 'Uso: node scripts/qr.mjs --numbers 1-40 --out <cartella> [--base-url https://bagna-halloween.netlify.app]';
   try {
     const out = arg('out');
-    if (!out) throw new Error(`--out mancante.\n${usage}`);
+    // Senza il controllo su "--", "--out --numbers 1" creerebbe una cartella chiamata "--numbers".
+    if (!out || out.startsWith('--')) throw new Error(`--out mancante o senza valore.\n${usage}`);
     const numbers = parseNumbers(arg('numbers'));
-    const base = arg('base-url') ?? DEFAULT_BASE_URL;
-    if (!/^https?:\/\/[^\s/]+/.test(base)) throw new Error('--base-url non valido: deve iniziare con http:// o https://');
+    const base = normalizeBase(arg('base-url') ?? DEFAULT_BASE_URL);
     mkdirSync(out, { recursive: true });
     writeFileSync(join(out, 'qr-sito.svg'), qrSvg(siteUrl(base)));
     for (const n of numbers) writeFileSync(join(out, `qr-casa-${n}.svg`), qrSvg(houseUrl(base, n)));
-    console.log(`[fatto] qr-sito.svg + ${numbers.length} QR casa in ${out} (base ${stripSlashes(base)})`);
+    console.log(`[fatto] qr-sito.svg + ${numbers.length} QR casa in ${out} (base ${base})`);
   } catch (error) {
-    console.error(error.message);
+    console.error(error?.message ?? String(error)); // qrcode-generator lancia stringhe, non Error
     process.exit(1);
   }
 }
