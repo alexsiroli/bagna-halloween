@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 const KEY = 'splash-visto';
 const TOTAL_MS = 2500; // l'uscita (dissolvenza) e' nel CSS: parte a 2100 ms
-const REDUCED_MS = 700;
+const REDUCED_MS = 500;
 
 // sessionStorage puo' mancare o lanciare (browser in-app, modalita' privata): in quel caso lo splash si mostra e basta.
 const seen = () => {
@@ -29,7 +29,11 @@ export default function Splash({ skip }) {
     }
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const close = () => setOpen(false);
-    const onKey = (e) => ['Escape', 'Enter', ' '].includes(e.key) && close();
+    const onKey = (e) => {
+      if (!['Escape', 'Enter', ' '].includes(e.key)) return;
+      e.preventDefault(); // solo se chiude: Invio non deve attivare anche un link sotto
+      close();
+    };
     const timer = setTimeout(close, reduced ? REDUCED_MS : TOTAL_MS);
     window.addEventListener('keydown', onKey);
     return () => {

@@ -2005,7 +2005,7 @@ fieldset {
   fill: var(--notte-950);
   stroke: var(--zucca);
   stroke-width: 1;
-  animation: splash-fly 1500ms linear backwards;
+  animation: splash-fly 1500ms linear both;
 }
 
 .splash__bat--1 {
@@ -2034,8 +2034,13 @@ fieldset {
 }
 
 @keyframes splash-out {
+  from {
+    pointer-events: none; /* in uscita non intercetta i tocchi */
+  }
+
   to {
     opacity: 0;
+    pointer-events: none;
   }
 }
 

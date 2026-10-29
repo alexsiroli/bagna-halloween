@@ -63,5 +63,5 @@ test('splash: con movimento ridotto e statico e dura meno di 0,8 s', async ({ pa
   await page.goto('/');
   await expect(splash(page)).toBeVisible();
   await expect(page.locator('.splash__bat').first()).toBeHidden();
-  await expect(splash(page)).toHaveCount(0, { timeout: 1500 });
+  await expect(splash(page)).toHaveCount(0, { timeout: 800 }); // deve fallire se supera 0,8 s
 });
