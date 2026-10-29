@@ -653,6 +653,12 @@ fieldset {
   background:
     radial-gradient(40% 70% at 28% 75%, rgb(163 172 201 / 0.16), transparent 70%),
     radial-gradient(35% 60% at 72% 85%, rgb(163 172 201 / 0.13), transparent 70%);
+  /* Sfuma ai lati e sul fondo come lo Skyline: i bordi della scena cadono tra il 6,5% e il 16,5%
+     (e 83,5-93,5%) della nebbia, con la deriva di +/-5%, quindi a quelle quote e' gia' trasparente */
+  -webkit-mask-image: linear-gradient(90deg, transparent 17%, #000 32%, #000 68%, transparent 83%), linear-gradient(0deg, transparent, #000 50%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent 17%, #000 32%, #000 68%, transparent 83%), linear-gradient(0deg, transparent, #000 50%);
+  mask-composite: intersect;
   animation: fog-drift 18s ease-in-out infinite alternate;
 }
 
@@ -819,7 +825,8 @@ fieldset {
 /* Bottone «Accedi con Google», tema scuro delle linee guida Google Sign-In:
    fondo #131314, bordo #8E918F, testo #E3E3E3, logo G a colori, Roboto Medium, pillola.
    Bottone standard da 40 px (margini 12, logo 20, spazio 10) scalato a 48 px per il tocco:
-   margini 14, logo 24, spazio 12, testo 17 px. Misure da confrontare con le linee guida ufficiali. */
+   margini 14, logo 24, spazio 12, testo 17 px. Confrontate con le linee guida ufficiali il 29/10/2026:
+   scala proporzionale 1,2 del bottone da 40 px (ammessa), Roboto Medium al posto di Google Sans. */
 .gsi {
   display: grid;
   grid-template-columns: 24px 1fr 24px;

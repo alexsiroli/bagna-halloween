@@ -2,7 +2,8 @@ import googleG from '../assets/google-g.svg';
 
 // Bottone «Accedi con Google» secondo le linee guida Sign in with Google, tema scuro:
 // logo G a colori, Roboto Medium self-hosted, forma a pillola. Misure del bottone da 40 px scalate a 48 px
-// per il target di tocco (da confrontare con le linee guida ufficiali, vedi DESIGN.md).
+// per il target di tocco: confrontate con le linee guida ufficiali il 29/10/2026 (scala proporzionale 1,2
+// del bottone da 40 px, Roboto Medium al posto di Google Sans; vedi DESIGN.md).
 export function GoogleSignInButton({ onClick }) {
   return (
     <button type="button" className="gsi" onClick={onClick}>

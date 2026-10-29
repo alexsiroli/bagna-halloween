@@ -104,8 +104,10 @@ Mappa: luci sempre accese, niente velo scuro, niente torcia, niente bottone «Ac
 Accesso: pannello centrato con la zucca accesa e il bottone ufficiale «Accedi con Google» in
 tema scuro (fondo #131314, bordo #8E918F, testo #E3E3E3, logo G a colori in `src/assets`,
 Roboto Medium self-hosted in `public/fonts`, Apache 2.0). Le misure (48 px, margini 14, logo
-24, spazio 12) sono il bottone standard da 40 px scalato per il tocco: vanno confrontate con
-le linee guida ufficiali «Sign in with Google branding».
+24, spazio 12) sono il bottone standard da 40 px scalato per il tocco. Confrontate con le linee
+guida ufficiali «Sign in with Google branding» il 29/10/2026: scala proporzionale 1,2 del bottone
+da 40 px (le linee guida la ammettono se restano le proporzioni), Roboto Medium al posto di Google
+Sans come compromesso accettato dal tech-lead.
 - Cambio pagina: la pagina entra con opacita' e 6px di salita (`page-in`, 320 ms); si riparte
   dall'alto (`ScrollToTop`).
 - Home: le lampadine delle luminarie si accendono in fila, poi le finestre del quartiere; i
