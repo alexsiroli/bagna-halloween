@@ -40,6 +40,10 @@ Il punteggio da 6 a 10 che un votante dà a una casa; uno per casa per votante, 
 **Classifica**:
 L'ordine delle case che l'admin pubblica a votazione chiusa.
 
+**Admin**:
+Chi gestisce un'edizione (case, votazioni, classifica, altri admin); è admin chi ha l'email, verificata, nell'elenco degli admin. Un admin non può togliere sé stesso e l'elenco non resta mai vuoto.
+_Da evitare_: amministratore, organizzatore
+
 **Elenco delle case**:
 Il file con numero, titolo, indirizzo ed eventuale posizione di ogni casa, da cui si caricano le case di un'edizione.
 

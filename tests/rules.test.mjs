@@ -12,6 +12,7 @@ import {
   getDoc,
   getDocs,
   collection,
+  deleteDoc,
   query,
   serverTimestamp,
   setDoc,
@@ -184,4 +185,60 @@ test('i voti degli altri non si leggono, gli admin leggono tutto', async () => {
   await assertSucceeds(
     getDocs(query(collection(as('ada', 'admin@esempio.test'), 'votes'), where('edition', '==', EDITION))),
   );
+});
+
+// config/admins: solo gli admin lo modificano, e mai in modo che si tolgano o spariscano.
+const ADMIN = 'admin@esempio.test';
+const adminsRef = (db) => doc(db, 'config/admins');
+
+test('un admin aggiunge e toglie un altro admin', async () => {
+  const ref = adminsRef(as('ada', ADMIN));
+  await assertSucceeds(updateDoc(ref, { emails: [ADMIN, 'bea@esempio.test'], updatedAt: serverTimestamp() }));
+  await assertSucceeds(updateDoc(ref, { emails: [ADMIN], updatedAt: serverTimestamp() }));
+});
+
+test('config/admins: auto-promozione, email non verificata e auto-rimozione falliscono', async () => {
+  const eve = adminsRef(as('eve', 'eve@esempio.test'));
+  await assertFails(updateDoc(eve, { emails: [ADMIN, 'eve@esempio.test'], updatedAt: serverTimestamp() }));
+  await assertFails(updateDoc(adminsRef(as('x')), { emails: [ADMIN, 'x@esempio.test'], updatedAt: serverTimestamp() }));
+
+  const unverified = env.authenticatedContext('ada', { email: ADMIN, email_verified: false }).firestore();
+  await assertFails(updateDoc(adminsRef(unverified), { emails: [ADMIN, 'bea@esempio.test'], updatedAt: serverTimestamp() }));
+
+  // Togliersi, anche lasciando altri admin.
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(adminsRef(ctx.firestore()), { emails: [ADMIN, 'bea@esempio.test'] }),
+  );
+  await assertFails(updateDoc(adminsRef(as('ada', ADMIN)), { emails: ['bea@esempio.test'], updatedAt: serverTimestamp() }));
+});
+
+test('config/admins: lista vuota, doppioni, non lista, troppi, campi extra falliscono', async () => {
+  const ref = adminsRef(as('ada', ADMIN));
+  const tooMany = [ADMIN, ...Array.from({ length: 50 }, (_, i) => `a${i}@esempio.test`)]; // 51
+  for (const emails of [[], [ADMIN, ADMIN], [ADMIN, 'bea@esempio.test', 'bea@esempio.test'], ADMIN, { 0: ADMIN }, tooMany]) {
+    await assertFails(updateDoc(ref, { emails, updatedAt: serverTimestamp() }));
+  }
+  await assertFails(updateDoc(ref, { emails: [ADMIN, 'bea@esempio.test'], updatedAt: serverTimestamp(), extra: 1 }));
+  await assertFails(updateDoc(ref, { extra: 1 }));
+});
+
+test("config/admins: updatedAt e' l'ora del server, non scelto dal client", async () => {
+  const ref = adminsRef(as('ada', ADMIN));
+  const emails = [ADMIN, 'bea@esempio.test'];
+  await assertFails(updateDoc(ref, { emails, updatedAt: 'ieri' }));
+  await assertFails(updateDoc(ref, { emails, updatedAt: Timestamp.fromDate(new Date('2020-01-01')) }));
+  await assertSucceeds(updateDoc(ref, { emails, updatedAt: serverTimestamp() }));
+});
+
+test('config/admins: create e delete mai dal client', async () => {
+  const ada = as('ada', ADMIN);
+  await assertFails(deleteDoc(adminsRef(ada)));
+  await env.withSecurityRulesDisabled((ctx) => deleteDoc(adminsRef(ctx.firestore())));
+  await assertFails(setDoc(adminsRef(ada), { emails: [ADMIN] }));
+});
+
+test('gli altri config/* restano scrivibili dagli admin e non dagli altri', async () => {
+  await assertSucceeds(setDoc(doc(as('ada', ADMIN), 'config/results'), { published: false }));
+  await assertSucceeds(updateDoc(doc(as('ada', ADMIN), 'config/app'), { votingOpen: false }));
+  await assertFails(setDoc(doc(as('eve', 'eve@esempio.test'), 'config/results'), { published: true }));
 });
