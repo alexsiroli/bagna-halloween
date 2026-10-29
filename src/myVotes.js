@@ -4,7 +4,7 @@ import { countRead, db } from './firebase.js';
 import { voteId } from './data.js';
 import { clampScore } from './voteScore.js';
 
-export { clampScore, countVoted, isVoted } from './voteScore.js';
+export { clampScore, countVoted, isVoted, MIN_SCORE } from './voteScore.js';
 
 // I miei voti: un solo ascolto per utente ed edizione, a livello di modulo.
 // Resta aperto passando da /vote a /mappa; si chiude solo quando cambia utente o edizione (logout compreso).
