@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { arrayRemove, arrayUnion, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { PlusIcon } from '@phosphor-icons/react';
 import Sheet from './Sheet.jsx';
@@ -14,8 +14,10 @@ function AdminEmails({ user }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [toRemove, setToRemove] = useState(null);
+  const typed = useRef('');
+  typed.current = email;
 
-  const emails = Array.isArray(admins?.emails) ? admins.emails : [];
+  const emails = Array.isArray(admins?.emails) ? admins.emails.filter((e) => typeof e === 'string') : [];
   const me = (user.email || '').toLowerCase();
   const onlyOne = emails.length <= 1;
 
@@ -45,7 +47,8 @@ function AdminEmails({ user }) {
       setError(`${next} è già admin.`);
       return;
     }
-    if (await save(arrayUnion(next), 'Impossibile aggiungere l’admin.')) setEmail('');
+    // Svuota il campo solo se durante la scrittura non è cambiato.
+    if (await save(arrayUnion(next), 'Impossibile aggiungere l’admin.') && typed.current === email) setEmail('');
   };
 
   const remove = async () => {
@@ -99,14 +102,14 @@ function AdminEmails({ user }) {
         </button>
       </form>
 
-      <Sheet open={toRemove !== null} onClose={() => setToRemove(null)} labelledBy="admin-remove-title">
+      <Sheet open={toRemove !== null} onClose={() => !busy && setToRemove(null)} labelledBy="admin-remove-title">
         <h2 id="admin-remove-title">Togliere {toRemove}?</h2>
         <p>Non potrà più entrare nell’area admin.</p>
         <div className="dialog-actions">
           <button type="button" className="secondary-btn" onClick={() => setToRemove(null)}>
             Annulla
           </button>
-          <button type="button" className="primary-btn" onClick={remove}>
+          <button type="button" className="primary-btn" onClick={remove} disabled={busy}>
             Togli
           </button>
         </div>
