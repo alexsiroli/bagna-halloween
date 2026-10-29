@@ -10,13 +10,15 @@ const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">Op
 const round = (value) => Math.round(value * 1e6) / 1e6;
 
 // Solo numeri e glifi fissi nell'HTML: niente testo dei partecipanti dentro innerHTML.
-const pinHtml = (number, rank, kind) => {
+// score: il voto (6-10) se la casa e' votata, undefined se da votare, null senza login (nessuno stato).
+const pinHtml = (number, rank, kind, score) => {
   const ranked = rank !== undefined;
   const typed = isKind(kind); // il tipo entra nell'HTML solo se e' uno dei due noti
   return (
-    `<span class="pin" data-ranked="${ranked}" data-podium="${ranked && rank < 3}" style="--order:${rank ?? 0}">` +
+    `<span class="pin" data-ranked="${ranked}" data-podium="${ranked && rank < 3}"${score === null ? '' : ` data-voted="${score !== undefined}"`} style="--order:${rank ?? 0}">` +
     `<span class="pin__plate"${typed ? ` data-t="${kind}"` : ''}>${typed ? glyphSvg(kind) : ''}<span>${Number(number)}</span></span>` +
     (ranked && rank < 3 ? `<span class="pin__rank">${rank + 1}°</span>` : '') +
+    (score ? `<span class="pin__vote">${Number(score)}</span>` : '') +
     '</span>'
   );
 };
@@ -46,13 +48,14 @@ const popupNode = (point) => {
 /**
  * Mappa Leaflet con tessere OpenStreetMap.
  * - houses: case con lat/lng (number, title, lat, lng).
+ * - votes: Map numero -> voto di chi e' dentro (solo i voti validi, vedi isVoted); null = nessun login, nessuno stato sui segnaposto.
  * - ranking: numeri in ordine di classifica (se pubblicata): le prime tre portano il badge.
  * - services: { points, closedRoads } gia' validati da src/points.js (mappa pubblica).
  * - onSelect(house): tocco su un segnaposto (mappa pubblica).
  * - onPick({lat, lng}): modalita' admin, un tocco sulla mappa sceglie il punto; i segnaposto non sono toccabili.
  * - startAt: punti su cui il selettore si centra all'apertura (uno: zoom sulla casa; piu' di uno: li inquadra tutti).
  */
-function HouseMap({ houses, ranking = null, services: servicesData = NO_SERVICES, onSelect, onPick, startAt = [], className = '' }) {
+function HouseMap({ houses, votes = null, ranking = null, services: servicesData = NO_SERVICES, onSelect, onPick, startAt = [], className = '' }) {
   const ref = useRef(null);
   const map = useRef(null);
   const layer = useRef(null);
@@ -97,9 +100,11 @@ function HouseMap({ houses, ranking = null, services: servicesData = NO_SERVICES
     houses.forEach((house) => {
       const rank = rankOf.get(house.number);
       const kind = isKind(house.kind) ? `, ${KIND_LABELS[house.kind].toLowerCase()}` : '';
-      const label = `Casa ${house.number}${house.title ? `, ${house.title}` : ''}${kind}${rank !== undefined ? `, ${rank + 1}° in classifica` : ''}`;
+      const score = votes ? votes.get(house.number) : null;
+      const state = votes ? (score ? `, votata ${score} su 10` : ', da votare') : '';
+      const label = `Casa ${house.number}${house.title ? `, ${house.title}` : ''}${kind}${rank !== undefined ? `, ${rank + 1}° in classifica` : ''}${state}`;
       const marker = L.marker([house.lat, house.lng], {
-        icon: L.divIcon({ className: 'pin-wrap', html: pinHtml(house.number, rank, house.kind), iconSize: [44, 44] }),
+        icon: L.divIcon({ className: 'pin-wrap', html: pinHtml(house.number, rank, house.kind, score), iconSize: [44, 44] }),
         title: label,
         interactive: !picking,
         keyboard: !picking,
@@ -113,7 +118,7 @@ function HouseMap({ houses, ranking = null, services: servicesData = NO_SERVICES
       fitAll(map.current, layer.current, servicesLayer.current);
       fitted.current.houses = true;
     }
-  }, [houses, ranking, picking]);
+  }, [houses, votes, ranking, picking]);
 
   // Punti di servizio e strade chiuse: non votabili, un tocco sul punto apre nome e indirizzo.
   useEffect(() => {
