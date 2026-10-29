@@ -27,6 +27,7 @@ service cloud.firestore {
     function validAdmins() {
       let next = request.resource.data;
       return next.diff(resource.data).affectedKeys().hasOnly(['emails', 'updatedAt'])
+        && next.updatedAt == request.time
         && next.emails is list
         && next.emails.size() >= 1
         && next.emails.size() <= 50

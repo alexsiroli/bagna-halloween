@@ -222,6 +222,14 @@ test('config/admins: lista vuota, doppioni, non lista, troppi, campi extra falli
   await assertFails(updateDoc(ref, { extra: 1 }));
 });
 
+test("config/admins: updatedAt e' l'ora del server, non scelto dal client", async () => {
+  const ref = adminsRef(as('ada', ADMIN));
+  const emails = [ADMIN, 'bea@esempio.test'];
+  await assertFails(updateDoc(ref, { emails, updatedAt: 'ieri' }));
+  await assertFails(updateDoc(ref, { emails, updatedAt: Timestamp.fromDate(new Date('2020-01-01')) }));
+  await assertSucceeds(updateDoc(ref, { emails, updatedAt: serverTimestamp() }));
+});
+
 test('config/admins: create e delete mai dal client', async () => {
   const ada = as('ada', ADMIN);
   await assertFails(deleteDoc(adminsRef(ada)));
