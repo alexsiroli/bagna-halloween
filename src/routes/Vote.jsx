@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { collection, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
-import { GoogleLogoIcon, MagnifyingGlassIcon, SignOutIcon } from '@phosphor-icons/react';
+import { MagnifyingGlassIcon, SignOutIcon } from '@phosphor-icons/react';
 import BackHomeLink from '../components/BackHomeLink.jsx';
 import PumpkinRating from '../components/PumpkinRating.jsx';
 import MyVotes from '../components/MyVotes.jsx';
 import Sheet from '../components/Sheet.jsx';
+import { GoogleSignInButton, LitPumpkin } from '../components/SignIn.jsx';
 import { db } from '../firebase.js';
 import { loginWithGoogle, logout, useAuthUser } from '../auth.js';
 import { useAppConfig, useHouses, voteId } from '../data.js';
@@ -239,6 +240,7 @@ function Vote() {
 
       {user === null && (
         <section className="panel login-panel">
+          <LitPumpkin />
           <h2>Accedi per votare</h2>
           {qrHouse && (
             <p>
@@ -248,10 +250,8 @@ function Vote() {
             </p>
           )}
           <p>Usa il tuo account Google per esprimere i voti. Un voto per casa, modificabile finché le votazioni sono aperte.</p>
-          <button type="button" className="primary-btn primary-btn--xl" onClick={handleLogin}>
-            <GoogleLogoIcon aria-hidden="true" weight="bold" /> Accedi con Google
-          </button>
-          <Link className="email-link" to="/privacy">
+          <GoogleSignInButton onClick={handleLogin} />
+          <Link className="email-link privacy-link" to="/privacy">
             Privacy
           </Link>
         </section>

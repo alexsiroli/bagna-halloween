@@ -25,6 +25,10 @@ function Home() {
         </p>
         <div className="home-hero__scene">
           <Skyline />
+          {/* Candele nelle due zucche grandi (x 46 e 170 su 240) e nebbia: livelli HTML, l'SVG resta fermo */}
+          <span className="fiamma" style={{ '--x': 19.2 }} aria-hidden="true" />
+          <span className="fiamma" style={{ '--x': 70.8, '--d': '4.1s' }} aria-hidden="true" />
+          <span className="banco-nebbia" aria-hidden="true" />
         </div>
         <Link className="primary-btn primary-btn--xl home-hero__cta" to="/vote">
           Vota le case <ArrowRightIcon aria-hidden="true" weight="bold" />

@@ -88,8 +88,24 @@ Durate 150 / 220 / 320 ms (`--dur-fast`, `--dur`, `--dur-slow`), entrate con
 bottoni: `scale(0.97)`. Hover solo con `(hover: hover) and (pointer: fine)`.
 
 Vocabolario unico, l'**accensione**: una luce che prende con due guizzi e poi resta ferma.
-Si anima solo `opacity` e `transform`, e solo una volta: niente cicli infiniti (sull'SVG
-costerebbero un repaint continuo sul telefono).
+Si anima solo `opacity` e `transform`. Gli SVG si animano una volta sola: un ciclo dentro un
+SVG costerebbe un repaint continuo sul telefono.
+
+Cicli lenti (tema «Luce di candela», decisione del CEO del 29/10/2026): ammessi solo su
+`opacity` e `transform`, solo come livelli HTML sopra la scena (mai dentro gli SVG), lenti
+(3 s o piu') e pochi. Oggi sono tre:
+- la candela nelle due zucche grandi della Home (`.fiamma`, `flicker`, 3,4 e 4,1 s, solo opacity);
+- il banco di nebbia della Home (`.banco-nebbia`, `fog-drift`, 18 s avanti e indietro, solo transform);
+- l'alone della zucca nel pannello di accesso (`.lume`, `flicker`).
+Con `prefers-reduced-motion: reduce` si fermano nello stato finale, come le altre animazioni.
+
+Mappa: luci sempre accese, niente velo scuro, niente torcia, niente bottone «Accendi le luci».
+
+Accesso: pannello centrato con la zucca accesa e il bottone ufficiale «Accedi con Google» in
+tema scuro (fondo #131314, bordo #8E918F, testo #E3E3E3, logo G a colori in `src/assets`,
+Roboto Medium self-hosted in `public/fonts`, Apache 2.0). Le misure (48 px, margini 14, logo
+24, spazio 12) sono il bottone standard da 40 px scalato per il tocco: vanno confrontate con
+le linee guida ufficiali «Sign in with Google branding».
 - Cambio pagina: la pagina entra con opacita' e 6px di salita (`page-in`, 320 ms); si riparte
   dall'alto (`ScrollToTop`).
 - Home: le lampadine delle luminarie si accendono in fila, poi le finestre del quartiere; i
