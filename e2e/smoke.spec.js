@@ -67,7 +67,9 @@ test('mappa: segnaposto, scheda con Vota, case senza posizione in elenco', async
   const dialog = page.getByRole('dialog', { name: 'Casa 1' });
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText('Via Cesenatico 12');
-  await expect(dialog.getByRole('link', { name: 'Vota' })).toHaveAttribute('href', '/vota/1');
+  // Senza login la scheda invita ad accedere (niente zucche), senza cambiare pagina.
+  await expect(dialog.getByRole('button', { name: 'Accedi con Google per votare' })).toBeVisible();
+  await expect(dialog.getByRole('radio')).toHaveCount(0);
   await dialog.getByRole('button', { name: 'Chiudi' }).click();
   await expect(dialog).toBeHidden();
 
@@ -81,11 +83,14 @@ test('mappa: segnaposto, scheda con Vota, case senza posizione in elenco', async
   await expect(page.locator('.map-legend')).toContainText('Casa addobbata');
   await expect(page.locator('.map-legend')).not.toContainText('Bar');
 
-  // «Vota» nella scheda porta alla pagina di voto della casa (rotta /vota/:numero), non a una 404.
-  await page.getByRole('button', { name: /^Casa 1, La Casa delle Zucche/ }).click();
-  await page.getByRole('dialog', { name: 'Casa 1' }).getByRole('link', { name: 'Vota' }).click();
-  await expect(page).toHaveURL(/\/vota\/1$/);
-  await expect(page.getByText('Stai per votare la casa 1 · La Casa delle Zucche')).toBeVisible();
+  // Senza login nessun segnaposto ha uno stato di voto e il filtro non c'e'.
+  await expect(page.locator('.pin[data-voted]')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Da votare', exact: true })).toHaveCount(0);
+
+  // Dall'elenco «Altre case» il link porta alla pagina di voto della casa (rotta /vota/:numero), non a una 404.
+  await page.getByRole('link', { name: 'Vota la casa 11' }).click();
+  await expect(page).toHaveURL(/\/vota\/11$/);
+  await expect(page.getByText('Stai per votare la casa 11 · Il Portico delle Candele')).toBeVisible();
 });
 
 test('mappa: tipi di casa, punti di servizio e strade chiuse da file', async ({ page }) => {
@@ -295,7 +300,8 @@ test('admin: il tipo della casa si sceglie nel modulo e compare sulla mappa', as
     await expect(dialog).toBeHidden();
 
     await page.goto('/mappa');
-    await expect(page.getByRole('button', { name: /^Casa 5, La Strega del Canale, casa addobbata: apri/ })).toBeVisible();
+    // L'admin e' ancora dentro: l'etichetta porta anche lo stato di voto.
+    await expect(page.getByRole('button', { name: /^Casa 5, La Strega del Canale, casa addobbata, da votare: apri/ })).toBeVisible();
   } finally {
     // Toglie il campo (updateMask senza valore): il seed resta com'era.
     await request.patch(url, { headers: { Authorization: 'Bearer owner' }, data: { fields: {} } });
@@ -336,6 +342,186 @@ test('admin: il selettore si centra sulla casa in modifica, una sola coordinata 
   }
 });
 
+// Voti di un utente di prova scritti e tolti dall'emulatore (REST, "Bearer owner" salta le regole: solo emulatore).
+const FIRESTORE = 'http://127.0.0.1:8181/v1/projects/demo-bagna-halloween/databases/(default)/documents';
+const OWNER = { Authorization: 'Bearer owner' };
+const CURIOSO = 'curioso-test';
+const HOUSES_TOTAL = 12;
+const resetVotes = async (request) => {
+  for (let number = 1; number <= HOUSES_TOTAL; number += 1) await request.delete(`${FIRESTORE}/votes/2026_${CURIOSO}_${number}`, { headers: OWNER });
+};
+const seedVote = (request, number, score) => {
+  const now = { timestampValue: new Date().toISOString() };
+  return request.patch(`${FIRESTORE}/votes/2026_${CURIOSO}_${number}`, {
+    headers: OWNER,
+    data: { fields: { userId: { stringValue: CURIOSO }, houseNumber: { integerValue: String(number) }, score: { integerValue: String(score) }, edition: { integerValue: '2026' }, createdAt: now, updatedAt: now } },
+  });
+};
+const setVotingOpen = (request, open) =>
+  request.patch(`${FIRESTORE}/config/app?updateMask.fieldPaths=votingOpen`, { headers: OWNER, data: { fields: { votingOpen: { booleanValue: open } } } });
+// Mappa senza tessere e senza file dei punti: restano le 10 case con posizione.
+const openMap = async (page) => {
+  await blockTiles(page);
+  await page.route('**/punti/*.json', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>x</title>' }));
+  await page.goto('/mappa');
+  await expect(page.locator('.leaflet-marker-icon')).toHaveCount(10);
+};
+
+test('percorso: da /vota/3, dopo il login, Mappa e I miei voti si raggiungono senza scorrere e senza nuovo login (375x667)', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await blockTiles(page);
+  // Senza login: «Mappa» e' gia' visibile senza scorrere.
+  for (const url of ['/vota/3', '/vote']) {
+    await page.goto(url);
+    await expect(page.getByRole('link', { name: 'Mappa', exact: true })).toBeInViewport({ ratio: 1 });
+  }
+  await page.goto('/vota/3');
+  await login(page, 'curioso@esempio.test');
+  // Dopo il login da QR la scheda della casa 3 si apre da sola: si chiude, poi «Mappa» e' a un tocco.
+  await page.getByRole('dialog', { name: 'Casa 3' }).getByRole('button', { name: 'Annulla' }).click();
+  await expect(page.getByText('Curioso di prova')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Mappa', exact: true })).toBeInViewport({ ratio: 1 });
+
+  await page.getByRole('link', { name: 'Mappa', exact: true }).click();
+  await expect(page).toHaveURL(/\/mappa$/);
+  await expect(page.getByRole('link', { name: 'I miei voti', exact: true })).toBeInViewport({ ratio: 1 });
+  await page.getByRole('link', { name: 'I miei voti', exact: true }).click();
+  await expect(page).toHaveURL(/\/vote$/);
+  await expect(page.getByText('Curioso di prova')).toBeVisible(); // ancora dentro
+});
+
+test('mappa: stato dei segnaposto, filtro «Da votare» di partenza, avanzamento e logout', async ({ page, request }) => {
+  await resetVotes(request);
+  try {
+    await seedVote(request, 2, 8);
+    await seedVote(request, 5, 6);
+    await openMap(page);
+
+    // Il login si fa dalla scheda: resta aperta sulla stessa casa, ora con le zucche.
+    await page.getByRole('button', { name: /^Casa 7, / }).click();
+    const sheet = page.getByRole('dialog', { name: 'Casa 7' });
+    await login(page, 'curioso@esempio.test');
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole('radio', { name: '8 su 10' })).toBeVisible();
+    await sheet.getByRole('button', { name: 'Annulla' }).click();
+
+    // D3: dopo il login parte «Da votare»: 8 segnaposto su 10, nessuno votato. Punti e strade restano (qui non ce ne sono).
+    await expect(page.getByRole('button', { name: 'Da votare', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.leaflet-marker-icon')).toHaveCount(8);
+    await expect(page.locator('.pin[data-voted="true"]')).toHaveCount(0);
+    await expect(page.locator('.pin[data-voted="false"]')).toHaveCount(8);
+    await expect(page.getByRole('button', { name: /^Casa 7, .*, da votare: apri/ })).toBeVisible();
+    await expect(page.locator('.map-progress')).toHaveText('2 su 12 votate');
+
+    await page.getByRole('button', { name: 'Votate', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Votate', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Da votare', exact: true })).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('.leaflet-marker-icon')).toHaveCount(2);
+    await expect(page.locator('.pin[data-voted="true"]')).toHaveCount(2);
+    await expect(page.getByRole('button', { name: /^Casa 2, .*, votata 8 su 10: apri/ })).toContainText('8');
+    await expect(page.getByRole('button', { name: /^Casa 5, .*, votata 6 su 10: apri/ })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Tutte', exact: true }).click();
+    await expect(page.locator('.leaflet-marker-icon')).toHaveCount(10);
+    await expect(page.locator('.pin[data-voted="true"]')).toHaveCount(2);
+
+    // Dopo il logout gli stati spariscono.
+    await page.getByRole('link', { name: 'I miei voti', exact: true }).click();
+    await page.getByRole('button', { name: 'Esci' }).click();
+    await page.getByRole('link', { name: 'Mappa', exact: true }).click();
+    await expect(page.locator('.leaflet-marker-icon')).toHaveCount(10);
+    await expect(page.locator('.pin[data-voted]')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Casa 2, .*votata/ })).toHaveCount(0);
+    await expect(page.locator('.map-filter')).toHaveCount(0);
+  } finally {
+    await resetVotes(request);
+  }
+});
+
+test('mappa: voto dalla scheda senza lasciare la mappa, con «Da votare» il segnaposto sparisce, anche /vote si aggiorna', async ({ page, request }) => {
+  await resetVotes(request);
+  try {
+    await openMap(page);
+    await page.getByRole('button', { name: /^Casa 7, / }).click();
+    await login(page, 'curioso@esempio.test');
+    await page.getByRole('dialog', { name: 'Casa 7' }).getByRole('button', { name: 'Annulla' }).click();
+    await expect(page.locator('.map-progress')).toHaveText('0 su 12 votate');
+
+    // Posizione dei segnaposto nella mappa prima del voto: stessa vista = stesse posizioni (la mappa puo' spostarsi nella pagina).
+    const placeOf = async (number) => {
+      const map = await page.locator('.house-map').boundingBox();
+      const pin = await page.getByRole('button', { name: new RegExp(`^Casa ${number}, `) }).boundingBox();
+      return [Math.round(pin.x - map.x), Math.round(pin.y - map.y)];
+    };
+    const before = [await placeOf(1), await placeOf(10)];
+
+    await page.getByRole('button', { name: /^Casa 7, / }).click();
+    const sheet = page.getByRole('dialog', { name: 'Casa 7' });
+    await expect(sheet).toContainText('Via del Mare 18');
+    await expect(sheet).toContainText('Lapidi di polistirolo');
+    await sheet.getByRole('radio', { name: '9 su 10' }).click();
+    await sheet.getByRole('button', { name: 'Salva voto' }).click();
+
+    await expect(sheet).toBeHidden();
+    await expect(page).toHaveURL(/\/mappa$/);
+    await expect(page.getByRole('status').filter({ hasText: 'Voto salvato' })).toContainText('casa 7, 9 su 10');
+    await expect(page.locator('.map-progress')).toHaveText('1 su 12 votate');
+    // Filtro «Da votare» ancora attivo: il segnaposto 7 non c'e' piu'; vista invariata (nessun reinquadramento).
+    await expect(page.locator('.leaflet-marker-icon')).toHaveCount(9);
+    await expect(page.getByRole('button', { name: /^Casa 7, / })).toHaveCount(0);
+    expect([await placeOf(1), await placeOf(10)]).toEqual(before);
+
+    await page.getByRole('button', { name: 'Tutte', exact: true }).click();
+    await expect(page.getByRole('button', { name: /^Casa 7, .*, votata 9 su 10: apri/ })).toContainText('9');
+
+    // /vote: stesso voto e stesso conteggio, senza ricaricare e senza nuovo login.
+    await page.getByRole('link', { name: 'I miei voti', exact: true }).click();
+    await expect(page.getByRole('button', { name: /Casa 7/ })).toContainText('9');
+    await expect(page.locator('.vote-progress')).toContainText('1 su 12');
+  } finally {
+    await resetVotes(request);
+  }
+});
+
+test('mappa: con le votazioni chiuse la scheda non permette di votare', async ({ page, request }) => {
+  await resetVotes(request);
+  try {
+    await openMap(page);
+    await page.getByRole('button', { name: /^Casa 7, / }).click();
+    await login(page, 'curioso@esempio.test');
+    await page.getByRole('dialog', { name: 'Casa 7' }).getByRole('button', { name: 'Annulla' }).click();
+    expect((await setVotingOpen(request, false)).ok()).toBe(true);
+    await page.getByRole('button', { name: /^Casa 7, / }).click();
+    const sheet = page.getByRole('dialog', { name: 'Casa 7' });
+    await expect(sheet).toContainText('Le votazioni sono chiuse');
+    await expect(sheet.getByRole('radiogroup')).toHaveAttribute('aria-disabled', 'true');
+    await expect(sheet.getByRole('button', { name: 'Salva voto' })).toBeDisabled();
+  } finally {
+    await setVotingOpen(request, true);
+    await resetVotes(request);
+  }
+});
+
+test('mappa: con tutte le case votate «Da votare» mostra il messaggio, «Votate» senza voti pure', async ({ page, request }) => {
+  await resetVotes(request);
+  try {
+    for (let number = 1; number <= HOUSES_TOTAL; number += 1) await seedVote(request, number, 7);
+    await openMap(page);
+    await page.getByRole('button', { name: /^Casa 7, / }).click();
+    await login(page, 'curioso@esempio.test');
+    await page.getByRole('dialog', { name: 'Casa 7' }).getByRole('button', { name: 'Annulla' }).click();
+    await expect(page.locator('.map-progress')).toHaveText('12 su 12 votate');
+    await expect(page.getByRole('main').getByText('Hai votato tutte le case!')).toBeVisible();
+    await expect(page.locator('.leaflet-marker-icon')).toHaveCount(0);
+    await resetVotes(request);
+    await expect(page.getByRole('main').getByText('Hai votato tutte le case!')).toBeHidden();
+    await page.getByRole('button', { name: 'Votate', exact: true }).click();
+    await expect(page.getByRole('main').getByText('Nessuna casa votata ancora.')).toBeVisible();
+  } finally {
+    await resetVotes(request);
+  }
+});
+
 test('carico: le case si leggono una volta per sessione (Home, Mappa, Voto, Mappa)', async ({ page, request }) => {
   const url =
     'http://127.0.0.1:8181/v1/projects/demo-bagna-halloween/databases/(default)/documents/houses/2026_3?updateMask.fieldPaths=title';
@@ -362,6 +548,17 @@ test('carico: le case si leggono una volta per sessione (Home, Mappa, Voto, Mapp
     // Un ricarico e' una nuova sessione: rilegge.
     await page.reload();
     await expect(house3('Titolo cambiato')).toBeVisible();
+
+    // Contatori di sola lettura dell'emulatore (window.__reads): /vote -> /mappa -> /vote non rilegge le case
+    // e non apre un secondo ascolto sui voti.
+    await page.goto('/vote');
+    await login(page, 'curioso@esempio.test');
+    await expect(page.getByText('Curioso di prova')).toBeVisible();
+    await page.getByRole('link', { name: 'Mappa', exact: true }).click();
+    await expect(page.locator('.leaflet-marker-icon').first()).toBeVisible();
+    await page.getByRole('link', { name: 'I miei voti', exact: true }).click();
+    await expect(page.getByText('Curioso di prova')).toBeVisible();
+    expect(await page.evaluate(() => window.__reads)).toEqual({ houses: 1, votes: 1 });
   } finally {
     await setTitle('La Cripta del Fornaio');
   }
@@ -429,7 +626,7 @@ for (const numero of ['999', 'abc']) {
     await page.goto(`/vota/${numero}`);
     const notice = page.getByRole('main').getByText(/non esiste in questa edizione/);
     await expect(notice).toBeVisible();
-    await expect(page.getByRole('main').getByRole('link', { name: 'mappa' })).toHaveAttribute('href', '/mappa');
+    await expect(page.getByRole('main').getByRole('link', { name: 'mappa', exact: true })).toHaveAttribute('href', '/mappa');
     await login(page, 'votante@esempio.test');
     await expect(page.getByText('Votante di prova')).toBeVisible();
     await expect(notice).toBeVisible();
