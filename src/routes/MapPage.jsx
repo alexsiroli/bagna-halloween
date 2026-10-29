@@ -1,22 +1,43 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ListChecksIcon } from '@phosphor-icons/react';
 import BackHomeLink from '../components/BackHomeLink.jsx';
 import HouseMap from '../components/HouseMap.jsx';
 import HouseRow from '../components/HouseRow.jsx';
-import { Chip, KindTag } from '../components/MapGlyph.jsx';
-import Sheet from '../components/Sheet.jsx';
-import { hasPosition, houseAddress, useAppConfig, useHouses, usePublishedRanking } from '../data.js';
+import { Chip } from '../components/MapGlyph.jsx';
+import VoteSheet from '../components/VoteSheet.jsx';
+import { useAuthUser } from '../auth.js';
+import { hasPosition, useAppConfig, useHouses, usePublishedRanking } from '../data.js';
 import { KIND_LABELS, POINT_LABELS, ROAD_LABEL } from '../mapKinds.js';
+import { countVoted, isVoted, useMyVotes } from '../myVotes.js';
 import { usePoints } from '../points.js';
 
+// Filtro per stato (solo con il login): «Da votare» e' la partenza, dopo il login si cerca da li.
+const FILTERS = [
+  ['all', 'Tutte'],
+  ['todo', 'Da votare'],
+  ['done', 'Votate'],
+];
+
 function MapPage() {
-  const { edition } = useAppConfig();
+  const user = useAuthUser();
+  const config = useAppConfig();
+  const { edition } = config;
+  const { votesMap, ready } = useMyVotes(user, edition);
+  const [filter, setFilter] = useState('todo');
+  const [savedHouse, setSavedHouse] = useState(null);
   const { houses, error } = useHouses(edition);
   const ranking = usePublishedRanking(edition);
   const services = usePoints(edition);
   const [selected, setSelected] = useState(null);
   const byNumber = new Map(houses.map((house) => [house.number, house]));
   const placed = useMemo(() => houses.filter(hasPosition), [houses]);
+  // Stato dei segnaposto solo con il login e a voti letti: prima, tutte le case come senza login.
+  const scores = useMemo(() => (user && ready ? new Map([...votesMap].filter(([, vote]) => isVoted(vote)).map(([number, vote]) => [number, vote.score])) : null), [user, ready, votesMap]);
+  const shown = useMemo(
+    () => (scores && filter !== 'all' ? placed.filter((house) => scores.has(house.number) === (filter === 'done')) : placed),
+    [placed, scores, filter],
+  );
   const unplaced = houses.filter((house) => !hasPosition(house));
   const shows = houses.filter((house) => house.kind === 'spettacolo');
   const entertainment = services.points.filter((point) => point.type === 'intrattenimento');
@@ -32,6 +53,9 @@ function MapPage() {
       <BackHomeLink />
       <header className="page-head">
         <h1>Mappa del quartiere</h1>
+        <Link className="chip-btn page-head__link" to="/vote">
+          <ListChecksIcon aria-hidden="true" weight="bold" /> I miei voti
+        </Link>
         <p>
           {ranking
             ? `La classifica ${edition} è pubblica: le case si accendono in ordine.`
@@ -45,7 +69,34 @@ function MapPage() {
         </div>
       )}
 
-      <HouseMap houses={placed} ranking={ranking} services={services} onSelect={setSelected} />
+      {scores && (
+        <div className="map-toolbar">
+          <div className="map-filter" role="group" aria-label="Mostra le case">
+            {FILTERS.map(([value, label]) => (
+              <button key={value} type="button" className="chip-btn" aria-pressed={filter === value} onClick={() => setFilter(value)}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="map-progress">
+            <strong>{countVoted(houses, votesMap)}</strong> su {houses.length} votate
+          </p>
+        </div>
+      )}
+
+      {savedHouse && (
+        <p className="notice notice--saved" role="status" key={`${savedHouse.number}-${savedHouse.score}`}>
+          Voto salvato: casa {savedHouse.number}, {savedHouse.score} su 10.
+        </p>
+      )}
+
+      {scores && placed.length > 0 && shown.length === 0 && (
+        <p className="empty-state" role="status">
+          {filter === 'todo' ? 'Hai votato tutte le case!' : 'Nessuna casa votata ancora.'}
+        </p>
+      )}
+
+      <HouseMap houses={shown} votes={scores} ranking={ranking} services={services} onSelect={setSelected} />
 
       {(legend.length > 0 || services.note) && (
         <section className="panel map-legend">
@@ -118,32 +169,16 @@ function MapPage() {
         </section>
       )}
 
-      <Sheet open={Boolean(selected)} onClose={() => setSelected(null)} labelledBy="map-dialog-title" className="vote-dialog">
-        {selected && (
-          <div className="map-dialog">
-            <div className="vote-dialog-header">
-              <span className="plate plate--lg" aria-hidden="true">
-                {selected.number}
-              </span>
-              <div className="vote-dialog-headings">
-                <h2 id="map-dialog-title">Casa {selected.number}</h2>
-                <p className="vote-dialog-house-title">{selected.title || 'Senza titolo'}</p>
-              </div>
-            </div>
-            {houseAddress(selected) && <p className="map-dialog__address">{houseAddress(selected)}</p>}
-            <KindTag kind={selected.kind} />
-            {selected.description && <p className="vote-dialog-description">{selected.description}</p>}
-            <div className="dialog-actions">
-              <button type="button" className="secondary-btn" onClick={() => setSelected(null)}>
-                Chiudi
-              </button>
-              <Link className="primary-btn" to={`/vota/${selected.number}`}>
-                Vota
-              </Link>
-            </div>
-          </div>
-        )}
-      </Sheet>
+      <VoteSheet
+        house={selected}
+        user={user}
+        config={config}
+        onClose={() => setSelected(null)}
+        onSaved={(saved) => {
+          setSavedHouse(saved);
+          setSelected(null);
+        }}
+      />
     </div>
   );
 }
