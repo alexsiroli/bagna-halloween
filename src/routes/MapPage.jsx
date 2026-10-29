@@ -30,7 +30,6 @@ function MapPage() {
   const ranking = usePublishedRanking(edition);
   const services = usePoints(edition);
   const [selected, setSelected] = useState(null);
-  const byNumber = new Map(houses.map((house) => [house.number, house]));
   const placed = useMemo(() => houses.filter(hasPosition), [houses]);
   // Stato dei segnaposto solo con il login e a voti letti: prima, tutte le case come senza login.
   const scores = useMemo(() => (user && ready ? new Map([...votesMap].filter(([, vote]) => isVoted(vote)).map(([number, vote]) => [number, vote.score])) : null), [user, ready, votesMap]);
@@ -57,9 +56,13 @@ function MapPage() {
           <ListChecksIcon aria-hidden="true" weight="bold" /> I miei voti
         </Link>
         <p>
-          {ranking
-            ? `La classifica ${edition} è pubblica: le case si accendono in ordine.`
-            : 'Il percorso delle case addobbate. Tocca una casa per votarla.'}
+          {ranking ? (
+            <>
+              Le prime tre case {edition} sono sulla mappa. Tutte le classifiche sono nell’<Link to="/albo">albo d’oro</Link>.
+            </>
+          ) : (
+            'Il percorso delle case addobbate. Tocca una casa per votarla.'
+          )}
         </p>
       </header>
 
@@ -86,7 +89,9 @@ function MapPage() {
 
       {savedHouse && (
         <p className="notice notice--saved" role="status" key={`${savedHouse.number}-${savedHouse.score}`}>
-          Voto salvato: casa {savedHouse.number}, {savedHouse.score} su 10.
+          {savedHouse.deleted
+            ? `Voto cancellato: casa ${savedHouse.number}.`
+            : `Voto salvato: casa ${savedHouse.number}, ${savedHouse.score} su 10.`}
         </p>
       )}
 
@@ -144,28 +149,6 @@ function MapPage() {
               <HouseRow key={house.id} house={house} />
             ))}
           </ul>
-        </section>
-      )}
-
-      {ranking && ranking.length > 0 && (
-        <section className="panel ranking">
-          <h2>Classifica {edition}</h2>
-          <ol className="ranking-list">
-            {ranking.map((number, index) => (
-              <li key={number} data-podium={index < 3} style={{ '--order': index }}>
-                <span className="ranking-list__pos">{index + 1}°</span>
-                <span className="plate" aria-hidden="true">
-                  {number}
-                </span>
-                <span className="ranking-list__text">
-                  <strong>Casa {number}</strong>
-                  {byNumber.get(number)?.title && (
-                    <span className="ranking-list__title">{byNumber.get(number).title}</span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ol>
         </section>
       )}
 

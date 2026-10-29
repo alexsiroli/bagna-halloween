@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   collection,
+  deleteDoc,
   deleteField,
   doc,
+  getDocs,
   onSnapshot,
   query,
   serverTimestamp,
@@ -17,8 +19,9 @@ import HouseMap from '../components/HouseMap.jsx';
 import Sheet from '../components/Sheet.jsx';
 import { db } from '../firebase.js';
 import { logout } from '../auth.js';
-import { hasPosition, houseAddress, houseId, useAppConfig, useConfigDoc, useHouses } from '../data.js';
+import { hasPosition, houseAddress, houseId, useAppConfig, useHouses } from '../data.js';
 import { isKind, KIND_LABELS } from '../mapKinds.js';
+import { editionOf, topThree } from '../podium.js';
 import { dateToRome, formatEnd, romeToDate } from '../votingTime.js';
 
 const emptyHouse = {
@@ -41,12 +44,30 @@ const SORT_LABELS = { houseNumber: 'Casa', scoreAverage: 'Media voto', count: 'V
 function Admin({ user }) {
   const config = useAppConfig();
   const { edition } = config;
-  const results = useConfigDoc('results');
   const { houses, loading, error: housesError } = useHouses(edition, { includeHidden: true });
   const [votes, setVotes] = useState([]);
   const [error, setError] = useState('');
   const [modalState, setModalState] = useState({ open: false, data: emptyHouse, mode: 'create' });
   const [saving, setSaving] = useState(false);
+  // Albo d'oro: edizione scelta (default la corrente) e relativa top 3 pubblicata (undefined = in lettura).
+  const [albumYear, setAlbumYear] = useState(null);
+  const year = albumYear ?? edition;
+  const years = Array.from({ length: Math.max(edition - 2025, 0) + 1 }, (_, i) => edition - i);
+  const [published, setPublished] = useState(undefined);
+  const [albumBusy, setAlbumBusy] = useState(false);
+  const [albumNote, setAlbumNote] = useState('');
+  useEffect(() => {
+    setPublished(undefined);
+    return onSnapshot(
+      doc(db, 'results', String(year)),
+      (snapshot) => setPublished(snapshot.data() ?? null),
+      (err) => {
+        console.error('Errore albo admin', err);
+        setPublished(null);
+        setError('Impossibile leggere l’albo d’oro.');
+      },
+    );
+  }, [year]);
   const [sort, setSort] = useState({ field: 'houseNumber', direction: 'asc' });
   // Campo dell'orario di fine: si allinea al valore salvato quando cambia.
   const endsMs = config.votingEndsAt?.getTime();
@@ -114,17 +135,6 @@ function Admin({ user }) {
     });
     return sorted;
   }, [stats, sort]);
-
-  // Classifica: media piu' alta, poi piu' voti, poi numero piu' basso. Solo case votate.
-  const ranking = useMemo(
-    () =>
-      stats
-        .filter((row) => row.count > 0)
-        .sort((a, b) => b.scoreAverage - a.scoreAverage || b.count - a.count || a.houseNumber - b.houseNumber)
-        .map((row) => row.houseNumber),
-    [stats],
-  );
-  const rankingPublished = results?.published === true && results.edition === edition;
 
   const votesBySlot = useMemo(() => {
     const slots = new Map();
@@ -289,17 +299,36 @@ function Admin({ user }) {
     }
   };
 
-  const toggleRanking = async () => {
+  // I voti 2025 non hanno `edition` e le case 2025 stanno in `houses` con id senza prefisso:
+  // si legge tutto una volta e si filtra con editionOf.
+  const publishAlbum = async () => {
+    setAlbumBusy(true);
+    setAlbumNote('');
     try {
-      await setDoc(doc(db, 'config', 'results'), {
-        edition,
-        published: !rankingPublished,
-        ranking: rankingPublished ? [] : ranking,
-        updatedAt: serverTimestamp(),
-      });
+      const [houseSnap, voteSnap] = await Promise.all([getDocs(collection(db, 'houses')), getDocs(collection(db, 'votes'))]);
+      const ofYear = (snap) => snap.docs.map((docSnap) => docSnap.data()).filter((data) => editionOf(data) === year);
+      const top3 = topThree(ofYear(houseSnap), ofYear(voteSnap));
+      if (top3.length === 0) {
+        setAlbumNote(`Nessun voto per il ${year}.`);
+        return;
+      }
+      await setDoc(doc(db, 'results', String(year)), { edition: year, top3, updatedAt: serverTimestamp() });
+      setError('');
     } catch (err) {
-      console.error('Errore pubblicando la classifica', err);
-      setError('Impossibile aggiornare la classifica pubblica.');
+      console.error('Errore pubblicando l’albo d’oro', err);
+      setError('Impossibile pubblicare la classifica.');
+    } finally {
+      setAlbumBusy(false);
+    }
+  };
+
+  const withdrawAlbum = async () => {
+    try {
+      await deleteDoc(doc(db, 'results', String(year)));
+      setError('');
+    } catch (err) {
+      console.error('Errore ritirando la classifica', err);
+      setError('Impossibile ritirare la classifica.');
     }
   };
 
@@ -391,24 +420,41 @@ function Admin({ user }) {
           </button>
         </section>
 
-        <section className="panel admin-switch" data-open={rankingPublished}>
+        <section className="panel admin-switch" data-open={Boolean(published)}>
           <div>
-            <h2>Classifica pubblica</h2>
-            <p className="status-line" data-open={rankingPublished}>
+            <h2>Albo d’oro</h2>
+            <div className="field">
+              <label htmlFor="album-year">Edizione</label>
+              <select
+                id="album-year"
+                value={year}
+                onChange={(event) => {
+                  setAlbumYear(Number(event.target.value));
+                  setAlbumNote('');
+                }}
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="status-line" data-open={Boolean(published)}>
               <span className="status-bulb" aria-hidden="true" />
-              {rankingPublished
-                ? 'Pubblicata: le case si accendono sulla mappa in ordine.'
-                : `Non pubblicata. ${ranking.length} case votate finora.`}
+              {published
+                ? `Pubblicata: ${published.top3.map((row, i) => `${i + 1}° casa ${row.number}`).join(', ')}.`
+                : albumNote || `Non pubblicata per il ${year}.`}
             </p>
           </div>
           <button
             type="button"
-            className={rankingPublished ? 'secondary-btn' : 'primary-btn'}
-            onClick={toggleRanking}
-            disabled={!rankingPublished && ranking.length === 0}
+            className={published ? 'secondary-btn' : 'primary-btn'}
+            onClick={published ? withdrawAlbum : publishAlbum}
+            disabled={published === undefined || albumBusy}
           >
             <TrophyIcon aria-hidden="true" weight="bold" />
-            {rankingPublished ? 'Ritira classifica' : 'Pubblica classifica'}
+            {published ? 'Ritira' : 'Pubblica classifica'}
           </button>
         </section>
 

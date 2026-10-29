@@ -211,7 +211,9 @@ function Vote() {
 
           {savedHouse && (
             <p className="notice notice--saved" role="status" key={`${savedHouse.number}-${savedHouse.score}`}>
-              Voto salvato: casa {savedHouse.number}, {savedHouse.score} su 10.
+              {savedHouse.deleted
+                ? `Voto cancellato: casa ${savedHouse.number}.`
+                : `Voto salvato: casa ${savedHouse.number}, ${savedHouse.score} su 10.`}
             </p>
           )}
 

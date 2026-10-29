@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, doc, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, onSnapshot, query, where } from 'firebase/firestore';
 import { countRead, db } from './firebase.js';
 
 // Edizione mostrata finche' config/app non risponde. Quella vera arriva da config/app.edition.
@@ -7,6 +7,7 @@ export const FALLBACK_EDITION = 2026;
 
 export const houseId = (edition, number) => `${edition}_${number}`;
 export const voteId = (edition, uid, houseNumber) => `${edition}_${uid}_${houseNumber}`;
+export const deleteVote = (edition, uid, houseNumber) => deleteDoc(doc(db, 'votes', voteId(edition, uid, houseNumber)));
 
 export const houseAddress = (house) => [house.street, house.civic].filter(Boolean).join(' ');
 export const hasPosition = (house) => Number.isFinite(house.lat) && Number.isFinite(house.lng);
@@ -56,10 +57,22 @@ export function useAppConfig() {
   };
 }
 
-// Numeri delle case in ordine di classifica, solo se l'admin l'ha pubblicata per questa edizione.
+// Numeri della top 3 in ordine, solo se l'admin ha pubblicato results/<edizione>; altrimenti null.
 export function usePublishedRanking(edition) {
-  const data = useConfigDoc('results');
-  return data?.published === true && data.edition === edition ? data.ranking ?? [] : null;
+  const [ranking, setRanking] = useState(null);
+  useEffect(
+    () =>
+      onSnapshot(
+        doc(db, 'results', String(edition)),
+        (snapshot) => setRanking(snapshot.data()?.top3.map((row) => row.number) ?? null),
+        (err) => {
+          console.error(`Errore caricando results/${edition}`, err);
+          setRanking(null);
+        },
+      ),
+    [edition],
+  );
+  return ranking;
 }
 
 const HOUSES_ERROR = 'Impossibile caricare le case, riprova più tardi.';

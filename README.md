@@ -19,7 +19,7 @@ Applicazione React + Vite per gestire la votazione delle case di Halloween, con 
   - Ricerca rapida per numero casa, o tocco sulla casa nella mappa.
   - Voto unico per casa (scala 6-10) con zucche.
   - Sezione "I miei voti".
-- Area admin (route `VITE_ADMIN_ROUTE`, default `/admin`) protetta da login Google e dalla
+- Area admin (route fissa `/admin`) protetta da login Google e dalla
   allowlist `config/admins`:
   - Apertura/chiusura votazioni e pubblicazione della classifica.
   - Gestione case (titolo, descrizione, visibilita', posizione sulla mappa).
@@ -47,8 +47,9 @@ VITE_FIREBASE_PROJECT_ID=...
 VITE_FIREBASE_STORAGE_BUCKET=....appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
-VITE_ADMIN_ROUTE=/admin
 ```
+
+L'area admin sta sempre su `/admin`: `VITE_ADMIN_ROUTE` non si usa più e la variabile su Netlify si può cancellare.
 
 > `VITE_FIREBASE_AUTH_DOMAIN` vale `bagna-halloween.firebaseapp.com` ovunque. Il login usa il popup (`signInWithPopup`), che funziona da qualsiasi dominio autorizzato: ogni dominio da cui si apre il sito (compresa una deploy preview su cui si vuole provare il login) va aggiunto in Firebase Auth > Authorized domains.
 
@@ -60,7 +61,7 @@ Su Netlify inserisci gli stessi valori in **Site settings → Build & deploy →
 2. Modello dati (tutto per edizione):
    - `config/app`: `{ votingOpen, edition }` (es. `edition: 2026`).
    - `config/admins`: `{ emails: [...] }` email Google degli organizzatori, in minuscolo.
-   - `config/results`: `{ edition, published, ranking: [numeri casa in ordine] }`.
+   - `results/<anno>`: `{ edition, top3: [{ number, title, avg, votes }], updatedAt }`, l'albo d'oro; l'admin lo pubblica e lo ritira.
    - `houses/<edizione>_<numero>`: `{ number, title, description, street, civic, lat, lng, visible, edition }`
      con `lat, lng` WGS84 (opzionali: senza posizione la casa sta in elenco sotto la mappa).
    - `votes/<edizione>_<uid>_<numero>`: `{ userId, houseNumber, score, edition, createdAt, updatedAt }`.
@@ -86,7 +87,7 @@ npm run dev:emulator   # app su http://localhost:4101 collegata agli emulatori
 
 Il seed crea 12 case inventate con via, civico e posizione (due senza), 40 votanti finti e tre utenti Google
 dell'emulatore: `admin@esempio.test` (admin), `votante@esempio.test`, `curioso@esempio.test`.
-Per la mappa con la classifica accesa: `node scripts/seed-emulator.mjs --results`.
+Per l'albo con la top 3 2026 già pubblicata (badge sulla mappa e `/albo`): `node scripts/seed-emulator.mjs --results`.
 
 ## QR per i cartelli
 
