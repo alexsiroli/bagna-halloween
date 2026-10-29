@@ -105,6 +105,7 @@ function HouseMap({ houses, votes = null, ranking = null, services: servicesData
       const marker = L.marker([house.lat, house.lng], {
         icon: L.divIcon({ className: 'pin-wrap', html: pinHtml(house.number, rank, house.kind, Boolean(score)), iconSize: [44, 44] }),
         title: label,
+        zIndexOffset: 1000, // le case sopra i punti di servizio: con le coordinate 2026 la casa 3 sta sotto un food truck
         interactive: !picking,
         keyboard: !picking,
       }).addTo(layer.current);

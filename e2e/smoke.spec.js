@@ -30,7 +30,8 @@ test('home: edizione dalla config e accesso al voto', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Halloween di Bagnarola');
   await expect(page.getByText('Edizione 2026')).toBeVisible();
-  await expect(page.getByText('votazioni aperte')).toBeVisible();
+  // Da freddo la config arriva tardi: la scritta compare solo a config caricata.
+  await expect(page.getByText('votazioni aperte')).toBeVisible({ timeout: 15_000 });
   await page.getByRole('link', { name: 'Vota le case' }).click();
   await expect(page).toHaveURL(/\/vote$/);
 });
@@ -114,6 +115,11 @@ test('mappa: tipi di casa, punti di servizio e strade chiuse da file', async ({ 
   await page.goto('/mappa');
   // 10 case + 5 punti validi (il tipo sconosciuto e la strada con un solo punto sono scartati).
   await expect(page.locator('.leaflet-marker-icon')).toHaveCount(15);
+  // Ogni casa sta sopra ogni punto di servizio: un punto vicino non copre mai la casa da votare.
+  const layers = await page.locator('.leaflet-marker-icon').evaluateAll((els) =>
+    els.map((el) => ({ house: (el.getAttribute('aria-label') || '').startsWith('Casa '), z: Number(el.style.zIndex) })),
+  );
+  expect(Math.min(...layers.filter((l) => l.house).map((l) => l.z))).toBeGreaterThan(Math.max(...layers.filter((l) => !l.house).map((l) => l.z)));
   await expect(page.locator('.leaflet-overlay-pane path')).toHaveCount(1);
   await expect(page.locator('.leaflet-overlay-pane path.leaflet-interactive')).toHaveCount(0);
   await expect(page.locator('.leaflet-overlay-pane path')).toHaveCSS('stroke', 'rgb(217, 83, 58)'); // --strada-chiusa
