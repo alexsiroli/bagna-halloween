@@ -7,7 +7,7 @@ import Albo from './routes/Albo.jsx';
 import AdminGate from './routes/AdminGate.jsx';
 import Privacy from './routes/Privacy.jsx';
 import SiteFooter from './components/SiteFooter.jsx';
-import BackHomeLink from './components/BackHomeLink.jsx';
+import PageHeader from './components/PageHeader.jsx';
 import Splash from './components/Splash.jsx';
 
 // La route e' fissa: la protezione vera sono login Google + config/admins + regole.
@@ -15,13 +15,10 @@ const adminRoute = '/admin';
 
 const NotFound = () => (
   <div className="app-shell app-shell--narrow">
-    <BackHomeLink />
-    <header className="page-head">
-      <h1>Pagina non trovata</h1>
-      <p>
-        Il percorso che hai seguito non esiste. Torna alla <Link to="/">home</Link>.
-      </p>
-    </header>
+    <PageHeader title="Pagina non trovata" />
+    <p className="muted">
+      Il percorso che hai seguito non esiste. Torna alla <Link to="/">home</Link>.
+    </p>
   </div>
 );
 

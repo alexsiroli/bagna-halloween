@@ -1,4 +1,4 @@
-// Pagina contest e firma: regolamento apribile, /alex-siroli senza pagina personale.
+// Pagina contest e firma: «Come partecipare» sempre aperto, /alex-siroli senza pagina personale.
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(({ page }) => page.addInitScript(() => sessionStorage.setItem('splash-visto', '1')));
@@ -11,18 +11,12 @@ test('/alex-siroli porta alla home e «Alex Siroli» non e\' un link', async ({ 
   await expect(page.getByText('Alex Siroli')).toBeVisible(); // la firma nel piede resta testo
 });
 
-test('contest a 375x667: regolamento chiuso senza scorrimento, aperto mostra il testo', async ({ page }) => {
+test('contest a 375x667: «Come partecipare» sempre visibile, niente premio, una schermata', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 667 });
   await page.goto('/contest');
-  const regolamento = page.locator('details.contest-rules');
-  await expect(regolamento.locator('summary')).toHaveText('Regolamento');
-  await expect(regolamento).not.toHaveAttribute('open', '');
-  await expect(page.getByText('Profilo pubblico obbligatorio')).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'Come partecipare' })).toBeVisible();
+  await expect(page.getByText('Profilo pubblico obbligatorio')).toBeVisible();
+  await expect(page.getByText(/premio|regolamento/i)).toHaveCount(0);
   const fits = await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight);
   expect(fits).toBe(true);
-
-  const box = await regolamento.locator('summary').boundingBox();
-  expect(box.height).toBeGreaterThanOrEqual(44);
-  await regolamento.locator('summary').click();
-  await expect(page.getByText('Profilo pubblico obbligatorio')).toBeVisible();
 });

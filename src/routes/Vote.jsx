@@ -1,137 +1,42 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { collection, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
-import { MagnifyingGlassIcon, SignOutIcon } from '@phosphor-icons/react';
-import BackHomeLink from '../components/BackHomeLink.jsx';
-import PumpkinRating from '../components/PumpkinRating.jsx';
+import { MagnifyingGlassIcon } from '@phosphor-icons/react';
+import PageHeader from '../components/PageHeader.jsx';
 import MyVotes from '../components/MyVotes.jsx';
-import Sheet from '../components/Sheet.jsx';
+import VoteSheet, { ClosedTag } from '../components/VoteSheet.jsx';
 import { GoogleSignInButton, LitPumpkin } from '../components/SignIn.jsx';
-import { db } from '../firebase.js';
-import { loginWithGoogle, logout, useAuthUser } from '../auth.js';
-import { deleteVote, useAppConfig, useHouses, voteId } from '../data.js';
-import { formatEnd } from '../votingTime.js';
+import { loginWithGoogle, useAuthUser } from '../auth.js';
+import { useAppConfig, useHouses } from '../data.js';
+import { countVoted, isVoted, useMyVotes } from '../myVotes.js';
+
+// Filo di lampadine su righe piene: al massimo 20 per riga, righe pareggiate (25 case = 13 + 12).
+const bulbColumns = (count) => Math.ceil(count / Math.ceil(count / 20)) || 1;
 
 function Vote() {
   const user = useAuthUser();
   const config = useAppConfig();
   const { edition } = config;
   const { houses, loading: loadingHouses, error: housesError } = useHouses(edition);
-  const [votes, setVotes] = useState([]);
-  const [loadingVotes, setLoadingVotes] = useState(false);
-  // Vero solo dopo il primo snapshot (o errore): prima votesMap e' vuota e la scheda si aprirebbe senza il voto.
-  const [votesReady, setVotesReady] = useState(false);
+  const { votesMap, ready: votesReady, error: votesError } = useMyVotes(user, edition);
   const [error, setError] = useState('');
   const [searchValue, setSearchValue] = useState('');
   const [searchMessage, setSearchMessage] = useState('');
-  const [modalState, setModalState] = useState({ open: false, house: null, score: 0 });
-  const [savingVote, setSavingVote] = useState(false);
+  const [selected, setSelected] = useState(null);
   const [savedHouse, setSavedHouse] = useState(null);
-  // Conferma «Cancella voto»: null = chiusa, altrimenti { deleting, error }.
-  const [confirmDelete, setConfirmDelete] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  useEffect(() => {
-    if (!user) {
-      setVotes([]);
-      setLoadingVotes(false);
-      setVotesReady(false);
-      return undefined;
-    }
-
-    setLoadingVotes(true);
-    setVotesReady(false);
-    const votesQuery = query(
-      collection(db, 'votes'),
-      where('userId', '==', user.uid),
-      where('edition', '==', edition),
-    );
-    return onSnapshot(
-      votesQuery,
-      (snapshot) => {
-        setVotes(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
-        setLoadingVotes(false);
-        setVotesReady(true);
-      },
-      (err) => {
-        console.error('Errore caricando i voti', err);
-        setLoadingVotes(false);
-        setVotesReady(true);
-        setError('Impossibile recuperare i tuoi voti.');
-      },
-    );
-  }, [user, edition]);
-
-  const votesMap = useMemo(() => {
-    const map = new Map();
-    votes.forEach((vote) => {
-      map.set(vote.houseNumber, vote);
-    });
-    return map;
-  }, [votes]);
-
   const totalVisible = houses.length;
-  const totalRated = useMemo(() => {
-    return houses.reduce((count, house) => {
-      const vote = votesMap.get(house.number);
-      return count + ((vote?.score || 0) >= 6 ? 1 : 0);
-    }, 0);
-  }, [houses, votesMap]);
+  const totalRated = countVoted(houses, votesMap);
   const progressPercent = totalVisible ? (totalRated / totalVisible) * 100 : 0;
 
   const handleLogin = async () => {
     setError(await loginWithGoogle());
   };
 
-  const handleVoteChange = useCallback(
-    async (houseNumber, score) => {
-      if (!user) {
-        setError('Per votare devi essere autenticato.');
-        return false;
-      }
-      if (!config.votingOpen) {
-        setError('Le votazioni sono attualmente chiuse.');
-        return false;
-      }
-
-      const existing = votesMap.get(houseNumber);
-      const voteRef = doc(db, 'votes', voteId(edition, user.uid, houseNumber));
-      const parsedScore = Number(score);
-      const sanitizedScore = Number.isFinite(parsedScore) ? parsedScore : 0;
-      const clampedScore =
-        sanitizedScore <= 0 ? 0 : Math.min(10, Math.max(6, sanitizedScore));
-      const payload = {
-        userId: user.uid,
-        houseNumber,
-        score: clampedScore,
-        edition,
-        updatedAt: serverTimestamp(),
-      };
-      // Voto nuovo: createdAt dal server. Voto esistente (anche se ancora in attesa):
-      // non lo inviamo e il merge lascia quello originale, come richiedono le regole.
-      if (!existing) payload.createdAt = serverTimestamp();
-
-      try {
-        await setDoc(voteRef, payload, { merge: true });
-        setError('');
-        return true;
-      } catch (err) {
-        console.error('Errore salvando il voto', err);
-        setError('Impossibile salvare il voto, riprova più tardi.');
-        return false;
-      }
-    },
-    [config.votingOpen, edition, user, votesMap],
-  );
-
-  const openHouseModal = useCallback(
-    (house) => {
-      const existingScore = votesMap.get(house.number)?.score ?? 0;
-      setModalState({ open: true, house, score: existingScore });
-      setSearchMessage('');
-    },
-    [votesMap],
-  );
+  const openHouseModal = useCallback((house) => {
+    setSelected(house);
+    setSearchMessage('');
+  }, []);
 
   // Arrivo dalla mappa: /vote?casa=12 apre subito la casa (dopo il login).
   // Arrivo dal QR: /vota/12 (l'URL resta; il messaggio per numeri sbagliati e' nel render).
@@ -155,16 +60,6 @@ function Vote() {
     setSearchParams({}, { replace: true });
   }, [user, loadingHouses, votesReady, houses, requestedHouse, numero, qrHouse, openHouseModal, setSearchParams]);
 
-  const closeModal = () => {
-    setModalState({ open: false, house: null, score: 0 });
-    setSavingVote(false);
-    setConfirmDelete(null);
-  };
-
-  const updateModalScore = (score) => {
-    setModalState((prev) => ({ ...prev, score }));
-  };
-
   const handleHouseSelectFromList = useCallback(
     (houseNumber) => {
       const house = houses.find((item) => item.number === houseNumber);
@@ -174,33 +69,10 @@ function Vote() {
     [houses, openHouseModal],
   );
 
-  const handleModalSubmit = async (event) => {
-    event.preventDefault();
-    if (!modalState.house) return;
-    setSavingVote(true);
-    const success = await handleVoteChange(modalState.house.number, modalState.score);
-    setSavingVote(false);
-    if (success) {
-      setSavedHouse({ number: modalState.house.number, score: modalState.score });
-      closeModal();
-      // La prossima casa e' gia' pronta: campo numero vuoto (il dialog rimette il focus da dove eri).
-      setSearchValue('');
-    }
-  };
-
-  const handleDeleteConfirm = async () => {
-    const number = modalState.house.number;
-    setConfirmDelete({ deleting: true, error: '' });
-    try {
-      await deleteVote(edition, user.uid, number);
-    } catch (err) {
-      console.error('Errore cancellando il voto', err);
-      setConfirmDelete({ deleting: false, error: 'Impossibile cancellare il voto, riprova più tardi.' });
-      return;
-    }
-    setSavedHouse({ number, deleted: true });
-    setConfirmDelete(null);
-    closeModal();
+  const handleSaved = (saved) => {
+    setSavedHouse(saved);
+    setSelected(null);
+    // La prossima casa e' gia' pronta: campo numero vuoto (il dialog rimette il focus da dove eri).
     setSearchValue('');
   };
 
@@ -226,22 +98,12 @@ function Vote() {
     openHouseModal(house);
   };
 
-  const shownError = error || housesError;
+  const shownError = error || votesError || housesError;
 
   return (
-    <div className="app-shell app-shell--narrow vote-page">
-      <BackHomeLink />
-      <header className="page-head">
-        <h1>Vota una casa</h1>
-        {config.loaded && (
-          <p className="status-line" data-open={config.votingOpen}>
-            <span className="status-bulb" aria-hidden="true" />
-            {config.votingOpen
-              ? `Le votazioni sono aperte${config.votingEndsAt ? `: si vota fino alle ${formatEnd(config.votingEndsAt)}` : ''}! Scegli le tue case preferite.`
-              : 'Le votazioni sono chiuse, puoi comunque consultare i voti che hai espresso.'}
-          </p>
-        )}
-      </header>
+    <div className="app-shell app-shell--narrow app-shell--fit vote-page">
+      <PageHeader title="Vota le case" />
+      {config.loaded && !config.votingOpen && <ClosedTag />}
 
       {shownError && (
         <div className="notice notice--error" role="alert">
@@ -278,59 +140,51 @@ function Vote() {
 
       {user && (
         <>
-          <section className="panel vote-panel">
-            <div className="vote-panel__who">
-              <p>
-                Ciao <strong>{user.displayName || 'Halloween lover'}</strong>
-              </p>
-              <button type="button" className="ghost-btn" onClick={logout}>
-                <SignOutIcon aria-hidden="true" weight="bold" /> Esci
+          <form className="search-bar" onSubmit={handleSearchSubmit}>
+            <label htmlFor="house-search" className="sr-only">
+              Inserisci numero casa
+            </label>
+            <div className="search-bar__row">
+              <input
+                id="house-search"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                placeholder="Inserisci numero casa"
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
+                disabled={loadingHouses}
+                enterKeyHint="go"
+              />
+              <button type="submit" className="primary-btn" disabled={loadingHouses} aria-label="Cerca">
+                <MagnifyingGlassIcon aria-hidden="true" weight="bold" />
               </button>
             </div>
-
-            <form className="search-bar" onSubmit={handleSearchSubmit}>
-              <label htmlFor="house-search">Numero della casa</label>
-              <div className="search-bar__row">
-                <input
-                  id="house-search"
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  placeholder="Es. 12"
-                  value={searchValue}
-                  onChange={(event) => setSearchValue(event.target.value)}
-                  disabled={loadingHouses}
-                  enterKeyHint="go"
-                />
-                <button type="submit" className="primary-btn" disabled={loadingHouses}>
-                  <MagnifyingGlassIcon aria-hidden="true" weight="bold" /> Cerca
-                </button>
-              </div>
-            </form>
-            {searchMessage && <p className="field-message" role="status">{searchMessage}</p>}
-
-            <div className="vote-progress" role="group" aria-label="Progresso valutazioni">
-              <p>
-                Case valutate <strong>{totalRated}</strong> su {totalVisible || 'nessuna'}
+            {searchMessage && (
+              <p className="field-message" role="status">
+                {searchMessage}
               </p>
-              <div
-                className="bulb-string"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(progressPercent)}
-                aria-label={`${totalRated} case valutate su ${totalVisible}`}
-              >
-                {houses.map((house) => (
-                  <span
-                    key={house.id}
-                    className="bulb"
-                    data-lit={(votesMap.get(house.number)?.score || 0) >= 6}
-                  />
-                ))}
-              </div>
+            )}
+          </form>
+
+          <div className="vote-progress">
+            <p>
+              Case votate <strong>{totalRated}</strong> su {totalVisible || 'nessuna'}
+            </p>
+            <div
+              className="bulb-string"
+              style={{ '--cols': bulbColumns(totalVisible) }}
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progressPercent)}
+              aria-label={`${totalRated} case votate su ${totalVisible}`}
+            >
+              {houses.map((house) => (
+                <span key={house.id} className="bulb" data-lit={isVoted(votesMap.get(house.number))} />
+              ))}
             </div>
-          </section>
+          </div>
 
           {savedHouse && (
             <p className="notice notice--saved" role="status" key={`${savedHouse.number}-${savedHouse.score}`}>
@@ -343,106 +197,14 @@ function Vote() {
           <MyVotes
             houses={houses}
             votesMap={votesMap}
-            loading={loadingHouses}
+            loading={loadingHouses || !votesReady}
             onHouseSelect={handleHouseSelectFromList}
             highlight={savedHouse?.number}
           />
-
-          {loadingVotes && <p className="empty-state">Aggiornamento voti…</p>}
         </>
       )}
 
-      <Sheet
-        open={modalState.open && Boolean(modalState.house)}
-        onClose={() => !savingVote && closeModal()}
-        labelledBy="vote-dialog-title"
-        className="vote-dialog"
-      >
-        {modalState.house && (
-          <form onSubmit={handleModalSubmit}>
-            <div className="vote-dialog-header">
-              <span className="plate plate--lg" aria-hidden="true">
-                {modalState.house.number}
-              </span>
-              <div className="vote-dialog-headings">
-                <h2 id="vote-dialog-title">Casa {modalState.house.number}</h2>
-                <p className="vote-dialog-house-title">{modalState.house.title || 'Senza titolo'}</p>
-              </div>
-            </div>
-            <p className="vote-dialog-description">
-              {modalState.house.description || 'Nessuna descrizione disponibile.'}
-            </p>
-
-            {!config.votingOpen && <p className="notice">Le votazioni sono chiuse al momento.</p>}
-
-            <PumpkinRating
-              label="Il tuo voto"
-              value={modalState.score}
-              onChange={updateModalScore}
-              disabled={!config.votingOpen || savingVote}
-            />
-
-            {config.votingOpen && votesMap.has(modalState.house.number) && (
-              <button
-                type="button"
-                className="secondary-btn"
-                onClick={() => setConfirmDelete({ deleting: false, error: '' })}
-                disabled={savingVote}
-              >
-                Cancella voto
-              </button>
-            )}
-
-            <div className="dialog-actions">
-              <button type="button" className="secondary-btn" onClick={closeModal} disabled={savingVote}>
-                Annulla
-              </button>
-              <button
-                type="submit"
-                className="primary-btn"
-                disabled={savingVote || !config.votingOpen || modalState.score < 6}
-                data-busy={savingVote}
-              >
-                {savingVote ? 'Salvataggio…' : 'Salva voto'}
-              </button>
-            </div>
-          </form>
-        )}
-      </Sheet>
-
-      <Sheet
-        open={Boolean(confirmDelete) && Boolean(modalState.house)}
-        onClose={() => !confirmDelete?.deleting && setConfirmDelete(null)}
-        labelledBy="delete-vote-title"
-        className="vote-dialog"
-      >
-        {confirmDelete && modalState.house && (
-          <div>
-            <h2 id="delete-vote-title">Vuoi cancellare il tuo voto per la casa {modalState.house.number}?</h2>
-            {confirmDelete.error && <p className="notice notice--error" role="alert">{confirmDelete.error}</p>}
-            <div className="dialog-actions">
-              <button
-                type="button"
-                className="secondary-btn"
-                autoFocus
-                onClick={() => setConfirmDelete(null)}
-                disabled={confirmDelete.deleting}
-              >
-                Annulla
-              </button>
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={handleDeleteConfirm}
-                disabled={confirmDelete.deleting}
-                data-busy={confirmDelete.deleting}
-              >
-                {confirmDelete.deleting ? 'Cancellazione…' : 'Cancella'}
-              </button>
-            </div>
-          </div>
-        )}
-      </Sheet>
+      <VoteSheet house={selected} user={user} config={config} onClose={() => setSelected(null)} onSaved={handleSaved} />
     </div>
   );
 }

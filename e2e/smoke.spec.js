@@ -48,7 +48,7 @@ test('privacy: dal link accanto al login la pagina si apre', async ({ page }) =>
   await expect(page.getByText(/via e numero civico, pubblicati con il consenso/)).toBeVisible();
 });
 
-test('mappa: segnaposto, scheda con Vota, case senza posizione in elenco', async ({ page }) => {
+test('mappa: segnaposto e scheda di voto, solo mappa e legenda', async ({ page }) => {
   await blockTiles(page);
   // Mai il file reale dei punti: qui c'e' sempre "nessun file" (il server risponde con l'HTML dell'app).
   await page.route('**/punti/*.json', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>x</title>' }));
@@ -67,25 +67,39 @@ test('mappa: segnaposto, scheda con Vota, case senza posizione in elenco', async
   const dialog = page.getByRole('dialog', { name: 'Casa 1' });
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText('Via Cesenatico 12');
-  await expect(dialog.getByRole('link', { name: 'Vota' })).toHaveAttribute('href', '/vota/1');
+  // Senza accesso la scheda chiede il login (la stessa scheda di /vote).
+  await expect(dialog.getByRole('button', { name: 'Accedi con Google' })).toBeVisible();
   await dialog.getByRole('button', { name: 'Chiudi' }).click();
   await expect(dialog).toBeHidden();
 
-  // Le due case senza lat/lng non hanno segnaposto ma si votano dall'elenco.
-  await expect(page.getByRole('link', { name: 'Vota la casa 11' })).toHaveAttribute('href', '/vota/11');
-  await expect(page.getByRole('link', { name: 'Vota la casa 12' })).toHaveAttribute('href', '/vota/12');
+  // Niente elenchi sotto la mappa: le case senza posizione si votano da /vote.
+  await expect(page.getByRole('link', { name: /^Vota la casa/ })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Altre case' })).toHaveCount(0);
   expect(errors).toEqual([]);
 
   // Senza file dei punti (qui il server risponde con l'HTML dell'app) restano solo le case e la legenda dei loro tipi.
   await expect(page.getByRole('button', { name: /^Bar:/ })).toHaveCount(0);
   await expect(page.locator('.map-legend')).toContainText('Casa addobbata');
   await expect(page.locator('.map-legend')).not.toContainText('Bar');
+});
 
-  // «Vota» nella scheda porta alla pagina di voto della casa (rotta /vota/:numero), non a una 404.
-  await page.getByRole('button', { name: /^Casa 1, La Casa delle Zucche/ }).click();
-  await page.getByRole('dialog', { name: 'Casa 1' }).getByRole('link', { name: 'Vota' }).click();
-  await expect(page).toHaveURL(/\/vota\/1$/);
-  await expect(page.getByText('Stai per votare la casa 1 · La Casa delle Zucche')).toBeVisible();
+test('mappa: accesso e voto dalla scheda, la casetta si accende', async ({ page }) => {
+  await blockTiles(page);
+  await page.goto('/mappa');
+  // I segnaposto di prova sono quasi sovrapposti: un tocco vero finirebbe sulla casa vicina, il click va sul suo elemento.
+  await page.getByRole('button', { name: /^Casa 2, / }).dispatchEvent('click');
+  const dialog = page.getByRole('dialog', { name: 'Casa 2' });
+  await login(page, 'curioso@esempio.test');
+  // Dopo l'accesso la stessa scheda mostra le zucche; il profilo compare in alto a destra.
+  const eight = dialog.getByRole('radio', { name: '8 su 10' });
+  const score = (await eight.getAttribute('aria-checked')) === 'true' ? 9 : 8;
+  await dialog.getByRole('radio', { name: `${score} su 10` }).click();
+  await dialog.getByRole('button', { name: 'Salva voto' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page).toHaveURL(/\/mappa$/);
+  await expect(page.getByRole('button', { name: new RegExp(`^Casa 2, .*votata ${score} su 10`) })).toBeVisible();
+  await expect(page.locator('.pin .casetta[data-lit="true"]').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Profilo: / })).toBeVisible();
 });
 
 test('mappa: tipi di casa, punti di servizio e strade chiuse da file', async ({ page }) => {
@@ -106,10 +120,11 @@ test('mappa: tipi di casa, punti di servizio e strade chiuse da file', async ({ 
   // Il tipo e' nel nome accessibile e nel glifo del segnaposto.
   const show = page.getByRole('button', { name: 'Casa 3, La Cripta del Fornaio, spettacolo: apri la scheda' });
   const decor = page.getByRole('button', { name: 'Casa 4, Ragnatele in Giardino, casa addobbata: apri la scheda' });
-  await expect(show.locator('svg')).toHaveCount(1);
-  await expect(decor.locator('svg')).toHaveCount(1);
+  // Casetta + glifo del tipo; la casa senza tipo ha solo la casetta.
+  await expect(show.locator('svg')).toHaveCount(2);
+  await expect(decor.locator('svg')).toHaveCount(2);
   expect(await show.innerHTML()).not.toBe(await decor.innerHTML());
-  await expect(page.getByRole('button', { name: /^Casa 5, La Strega del Canale: apri/ }).locator('svg')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Casa 5, La Strega del Canale: apri/ }).locator('svg')).toHaveCount(1);
 
   // Legenda in testo, solo i tipi presenti, con la nota del file.
   const legend = page.locator('.map-legend');
@@ -131,12 +146,9 @@ test('mappa: tipi di casa, punti di servizio e strade chiuse da file', async ({ 
   await page.keyboard.press('Enter');
   await expect(popup).toHaveCount(0);
 
-  // Elenco degli spettacoli: case con Vota, punti di intrattenimento senza.
-  const shows = page.locator('section', { has: page.getByRole('heading', { name: 'Spettacoli' }) });
-  await expect(shows.getByRole('link', { name: /^Vota la casa/ })).toHaveCount(4);
-  await expect(shows.getByRole('link', { name: 'Vota la casa 3' })).toHaveAttribute('href', '/vota/3');
-  await expect(shows.getByRole('listitem').filter({ hasText: 'Trampolieri di prova' })).toContainText('Via Balitrona 22/C');
-  await expect(shows.getByRole('listitem').filter({ hasText: 'Trampolieri di prova' }).getByRole('link')).toHaveCount(0);
+  // Niente elenco «Spettacoli» sotto la mappa: i punti di intrattenimento restano segnaposto.
+  await expect(page.getByRole('heading', { name: 'Spettacoli' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Intrattenimento: Trampolieri di prova/ })).toHaveCount(1);
 
   // La scheda della casa porta l'etichetta del tipo.
   await show.click();
@@ -166,9 +178,10 @@ for (const [name, contentType, body] of [
 test('voto: login emulatore, zucche, voto salvato', async ({ page }) => {
   await page.goto('/vote');
   await login(page, 'votante@esempio.test');
-  await expect(page.getByText('Votante di prova')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Profilo: Votante di prova' })).toBeVisible();
+  await expect(page.getByText(/^Ciao/)).toHaveCount(0);
 
-  await page.getByLabel('Numero della casa').fill('3');
+  await page.getByLabel('Inserisci numero casa').fill('3');
   await page.getByRole('button', { name: 'Cerca' }).click();
   const dialog = page.getByRole('dialog', { name: 'Casa 3' });
   await expect(dialog).toBeVisible();
@@ -180,8 +193,30 @@ test('voto: login emulatore, zucche, voto salvato', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Salva voto' }).click();
 
   await expect(page.getByRole('status').filter({ hasText: 'Voto salvato' })).toContainText(`casa 3, ${score} su 10`);
-  await expect(page.getByRole('button', { name: /Casa 3/ })).toContainText(String(score));
+  await expect(page.getByRole('button', { name: /^Casa 3, / })).toContainText(String(score));
+  await expect(page.getByRole('button', { name: /^Casa 3, / }).locator('.casetta')).toHaveAttribute('data-lit', 'true');
+
+  // Profilo: nome, email ed Esci.
+  await page.getByRole('button', { name: 'Profilo: Votante di prova' }).click();
+  const profile = page.getByRole('dialog', { name: 'Votante di prova' });
+  await expect(profile).toContainText('votante@esempio.test');
+  await profile.getByRole('button', { name: 'Esci' }).click();
+  await expect(page.getByRole('heading', { name: 'Accedi per votare' })).toBeVisible();
 });
+
+// Ogni pagina pubblica in una schermata sola, senza scorrere (piede fisso compreso).
+for (const size of [{ width: 390, height: 844 }, { width: 375, height: 667 }]) {
+  test(`una schermata a ${size.width}x${size.height}: home, voto, mappa, contest, albo`, async ({ page }) => {
+    await blockTiles(page);
+    await page.setViewportSize(size);
+    for (const path of ['/', '/vote', '/mappa', '/contest', '/albo']) {
+      await page.goto(path);
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      const fits = await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight);
+      expect(fits, path).toBe(true);
+    }
+  });
+}
 
 test('admin: il vecchio indirizzo /admin-halloween-2025 e una pagina non trovata, senza redirect', async ({ page }) => {
   await page.goto('/admin-halloween-2025');
@@ -301,7 +336,7 @@ test('admin: il tipo della casa si sceglie nel modulo e compare sulla mappa', as
     await expect(dialog).toBeHidden();
 
     await page.goto('/mappa');
-    await expect(page.getByRole('button', { name: /^Casa 5, La Strega del Canale, casa addobbata: apri/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Casa 5, La Strega del Canale, casa addobbata, da votare: apri/ })).toBeVisible();
   } finally {
     // Toglie il campo (updateMask senza valore): il seed resta com'era.
     await request.patch(url, { headers: { Authorization: 'Bearer owner' }, data: { fields: {} } });
@@ -352,7 +387,7 @@ test('carico: le case si leggono una volta per sessione (Home, Mappa, Voto, Mapp
 
   await blockTiles(page);
   await page.goto('/');
-  await page.getByRole('link', { name: /Mappa del quartiere/ }).click();
+  await page.getByRole('link', { name: 'Mappa', exact: true }).click();
   await expect(house3('La Cripta del Fornaio')).toBeVisible();
 
   try {
@@ -362,7 +397,7 @@ test('carico: le case si leggono una volta per sessione (Home, Mappa, Voto, Mapp
     await page.getByRole('link', { name: 'Vota le case' }).click();
     await expect(page).toHaveURL(/\/vote$/);
     await page.goBack();
-    await page.getByRole('link', { name: /Mappa del quartiere/ }).click();
+    await page.getByRole('link', { name: 'Mappa', exact: true }).click();
     await expect(house3('La Cripta del Fornaio')).toBeVisible();
 
     // Un ricarico e' una nuova sessione: rilegge.
@@ -409,7 +444,7 @@ test('QR: /vota/1 dice quale casa si vota e dopo il login apre la scheda', async
 test('QR: chi ha gia votato la casa ritrova il suo voto riaprendo /vota/1 e /vote?casa=1', async ({ page }) => {
   await page.goto('/vote');
   await login(page, 'votante@esempio.test');
-  await page.getByLabel('Numero della casa').fill('1');
+  await page.getByLabel('Inserisci numero casa').fill('1');
   await page.getByRole('button', { name: 'Cerca' }).click();
   const dialog = page.getByRole('dialog', { name: 'Casa 1' });
   // Come sopra: se il seed ha gia 7, toccarlo lo toglierebbe.
@@ -437,7 +472,7 @@ for (const numero of ['999', 'abc']) {
     await expect(notice).toBeVisible();
     await expect(page.getByRole('main').getByRole('link', { name: 'mappa' })).toHaveAttribute('href', '/mappa');
     await login(page, 'votante@esempio.test');
-    await expect(page.getByText('Votante di prova')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Profilo: Votante di prova' })).toBeVisible();
     await expect(notice).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     expect(errors).toEqual([]);

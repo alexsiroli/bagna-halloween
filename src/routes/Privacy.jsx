@@ -1,15 +1,12 @@
-import BackHomeLink from '../components/BackHomeLink.jsx';
+import PageHeader from '../components/PageHeader.jsx';
 
 // Testo approvato dal privacy-officer (HQ: reports/privacy/2026-10-20-bagna-halloween-informativa.md).
 // Rif. pratica #E00000 (non va nella pagina pubblica). [REGIONE FIREBASE] resta visibile finché non verificata in console.
 function Privacy() {
   return (
     <div className="app-shell app-shell--narrow">
-      <BackHomeLink />
-      <header className="page-head">
-        <h1>Privacy</h1>
-        <p>Ultimo aggiornamento: 28 ottobre 2026</p>
-      </header>
+      <PageHeader title="Privacy" />
+      <p className="muted">Ultimo aggiornamento: 28 ottobre 2026</p>
 
       <article className="panel privacy-text">
         <h2>Chi tratta i tuoi dati</h2>

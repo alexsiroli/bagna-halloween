@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
-import BackHomeLink from '../components/BackHomeLink.jsx';
+import PageHeader from '../components/PageHeader.jsx';
 import { db } from '../firebase.js';
 
 const formatAvg = (avg) => avg.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -29,11 +29,7 @@ function Albo() {
 
   return (
     <div className="app-shell app-shell--narrow albo-page">
-      <BackHomeLink />
-      <header className="page-head">
-        <h1>Albo d’oro</h1>
-        <p>Le tre case più votate di ogni edizione.</p>
-      </header>
+      <PageHeader title="Albo d’oro" />
 
       {error && (
         <div className="notice notice--error" role="alert">
@@ -52,9 +48,6 @@ function Albo() {
             {top3.map((row, index) => (
               <li key={row.number} data-podium="true" style={{ '--order': index }}>
                 <span className="ranking-list__pos">{index + 1}°</span>
-                <span className="plate" aria-hidden="true">
-                  {row.number}
-                </span>
                 <span className="ranking-list__text">
                   <strong>
                     Casa {row.number}
