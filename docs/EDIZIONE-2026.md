@@ -200,7 +200,8 @@ Variabili (Site settings, Environment variables), stesse di oggi piu' eventuali 
 |---|---|
 | `VITE_FIREBASE_*` | invariati, tranne `VITE_FIREBASE_AUTH_DOMAIN` (vedi sotto) |
 | `VITE_FIREBASE_AUTH_DOMAIN` | resta `bagna-halloween.firebaseapp.com` (valore attuale, non cambiarlo); `halloween.alxstudio.it` va solo autorizzato in Firebase Auth |
-| `VITE_ADMIN_ROUTE` | facoltativa (default `/admin`); ora e' solo un indirizzo, non una protezione |
+
+L'area admin sta sempre su `/admin`: `VITE_ADMIN_ROUTE` non si usa piu' e la variabile su Netlify si puo' cancellare (la cancella il CEO).
 
 Non impostare mai `VITE_USE_EMULATORS` su Netlify. Le variabili segrete si scrivono solo con
 l'helper dell'HQ: `python3 /Users/alexsiroli/AlxStudio/ops/bin/imposta-env netlify <progetto> <NOME> <ambiente>`
