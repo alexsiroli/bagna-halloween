@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CheckIcon, CopyIcon, EyeIcon, HashIcon, InstagramLogoIcon } from '@phosphor-icons/react';
-import BackHomeLink from '../components/BackHomeLink.jsx';
+import PageHeader from '../components/PageHeader.jsx';
 import { useAppConfig } from '../data.js';
 
 function Contest() {
@@ -19,14 +19,8 @@ function Contest() {
   };
 
   return (
-    <div className="app-shell app-shell--narrow contest-page">
-      <BackHomeLink />
-      <header className="page-head">
-        <h1>Contest fotografico</h1>
-        <p className="contest-intro">
-          Partecipa al nostro contest fotografico e racconta la tua notte di Halloween!
-        </p>
-      </header>
+    <div className="app-shell app-shell--narrow app-shell--fit contest-page">
+      <PageHeader title="Contest foto" />
 
       <div className="hashtag-plate">
         <span className="hashtag-plate__tag">{hashtag}</span>
@@ -46,9 +40,8 @@ function Contest() {
         </span>
       </div>
 
-      <details className="panel contest-rules">
-        <summary>Regolamento</summary>
-        <h2>Come partecipare</h2>
+      <section className="contest-rules" aria-labelledby="contest-how">
+        <h2 id="contest-how">Come partecipare</h2>
         <ul className="contest-list">
           <li>
             <InstagramLogoIcon className="contest-list__icon" aria-hidden="true" weight="duotone" />
@@ -73,11 +66,7 @@ function Contest() {
             </p>
           </li>
         </ul>
-        <p className="contest-note">
-          Le storie più belle riceveranno un <span className="contest-highlight">premio speciale</span>:
-          libera tutta la tua creatività e spaventa la giuria!
-        </p>
-      </details>
+      </section>
     </div>
   );
 }

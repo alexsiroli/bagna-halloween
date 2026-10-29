@@ -94,6 +94,7 @@
 
   --target: 48px;
   --target-xl: 64px;
+  --footer-h: 44px;
 
   --dur-fast: 150ms;
   --dur: 220ms;
@@ -234,7 +235,159 @@ svg {
   max-width: 680px;
 }
 
-.app-shell > header,
+/* Una schermata sola: l'elemento elastico della pagina (scena, mappa, case) prende lo spazio che resta.
+   min-height e non height: se il contenuto non ci sta la pagina scorre, non si taglia. */
+.app-shell--fit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: calc(100dvh - var(--footer-h) - env(safe-area-inset-bottom));
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-3);
+}
+
+/* Intestazione: freccia indietro, titolo, profilo */
+.topbar,
+.home-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--target);
+}
+
+.topbar__back {
+  margin-left: calc(var(--space-1) * -1);
+  border-color: transparent;
+  background: transparent;
+}
+
+.topbar__title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--step-2);
+  line-height: 1.1;
+}
+
+.topbar__end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.home-bar .icon-btn {
+  margin-left: calc(var(--space-1) * -1);
+  color: var(--lampione);
+  border-color: transparent;
+  background: transparent;
+}
+
+/* Profilo: cerchio con le iniziali, scheda con nome, email ed Esci */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--lampione);
+  background: var(--notte-700);
+  color: var(--luna);
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.avatar:active {
+  transform: scale(0.97);
+}
+
+.avatar--lg {
+  width: 4rem;
+  height: 4rem;
+  font-size: 1.4rem;
+  cursor: default;
+}
+
+.profile {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+}
+
+.profile__who {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.profile__who p {
+  color: var(--nebbia);
+  overflow-wrap: anywhere;
+}
+
+.profile .dialog-actions {
+  width: 100%;
+}
+
+/* Marchio Alx Studio di Halloween (fermo), in alto a destra nella home */
+.alx-mark {
+  width: auto;
+  height: 2.5rem;
+  overflow: visible;
+}
+
+.alx-mark__a {
+  fill: var(--luna);
+}
+
+.alx-mark__orbit {
+  fill: none;
+  stroke: var(--zucca);
+  stroke-width: 2.8;
+}
+
+.alx-mark__pumpkin {
+  fill: var(--zucca);
+}
+
+.alx-mark__ribs {
+  fill: none;
+  stroke: var(--zucca-scura);
+  stroke-width: 0.9;
+}
+
+.alx-mark__stem {
+  fill: none;
+  stroke: var(--stelo);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+/* Tag di stato: «Votazioni chiuse» in rosso, in pagina e nella scheda */
+.tag {
+  align-self: flex-start;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  font-size: var(--step--1);
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.tag--closed {
+  color: var(--brace);
+  background: rgb(255 122 107 / 0.12);
+  border: 1px solid var(--brace);
+}
+
+.app-shell > header:not(.topbar),
 .page-head {
   display: grid;
   gap: var(--space-3);
@@ -270,11 +423,29 @@ svg {
 }
 
 .site-footer {
-  padding: var(--space-6) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom));
-  text-align: center;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
+  min-height: calc(var(--footer-h) + env(safe-area-inset-bottom));
+  padding: 0 var(--space-4) env(safe-area-inset-bottom);
   color: var(--nebbia);
-  font-size: var(--step--1);
+  font-size: 0.875rem;
+  line-height: 1.2;
+  white-space: pre;
+  background: rgb(7 11 23 / 0.96);
   border-top: 1px solid var(--notte-700);
+}
+
+.site-footer__link {
+  display: inline-flex;
+  align-items: center;
+  /* -1px: il filo del piede conta; senza, ogni pagina scorre di 1px */
+  min-height: calc(var(--footer-h) - 1px);
+  padding: 0 var(--space-2);
 }
 
 .site-footer__name {
@@ -384,6 +555,83 @@ svg {
   font-variant-numeric: tabular-nums;
   box-shadow: inset 0 0 0 3px var(--ceramica), inset 0 0 0 4.5px var(--smalto);
   flex-shrink: 0;
+}
+
+/* Casetta col numero (src/casetta.js): spenta = da votare, accesa = votata */
+.casetta-slot {
+  display: contents;
+}
+
+.casetta {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--luna);
+}
+
+.casetta__forma {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.casetta__forma path {
+  fill: var(--notte-700);
+  stroke: var(--notte-400);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  transition: fill var(--dur-slow) var(--ease-out), stroke var(--dur-slow) var(--ease-out);
+}
+
+.casetta__n {
+  position: relative;
+  margin-top: 32%;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.casetta[data-lit='true'] {
+  color: var(--notte-950);
+}
+
+.casetta[data-lit='true'] .casetta__forma {
+  filter: drop-shadow(0 0 7px rgb(255 225 154 / 0.6));
+}
+
+.casetta[data-lit='true'] .casetta__forma path {
+  fill: var(--finestra);
+  stroke: var(--lampione);
+}
+
+.casetta__tipo {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.45rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  box-shadow: 0 0 0 2px var(--notte-900);
+}
+
+.casetta__tipo .glyph {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.casetta-slot--lg .casetta {
+  width: 4rem;
+  height: 4rem;
+}
+
+.casetta-slot--lg .casetta__n {
+  font-size: 1.4rem;
 }
 
 .plate--lg {
@@ -574,21 +822,14 @@ fieldset {
 }
 
 /* ---------- Home ---------- */
-.home {
-  gap: var(--space-4);
-  padding-top: var(--space-4);
-  padding-bottom: var(--space-4);
-}
-
+/* Telefono: colonna centrata; la scena si stringe per prima quando lo schermo e' basso */
 .home-hero {
-  display: grid;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
   gap: var(--space-3);
-  grid-template-areas:
-    'title'
-    'lead'
-    'status'
-    'scene'
-    'cta';
 }
 
 .display {
@@ -606,20 +847,15 @@ fieldset {
   grid-area: title;
 }
 
-.home-hero__lead {
-  grid-area: lead;
-  max-width: 34ch;
-  font-size: 1.125rem;
-  line-height: 1.4;
-  color: var(--luna);
-}
-
 .home-hero__status {
   grid-area: status;
 }
 
 .home-hero__scene {
   grid-area: scene;
+  /* 56vw: si taglia il cielo sopra la luna; si stringe fino a 120px sugli schermi bassi */
+  flex: 0 1 56vw;
+  min-height: 120px;
   margin: 0 calc(var(--space-4) * -1);
   /* Candela e nebbia stanno sopra lo Skyline in unita' cqw: la scena e' tagliata sulla larghezza
      e allineata in basso, quindi 1 unita' SVG = 100/240 cqw dal fondo */
@@ -665,7 +901,9 @@ fieldset {
 /* Telefono: la scena prende l'altezza che resta (il cielo si taglia dall'alto), cosi' tutto sta in una schermata */
 .home-hero__scene .skyline {
   aspect-ratio: auto;
-  height: clamp(140px, calc(100svh - 500px), 67vw);
+  position: absolute;
+  inset: auto 0 0;
+  height: 100%;
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%);
   mask-image: linear-gradient(180deg, transparent, #000 22%);
 }
@@ -676,56 +914,33 @@ fieldset {
 }
 
 .home-links {
+  grid-area: links;
   display: grid;
-  border-top: 1px solid var(--notte-600);
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
 }
 
 .home-link {
-  display: grid;
-  grid-template-columns: 2.25rem 1fr auto;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 64px;
-  padding: var(--space-2) var(--space-1);
-  border-bottom: 1px solid var(--notte-600);
-  color: var(--luna);
-  text-decoration: none;
-  transition: background-color var(--dur-fast) ease;
+  padding: 0 var(--space-3);
 }
 
-.home-link__icon {
-  width: 2rem;
-  height: 2rem;
+.home-link svg {
   color: var(--lampione);
 }
 
-.home-link__text {
-  display: grid;
-  gap: 0;
-  line-height: 1.3;
-}
-
-.home-link__text strong {
-  font-size: 1.125rem;
-}
-
-.home-link__text span {
-  color: var(--nebbia);
-  font-size: var(--step--1);
-}
-
-.home-link__arrow {
-  width: 1.4rem;
-  height: 1.4rem;
-  color: var(--nebbia);
-  transition: transform var(--dur) var(--ease-out), color var(--dur-fast) ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .home-link:hover .home-link__arrow {
-    color: var(--lampione);
-    transform: translateX(4px);
-  }
+/* Luci delle case che pulsano piano: aloni HTML sopra le finestre accese (Skyline LUCI), solo opacity.
+   Coordinate SVG (240x160) in cqw dal fondo, come la candela. */
+.luce {
+  position: absolute;
+  left: calc(var(--x) * 100cqw / 240);
+  bottom: calc((160 - var(--y)) * 100cqw / 240);
+  width: 7cqw;
+  height: 8cqw;
+  translate: -50% 50%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 225 154 / 0.7), rgb(255 178 56 / 0.2) 60%, transparent);
+  pointer-events: none;
+  animation: light-on 620ms linear 1.6s both, window-glow var(--d, 3.6s) ease-in-out var(--w, 2.4s) infinite alternate;
 }
 
 /* Il quartiere: la scena della locandina v2 (Skyline.jsx). Si accendono solo con opacity: niente repaint continui */
@@ -924,6 +1139,13 @@ fieldset {
 
 .search-bar .primary-btn {
   min-height: var(--target-xl);
+  width: var(--target-xl);
+  padding: 0;
+}
+
+.search-bar .primary-btn svg {
+  width: 1.6rem;
+  height: 1.6rem;
 }
 
 .vote-progress {
@@ -937,10 +1159,12 @@ fieldset {
 }
 
 /* Filo di lampadine: una per casa, accesa quando l'hai votata */
+/* Righe piene e pareggiate: --cols lo calcola Vote.jsx (max 20 per riga) */
 .bulb-string {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 6px;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 20), minmax(0, 1fr));
+  justify-items: center;
+  gap: 8px 2px;
 }
 
 .bulb {
@@ -969,94 +1193,97 @@ fieldset {
   box-shadow: var(--glow-finestra);
 }
 
-.my-votes-list {
+/* I miei voti: griglia di casette, scorre al suo interno se le case sono tante */
+.my-votes {
+  flex: 1 1 0;
+  min-height: 9rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: grid;
-}
-
-.my-vote-item {
-  display: grid;
-  grid-template-columns: auto 1fr auto auto;
-  align-items: center;
+  align-content: start;
   gap: var(--space-3);
-  width: 100%;
-  min-height: 68px;
-  padding: var(--space-2) var(--space-2);
+  margin: 0 calc(var(--space-1) * -1);
+  padding: var(--space-1);
+}
+
+.my-votes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3.5rem, 1fr));
+  gap: var(--space-2) var(--space-1);
+}
+
+.my-vote {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 2px;
+  min-height: 4.4rem;
+  padding: var(--space-1) 0 0;
   border: 0;
-  border-top: 1px solid var(--notte-600);
+  border-radius: var(--radius-m);
   background: transparent;
-  text-align: left;
   cursor: pointer;
-  transition: background-color var(--dur-fast) ease;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--dur-fast) ease, transform var(--dur-fast) var(--ease-out);
 }
 
-.my-vote-item:first-child {
-  border-top: 0;
-}
-
-.my-vote-item:active {
+.my-vote:active {
   background: var(--notte-700);
+  transform: scale(0.97);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .my-vote-item:hover {
+  .my-vote:hover {
     background: var(--notte-700);
   }
 }
 
-.my-vote-item--skeleton {
-  min-height: 68px;
-  background: linear-gradient(90deg, var(--notte-800), var(--notte-700), var(--notte-800)) 0 0 / 200% 100%;
-  border-radius: var(--radius-m);
-  margin-top: var(--space-2);
-  animation: shimmer 1.4s linear infinite;
-}
-
-.my-vote-details {
-  display: grid;
-  min-width: 0;
-}
-
-.my-vote-title {
-  color: var(--nebbia);
-  font-size: var(--step--1);
-  overflow-wrap: anywhere;
-}
-
-.my-vote-score {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 1px;
-}
-
-.my-vote-score__value {
+.my-vote__score {
+  min-height: 1.15rem;
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.2;
   color: var(--zucca);
 }
 
-.my-vote-score__max {
-  color: var(--nebbia);
-  font-size: var(--step--1);
-}
-
-.my-vote-score__todo {
-  color: var(--nebbia);
-  font-size: var(--step--1);
-  font-weight: 700;
-}
-
-.my-vote-caret {
-  width: 1.1rem;
-  height: 1.1rem;
-  color: var(--notte-500);
-}
-
-.my-vote-item[data-rated='true'] .plate {
-  box-shadow: inset 0 0 0 3px var(--ceramica), inset 0 0 0 4.5px var(--zucca), 0 0 12px 1px rgb(255 107 26 / 0.35);
-}
-
-.my-vote-item[data-just-saved='true'] .plate {
+.my-vote[data-just-saved='true'] .casetta {
   animation: plate-on 700ms linear both;
+}
+
+.my-vote--skeleton {
+  height: 4.4rem;
+  border-radius: var(--radius-m);
+  background: linear-gradient(90deg, var(--notte-800), var(--notte-700), var(--notte-800)) 0 0 / 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.my-votes-key {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--nebbia);
+  font-size: var(--step--1);
+}
+
+.my-votes-key .chip {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.my-votes-key .glyph {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.vote-dialog-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.vote-dialog-meta .map-dialog__address {
+  flex-basis: 100%;
 }
 
 /* ---------- Foglio (dialog nativo) ---------- */
@@ -1274,7 +1501,9 @@ fieldset {
 }
 
 .map-page .house-map {
-  height: clamp(280px, calc(100svh - 430px), 620px);
+  flex: 1 1 0;
+  height: auto;
+  min-height: 240px;
 }
 
 .house-map--picker {
@@ -1391,29 +1620,27 @@ fieldset {
   box-shadow: 0 0 0 2px var(--notte-950), 0 0 0 3.5px rgb(244 239 228 / 0.9), 0 2px 10px 2px rgb(3 5 12 / 0.7);
 }
 
-.pin__plate {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.2rem;
-  min-width: 2rem;
-  height: 1.7rem;
-  padding: 0 0.35rem;
-  border-radius: var(--radius-s);
-  background: var(--chip-bg, var(--ceramica));
-  color: var(--chip-fg, var(--smalto));
-  font-family: var(--font-display);
-  font-size: 0.9rem;
-  line-height: 1;
-  box-shadow: 0 0 0 2px var(--notte-950), 0 0 0 3.5px rgb(244 239 228 / 0.9), 0 0 16px 4px rgb(255 214 120 / 0.35);
+/* Segnaposto: casetta con bordo chiaro sulle tessere scure; accesa se l'hai votata */
+.pin .casetta {
+  width: 2.5rem;
+  height: 2.5rem;
 }
 
-.pin__plate .glyph {
-  width: 1.2rem;
-  height: 1.2rem;
+.pin .casetta__forma {
+  filter: drop-shadow(0 1px 3px rgb(3 5 12 / 0.9));
 }
 
-.pin-wrap:focus-visible .pin__plate {
+.pin .casetta[data-lit='false'] .casetta__forma path {
+  fill: var(--notte-800);
+  stroke: var(--luna);
+  stroke-width: 2.5;
+}
+
+.pin .casetta[data-lit='true'] .casetta__forma {
+  filter: drop-shadow(0 0 8px rgb(255 225 154 / 0.75));
+}
+
+.pin-wrap:focus-visible .casetta {
   outline: 3px solid var(--lampione);
   outline-offset: 3px;
 }
@@ -1435,11 +1662,12 @@ fieldset {
   animation-delay: calc(250ms + var(--order) * 110ms);
 }
 
-.pin[data-podium='true'] .pin__plate {
-  min-width: 2.4rem;
-  height: 2rem;
-  font-size: 1.05rem;
-  box-shadow: 0 0 0 2px var(--notte-950), 0 0 0 3.5px var(--lampione), 0 0 26px 8px rgb(255 214 120 / 0.55);
+.pin[data-podium='true'] .casetta {
+  scale: 1.15;
+}
+
+.pin[data-podium='true'] .casetta__forma {
+  filter: drop-shadow(0 0 10px rgb(255 178 56 / 0.8));
 }
 
 .house-map .leaflet-marker-pane:has(.pin[data-ranked='true']) .pin[data-ranked='false'] {
@@ -1447,8 +1675,12 @@ fieldset {
 }
 
 /* Admin: il segnaposto della casa in modifica, non toccabile */
-.house-map[data-picking='true'] .pin__plate {
-  background: var(--lampione);
+.house-map[data-picking='true'] .casetta__forma path {
+  fill: var(--lampione);
+  stroke: var(--notte-950);
+}
+
+.house-map[data-picking='true'] .casetta {
   color: var(--notte-900);
 }
 
@@ -1476,12 +1708,8 @@ fieldset {
 }
 
 .map-legend {
-  gap: var(--space-3);
-  padding: var(--space-4);
-}
-
-.map-legend h2 {
-  font-size: var(--step-1);
+  display: grid;
+  gap: var(--space-2);
 }
 
 .map-legend__list {
@@ -1499,7 +1727,17 @@ fieldset {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 1.75rem;
+  min-height: 1.6rem;
+}
+
+.map-legend .chip {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.map-legend .glyph {
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
 .map-legend .muted {
@@ -1524,30 +1762,6 @@ fieldset {
   color: var(--nebbia);
 }
 
-/* Telefono: targhe piu' piccole (l'area da toccare resta 44px), bagliore piu' stretto */
-@media (max-width: 639px) {
-  .pin__plate {
-    min-width: 1.85rem;
-    height: 1.6rem;
-    padding: 0 0.3rem;
-    font-size: 0.85rem;
-    gap: 0.15rem;
-    box-shadow: 0 0 0 2px var(--notte-950), 0 0 0 3.5px rgb(244 239 228 / 0.9), 0 0 12px 3px rgb(255 214 120 / 0.3);
-  }
-
-  .pin__plate .glyph {
-    width: 1.1rem;
-    height: 1.1rem;
-  }
-
-  .pin__rank {
-    top: 0;
-    right: -4px;
-    font-size: 0.65rem;
-    padding: 0 4px;
-  }
-}
-
 .ranking-list {
   display: grid;
   margin: 0;
@@ -1557,7 +1771,7 @@ fieldset {
 
 .ranking-list li {
   display: grid;
-  grid-template-columns: 2.75rem auto 1fr;
+  grid-template-columns: 2.75rem 1fr;
   align-items: center;
   gap: var(--space-3);
   min-height: 60px;
@@ -1644,53 +1858,13 @@ fieldset {
   color: var(--nebbia);
 }
 
-/* Regolamento apribile: chiuso e' solo la riga con il segno +/-, cosi' il contest sta in una schermata */
 .contest-rules {
-  padding-block: var(--space-2);
-}
-
-.contest-rules > summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: var(--space-3);
-  min-height: 44px;
-  font-size: var(--step-1);
-  font-weight: 800;
-  cursor: pointer;
-  list-style: none;
-  border-radius: var(--radius-m);
-  -webkit-tap-highlight-color: transparent;
 }
 
-.contest-rules > summary::-webkit-details-marker {
-  display: none;
-}
-
-.contest-rules > summary::after {
-  content: '+';
-  color: var(--lampione);
-  font-size: var(--step-2);
-  line-height: 1;
-}
-
-.contest-rules[open] > summary::after {
-  content: '\2212';
-}
-
-.contest-rules[open] {
-  padding-block: var(--space-2) var(--space-5);
-}
-
-/* il contenuto di details non segue il gap della griglia: spazio a mano */
-.contest-rules[open] > :not(summary) {
-  margin-top: var(--space-4);
-}
-
-/* il titolo interno e' il testo di sempre: resta leggibile, ma meno del Regolamento che lo contiene */
 .contest-rules h2 {
-  font-size: var(--step-0);
-  color: var(--nebbia);
+  font-size: var(--step-1);
 }
 
 /* ---------- Admin ---------- */
@@ -2000,12 +2174,13 @@ fieldset {
   /* Manifesto: il nome a tutta larghezza, sotto il testo a sinistra e il quartiere a destra */
   .home-hero {
     grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    display: grid;
     grid-template-rows: auto auto auto 1fr;
     grid-template-areas:
       'title title'
-      'lead scene'
       'status scene'
-      'cta scene';
+      'cta scene'
+      'links scene';
     column-gap: var(--space-7);
     row-gap: var(--space-4);
     align-items: start;
@@ -2022,6 +2197,7 @@ fieldset {
   }
 
   .home-hero__scene .skyline {
+    position: static;
     aspect-ratio: 240 / 160;
     height: auto;
     -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent), linear-gradient(180deg, transparent, #000 18%);
@@ -2030,20 +2206,11 @@ fieldset {
     mask-composite: intersect;
   }
 
-  .home-link {
-    min-height: 80px;
-  }
-
   .home-hero__cta {
     width: auto;
     justify-self: start;
     align-self: start;
     margin-top: var(--space-3);
-  }
-
-  .home-links {
-    grid-template-columns: 1fr 1fr;
-    column-gap: var(--space-6);
   }
 
   .admin-grid {
@@ -2184,6 +2351,16 @@ fieldset {
   }
   79% {
     opacity: 0.85;
+  }
+}
+
+/* Alone di una finestra: respira piano tra mezza luce e luce piena */
+@keyframes window-glow {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
   }
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { casettaHtml } from '../casetta.js';
 import { glyphSvg, isKind, KIND_LABELS, POINT_LABELS } from '../mapKinds.js';
 
 // Bagnarola di Cesenatico: vista di ripiego finche' nessuna casa ha una posizione.
@@ -10,12 +11,12 @@ const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">Op
 const round = (value) => Math.round(value * 1e6) / 1e6;
 
 // Solo numeri e glifi fissi nell'HTML: niente testo dei partecipanti dentro innerHTML.
-const pinHtml = (number, rank, kind) => {
+// La casa e' una casetta (src/casetta.js), accesa se l'hai votata (dalla PR #49).
+const pinHtml = (number, rank, kind, voted) => {
   const ranked = rank !== undefined;
-  const typed = isKind(kind); // il tipo entra nell'HTML solo se e' uno dei due noti
   return (
     `<span class="pin" data-ranked="${ranked}" data-podium="${ranked && rank < 3}" style="--order:${rank ?? 0}">` +
-    `<span class="pin__plate"${typed ? ` data-t="${kind}"` : ''}>${typed ? glyphSvg(kind) : ''}<span>${Number(number)}</span></span>` +
+    casettaHtml(number, { lit: voted, kind }) +
     (ranked && rank < 3 ? `<span class="pin__rank">${rank + 1}°</span>` : '') +
     '</span>'
   );
@@ -46,13 +47,14 @@ const popupNode = (point) => {
 /**
  * Mappa Leaflet con tessere OpenStreetMap.
  * - houses: case con lat/lng (number, title, lat, lng).
+ * - votes: Map numero -> voto delle case votate da chi e' dentro; null = nessun accesso, nessuno stato.
  * - ranking: numeri in ordine di classifica (se pubblicata): le prime tre portano il badge.
  * - services: { points, closedRoads } gia' validati da src/points.js (mappa pubblica).
  * - onSelect(house): tocco su un segnaposto (mappa pubblica).
  * - onPick({lat, lng}): modalita' admin, un tocco sulla mappa sceglie il punto; i segnaposto non sono toccabili.
  * - startAt: punti su cui il selettore si centra all'apertura (uno: zoom sulla casa; piu' di uno: li inquadra tutti).
  */
-function HouseMap({ houses, ranking = null, services: servicesData = NO_SERVICES, onSelect, onPick, startAt = [], className = '' }) {
+function HouseMap({ houses, votes = null, ranking = null, services: servicesData = NO_SERVICES, onSelect, onPick, startAt = [], className = '' }) {
   const ref = useRef(null);
   const map = useRef(null);
   const layer = useRef(null);
@@ -97,10 +99,13 @@ function HouseMap({ houses, ranking = null, services: servicesData = NO_SERVICES
     houses.forEach((house) => {
       const rank = rankOf.get(house.number);
       const kind = isKind(house.kind) ? `, ${KIND_LABELS[house.kind].toLowerCase()}` : '';
-      const label = `Casa ${house.number}${house.title ? `, ${house.title}` : ''}${kind}${rank !== undefined ? `, ${rank + 1}° in classifica` : ''}`;
+      const score = votes?.get(house.number);
+      const state = votes ? (score ? `, votata ${score} su 10` : ', da votare') : '';
+      const label = `Casa ${house.number}${house.title ? `, ${house.title}` : ''}${kind}${rank !== undefined ? `, ${rank + 1}° in classifica` : ''}${state}`;
       const marker = L.marker([house.lat, house.lng], {
-        icon: L.divIcon({ className: 'pin-wrap', html: pinHtml(house.number, rank, house.kind), iconSize: [44, 44] }),
+        icon: L.divIcon({ className: 'pin-wrap', html: pinHtml(house.number, rank, house.kind, Boolean(score)), iconSize: [44, 44] }),
         title: label,
+        zIndexOffset: 1000, // le case sopra i punti di servizio: con le coordinate 2026 la casa 3 sta sotto un food truck
         interactive: !picking,
         keyboard: !picking,
       }).addTo(layer.current);
@@ -113,7 +118,7 @@ function HouseMap({ houses, ranking = null, services: servicesData = NO_SERVICES
       fitAll(map.current, layer.current, servicesLayer.current);
       fitted.current.houses = true;
     }
-  }, [houses, ranking, picking]);
+  }, [houses, votes, ranking, picking]);
 
   // Punti di servizio e strade chiuse: non votabili, un tocco sul punto apre nome e indirizzo.
   useEffect(() => {

@@ -70,12 +70,20 @@ solo colore: c'e' sempre il testo accanto.
 
 ## Componenti firma
 
-- **Targa civica** (`.plate`): ceramica chiara, numero in smalto blu, doppio filetto. Ogni
-  casa e' il suo numero: lista voti, dialog, admin, mappa, classifica.
+- **Casetta** (`src/casetta.js`, `Casetta.jsx`): il numero dentro la sagoma di una casa con il
+  camino. Spenta (muro notte, bordo `--notte-400`) = da votare; accesa (`--finestra`, bordo
+  lampione, alone) = votata. Ogni casa e' il suo numero: griglia «I miei voti», schede, mappa.
+  Una casa con spettacolo porta il glifo nel tondo sul tetto. Decisione del CEO del 29/10/2026:
+  niente piu' targhe quadrate (la `.plate` resta solo nell'admin); nell'albo d'oro basta «Casa 13».
+- **Intestazione** (`PageHeader`): freccia indietro, titolo, profilo. **Profilo**: cerchio con le
+  iniziali in alto a destra; il tocco apre il foglio con nome, email ed Esci. In home: albo d'oro
+  (trofeo) a sinistra, profilo e marchio Alx Studio di Halloween (`AlxMark`, lo splash fermo) a destra.
+- **Tag** (`.tag--closed`): «Votazioni chiuse» in rosso brace, in pagina e nella scheda.
 - **Zucche** (`PumpkinRating`): cinque zucche SVG da 6 a 10, radiogroup con frecce. Spente
   sono sagome blu; accendendosi prendono colore da sinistra e la faccia "prende fuoco" come
   una candela. Accanto, il punteggio in display e una parola (Carina ... Da paura!).
-- **Filo di lampadine** (`.bulb-string`): il progresso dei voti, una lampadina per casa.
+- **Filo di lampadine** (`.bulb-string`): il progresso dei voti, una lampadina per casa, su righe
+  piene e pareggiate (al massimo 20 per riga).
 - **Foglio** (`Sheet`): `<dialog>` nativo; dal basso sul telefono, centrato da 640px.
 - **Stato** (`.status-line`): lampadina accesa o spenta piu' testo.
 - **Grafico a fasce** (admin): una fascia ogni 10 minuti, luce da zucca a finestra
@@ -93,10 +101,13 @@ SVG costerebbe un repaint continuo sul telefono.
 
 Cicli lenti (tema «Luce di candela», decisione del CEO del 29/10/2026): ammessi solo su
 `opacity` e `transform`, solo come livelli HTML sopra la scena (mai dentro gli SVG), lenti
-(3 s o piu') e pochi. Oggi sono tre:
+(3 s o piu') e pochi. Oggi sono quattro:
 - la candela nelle due zucche grandi della Home (`.fiamma`, `flicker`, 3,4 e 4,1 s, solo opacity);
 - il banco di nebbia della Home (`.banco-nebbia`, `fog-drift`, 18 s avanti e indietro, solo transform);
-- l'alone della zucca nel pannello di accesso (`.lume`, `flicker`).
+- l'alone della zucca nel pannello di accesso (`.lume`, `flicker`);
+- le luci delle case della Home (`.luce`, `window-glow`, 3,2-5,9 s avanti e indietro, solo opacity):
+  aloni HTML sopra meta' delle finestre accese delle case (`LUCI` esportato da `Skyline.jsx`,
+  coordinate SVG in cqw come la candela). Richiesta del CEO del 29/10/2026.
 Con `prefers-reduced-motion: reduce` si fermano nello stato finale, come le altre animazioni.
 
 Mappa: luci sempre accese, niente velo scuro, niente torcia, niente bottone «Accendi le luci».
@@ -130,24 +141,33 @@ taglia il cielo dall'alto) cosi' la home sta in una schermata; in desktop ha i b
 
 ## La mappa
 
-`/mappa` usa Leaflet con tessere OpenStreetMap scurite via CSS (`filter` sul solo strato delle
-tessere: le targhe restano a piena luce). Le case sono targhe (`.pin__plate`, area da toccare
-44px) nello stile della targa civica; il tocco apre il foglio con la scheda e il bottone Vota.
-Le case senza posizione stanno in un elenco sotto la mappa.
+`/mappa` e' solo mappa e legenda, in una schermata. Usa Leaflet con tessere OpenStreetMap scurite via CSS (`filter` sul solo strato delle
+tessere: le targhe restano a piena luce). Le case sono casette (area da toccare 44px), accese
+se le hai votate; il tocco apre la stessa scheda di voto di `/vote` (accesso compreso).
+Le case senza posizione si votano da `/vote`: sotto la mappa non ci sono elenchi.
 Ogni segnaposto (targhe e cerchi dei punti) ha un anello chiaro sopra uno scuro: si stacca dalle
 tessere scure. Punti di servizio con area da toccare 44px; strade chiuse 6px con alone mattone.
 La vista iniziale inquadra case, punti e strade insieme. La legenda sta sotto la mappa, in due
-colonne sul telefono; mappa e legenda entrano insieme nella prima schermata di un iPhone 14.
+colonne sul telefono; la mappa prende l'altezza che resta.
 
-«Alex Siroli» nel piede e' solo testo, mai un link.
+«Alex Siroli» nel piede e' solo testo, mai un link. Il piede e' fisso in basso, una riga da 44px.
+
+## Una schermata
+
+Home, Vota le case, Mappa, Contest foto e Albo stanno in una schermata a 390x844 e 375x667, piede
+compreso (`.app-shell--fit`: colonna alta quanto lo schermo, un solo elemento elastico per pagina:
+la scena in home, la mappa, la griglia delle casette che scorre al suo interno se le case sono tante).
+Lo verifica l'e2e «una schermata».
 
 ## Schermate chiave
 
-1. **Home**: nome dell'evento in grande (a tutta larghezza in desktop), invito, stato
-   edizione e votazioni, quartiere illustrato, "Vota le case" 64px, poi Mappa e Contest.
-2. **Voto**: login, poi campo numero grande + Cerca, filo di lampadine, "I miei voti" come
-   lista di targhe; il voto si da' in un foglio dal basso, raggiungibile col pollice.
-3. **Mappa**: tessere OpenStreetMap scurite, targhe toccabili, classifica sotto quando e' pubblica.
-4. **Contest**: l'hashtag dell'edizione su una targa, copiabile con un tocco.
+1. **Home**: nome dell'evento in grande (a tutta larghezza in desktop), stato edizione e
+   votazioni, quartiere illustrato con le luci che pulsano, "Vota le case" 64px, poi Mappa e
+   Contest foto affiancati, senza descrizioni.
+2. **Voto**: login, poi il solo campo «Inserisci numero casa», filo di lampadine, «I miei voti»
+   come griglia di casette; il voto si da' in un foglio dal basso, raggiungibile col pollice.
+3. **Mappa**: tessere OpenStreetMap scurite, casette toccabili, legenda.
+4. **Contest**: l'hashtag dell'edizione su una targa, copiabile con un tocco, e «Come
+   partecipare» sempre visibile.
 5. **Admin**: interruttori votazioni e classifica, case con posizionamento sulla mappa,
    statistiche ordinabili, grafico a fasce.
