@@ -91,5 +91,42 @@ service cloud.firestore {
           && voteId == string(v.edition) + '_' + request.auth.uid + '_' + string(v.houseNumber);
       }
     }
+
+    // Albo d'oro: results/<anno>, top 3 pubblica. Scrive e ritira solo l'admin.
+    match /results/{edition} {
+      allow read: if true;
+      allow create, update: if isAdmin() && validResults(edition);
+      allow delete: if isAdmin();
+
+      // Chiavi esatte, edition intero uguale all'id, 1..3 voci valide (indici 0..2 controllati sulla size).
+      function validResults(id) {
+        let r = request.resource.data;
+        return r.keys().hasOnly(['edition', 'top3', 'updatedAt'])
+          && r.keys().hasAll(['edition', 'top3', 'updatedAt'])
+          && r.edition is int
+          && string(r.edition) == id
+          && r.updatedAt == request.time
+          && r.top3 is list
+          && r.top3.size() >= 1
+          && r.top3.size() <= 3
+          && validEntry(r.top3[0])
+          && (r.top3.size() < 2 || validEntry(r.top3[1]))
+          && (r.top3.size() < 3 || validEntry(r.top3[2]));
+      }
+
+      function validEntry(e) {
+        return e is map
+          && e.keys().hasOnly(['number', 'title', 'avg', 'votes'])
+          && e.keys().hasAll(['number', 'title', 'avg', 'votes'])
+          && e.number is int
+          && e.title is string
+          && e.title.size() <= 200
+          && (e.avg is int || e.avg is float)
+          && e.avg >= 6
+          && e.avg <= 10
+          && e.votes is int
+          && e.votes >= 1;
+      }
+    }
   }
 }
