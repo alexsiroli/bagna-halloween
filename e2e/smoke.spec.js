@@ -188,6 +188,12 @@ test('voto: login emulatore, zucche, voto salvato', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Casa 3/ })).toContainText(String(score));
 });
 
+test('admin: il vecchio indirizzo /admin-halloween-2025 e una pagina non trovata, senza redirect', async ({ page }) => {
+  await page.goto('/admin-halloween-2025');
+  await expect(page.getByRole('heading', { name: 'Pagina non trovata' })).toBeVisible();
+  await expect(page).toHaveURL(/\/admin-halloween-2025$/);
+});
+
 test('admin: rifiuta chi non e in lista, accetta un admin', async ({ page }) => {
   await page.goto('/admin');
   await login(page, 'curioso@esempio.test');
@@ -477,6 +483,50 @@ test('mappa: voto dalla scheda senza lasciare la mappa, con «Da votare» il seg
     // /vote: stesso voto e stesso conteggio, senza ricaricare e senza nuovo login.
     await page.getByRole('link', { name: 'I miei voti', exact: true }).click();
     await expect(page.getByRole('button', { name: /Casa 7/ })).toContainText('9');
+    await expect(page.locator('.vote-progress')).toContainText('1 su 12');
+  } finally {
+    await resetVotes(request);
+  }
+});
+
+test('mappa: «Cancella voto» chiede conferma, poi il segnaposto torna da votare e il contatore scende', async ({ page, request }) => {
+  await resetVotes(request);
+  try {
+    await seedVote(request, 2, 8);
+    await seedVote(request, 5, 6);
+    await openMap(page);
+    await page.getByRole('button', { name: /^Casa 7, / }).click();
+    await login(page, 'curioso@esempio.test');
+    const sheet = page.getByRole('dialog', { name: 'Casa 7' });
+    // Casa non votata: niente «Cancella voto».
+    await expect(sheet.getByRole('button', { name: 'Cancella voto' })).toHaveCount(0);
+    await sheet.getByRole('button', { name: 'Annulla' }).click();
+    await expect(page.locator('.map-progress')).toHaveText('2 su 12 votate');
+
+    await page.getByRole('button', { name: 'Votate', exact: true }).click();
+    await expect(page.locator('.leaflet-marker-icon')).toHaveCount(2);
+    await page.getByRole('button', { name: /^Casa 2, .*votata 8 su 10/ }).click();
+    const voted = page.getByRole('dialog', { name: 'Casa 2', exact: true }); // exact: la conferma dice «…per la casa 2?»
+    await voted.getByRole('button', { name: 'Cancella voto' }).click();
+
+    // Conferma: «Annulla» lascia il voto, «Cancella» lo toglie.
+    const confirm = page.getByRole('dialog', { name: 'Vuoi cancellare il tuo voto per la casa 2?' });
+    await confirm.getByRole('button', { name: 'Annulla' }).click();
+    await expect(confirm).toBeHidden();
+    await expect(page.locator('.map-progress')).toHaveText('2 su 12 votate');
+    await voted.getByRole('button', { name: 'Cancella voto' }).click();
+    await confirm.getByRole('button', { name: 'Cancella', exact: true }).click();
+
+    await expect(voted).toBeHidden();
+    await expect(page).toHaveURL(/\/mappa$/);
+    await expect(page.getByRole('status').filter({ hasText: 'Voto cancellato' })).toContainText('casa 2');
+    await expect(page.locator('.map-progress')).toHaveText('1 su 12 votate');
+    await expect(page.locator('.leaflet-marker-icon')).toHaveCount(1);
+    await page.getByRole('button', { name: 'Tutte', exact: true }).click();
+    await expect(page.getByRole('button', { name: /^Casa 2, .*, da votare: apri/ })).toBeVisible();
+
+    // /vote: stesso stato, senza nuovo login.
+    await page.getByRole('link', { name: 'I miei voti', exact: true }).click();
     await expect(page.locator('.vote-progress')).toContainText('1 su 12');
   } finally {
     await resetVotes(request);
