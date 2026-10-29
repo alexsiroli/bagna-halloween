@@ -255,10 +255,20 @@ svg {
   min-height: var(--target);
 }
 
-.topbar__back {
-  margin-left: calc(var(--space-1) * -1);
-  border-color: transparent;
-  background: transparent;
+/* Indietro: cerchio da 44px con lo stesso anello lampione dell'avatar a destra (specificita' piu' alta di .icon-btn, piu' sotto) */
+.icon-btn.topbar__back {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--lampione);
+  background: var(--notte-700);
+  color: var(--lampione);
+}
+
+.topbar__back svg {
+  width: 1.4rem;
+  height: 1.4rem;
 }
 
 .topbar__title {
@@ -453,6 +463,8 @@ svg {
 .site-footer__name {
   color: var(--luna);
   font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .site-footer__link,
@@ -847,13 +859,34 @@ fieldset {
 
 .home-hero__title {
   grid-area: title;
+  text-align: center;
 }
 
 .home-hero__status {
   grid-area: status;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--notte-600);
+  border-radius: 999px;
+  background: var(--notte-800);
+  font-size: var(--step--1);
+  text-align: center;
 }
 
-.home-hero__scene {
+.home-hero__status .status-bulb {
+  margin-top: 0;
+}
+
+.status-end {
+  display: block;
+  color: var(--nebbia);
+}
+
+.home-hero__scene,
+.contest-scene {
   grid-area: scene;
   /* 56vw: si taglia il cielo sopra la luna; si stringe fino a 120px sugli schermi bassi */
   flex: 0 1 56vw;
@@ -901,13 +934,29 @@ fieldset {
 }
 
 /* Telefono: la scena prende l'altezza che resta (il cielo si taglia dall'alto), cosi' tutto sta in una schermata */
-.home-hero__scene .skyline {
+.home-hero__scene .skyline,
+.contest-scene .skyline {
   aspect-ratio: auto;
   position: absolute;
   inset: auto 0 0;
   height: 100%;
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%);
   mask-image: linear-gradient(180deg, transparent, #000 22%);
+}
+
+/* Contest: la scena riempie lo spazio che avanza sotto le regole (niente scroll: si stringe fino a sparire) */
+.contest-scene {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 80vw;
+  margin-top: auto;
+}
+
+/* Schermi bassi: avanza una striscia che taglierebbe le case a meta', meglio niente */
+@media (max-height: 720px) {
+  .contest-scene {
+    display: none;
+  }
 }
 
 .home-hero__cta {
@@ -943,6 +992,14 @@ fieldset {
   background: radial-gradient(closest-side, rgb(255 225 154 / 0.7), rgb(255 178 56 / 0.2) 60%, transparent);
   pointer-events: none;
   animation: light-on 620ms linear 1.6s both, window-glow var(--d, 3.6s) ease-in-out var(--w, 2.4s) infinite alternate;
+}
+
+/* Lampadine delle luminarie: si accendono in fila come le altre, poi respirano piano e sfasate */
+.luce--lampadina {
+  width: 5cqw;
+  height: 5cqw;
+  background: radial-gradient(closest-side, rgb(255 225 154 / 0.75), rgb(255 178 56 / 0.22) 55%, transparent);
+  animation: light-on 620ms linear calc(200ms + var(--i) * 50ms) both, window-glow var(--d, 3s) ease-in-out var(--w, 2.6s) infinite alternate;
 }
 
 /* Il quartiere: la scena della locandina v2 (Skyline.jsx). Si accendono solo con opacity: niente repaint continui */
@@ -2192,6 +2249,12 @@ fieldset {
   .home-hero__title {
     font-size: clamp(4rem, 1.6rem + 4.4vw, 6rem);
     margin-bottom: var(--space-3);
+    text-align: left;
+  }
+
+  .home-hero__status {
+    align-self: start;
+    justify-self: start;
   }
 
   .home-hero__scene {
@@ -2360,7 +2423,7 @@ fieldset {
 /* Alone di una finestra: respira piano tra mezza luce e luce piena */
 @keyframes window-glow {
   from {
-    opacity: 0.25;
+    opacity: 0.2;
   }
   to {
     opacity: 1;

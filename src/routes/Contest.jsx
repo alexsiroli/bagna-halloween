@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CheckIcon, CopyIcon, EyeIcon, HashIcon, InstagramLogoIcon } from '@phosphor-icons/react';
 import PageHeader from '../components/PageHeader.jsx';
+import Scene from '../components/Scene.jsx';
 import { useAppConfig } from '../data.js';
 
 function Contest() {
@@ -67,6 +68,9 @@ function Contest() {
           </li>
         </ul>
       </section>
+
+      {/* Lo spazio che avanza si riempie col quartiere: si stringe fino a sparire, mai scroll */}
+      <Scene className="contest-scene" />
     </div>
   );
 }
