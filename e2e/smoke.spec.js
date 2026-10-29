@@ -5,6 +5,9 @@ import { initializeApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { connectFirestoreEmulator, doc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore';
 
+// Lo splash d'apertura copre la pagina: qui e' gia' "visto" (e2e/splash.spec.js lo prova da solo).
+test.beforeEach(({ page }) => page.addInitScript(() => sessionStorage.setItem('splash-visto', '1')));
+
 // Login dal popup dell'emulatore auth, scegliendo un utente creato dal seed.
 async function login(page, email) {
   const popupPromise = page.waitForEvent('popup');

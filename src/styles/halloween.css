@@ -1952,3 +1952,198 @@ fieldset {
     transition-delay: 0ms !important;
   }
 }
+
+/* ---------- Splash d'apertura (una volta per sessione, 2,5 s) ----------
+   Gli stili base sono lo stato finale: con prefers-reduced-motion restano statici. */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  background: radial-gradient(ellipse at 50% 42%, var(--notte-700), var(--notte-900) 70%);
+  overflow: hidden;
+  cursor: pointer;
+  animation: splash-out 400ms 2100ms ease-in forwards;
+}
+
+.splash__mark {
+  width: min(70vw, 380px);
+  height: auto;
+  overflow: visible;
+}
+
+.splash__a {
+  fill: var(--luna);
+}
+
+.splash__orbit {
+  fill: none;
+  stroke: var(--zucca);
+  stroke-width: 2.8;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: splash-draw 1000ms 200ms cubic-bezier(0.77, 0, 0.175, 1) backwards;
+}
+
+.splash__px {
+  transform: translate(40px, 0);
+  animation: splash-x 1600ms 300ms ease-in-out backwards;
+}
+
+.splash__py {
+  animation: splash-y 1600ms 300ms backwards;
+}
+
+.splash__pumpkin {
+  fill: var(--zucca);
+}
+
+.splash__ribs {
+  fill: none;
+  stroke: var(--zucca-scura);
+  stroke-width: 0.9;
+}
+
+.splash__stem {
+  fill: none;
+  stroke: var(--stelo);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.splash__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  color: var(--luna);
+  text-align: center;
+  animation: splash-rise 500ms 1000ms ease-out backwards;
+}
+
+.splash__sign {
+  position: absolute;
+  bottom: max(var(--space-5), env(safe-area-inset-bottom));
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--step--1);
+  color: var(--nebbia); /* 7:1 su notte-900 */
+  animation: splash-rise 500ms 1300ms ease-out backwards;
+}
+
+.splash__bat {
+  position: absolute;
+  left: 0;
+  width: 40px;
+  fill: var(--notte-950);
+  stroke: var(--zucca);
+  stroke-width: 1;
+  animation: splash-fly 1500ms linear both;
+}
+
+.splash__bat--1 {
+  top: 14%;
+  animation-delay: 500ms;
+}
+
+.splash__bat--2 {
+  top: 70%;
+  width: 32px;
+  animation-delay: 800ms;
+  animation-duration: 1700ms;
+}
+
+.splash__bat--3 {
+  top: 32%;
+  width: 26px;
+  animation-delay: 1100ms;
+  animation-duration: 1300ms;
+}
+
+.splash__wings {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: splash-flap 180ms ease-in-out infinite alternate;
+}
+
+@keyframes splash-out {
+  from {
+    pointer-events: none; /* in uscita non intercetta i tocchi */
+  }
+
+  to {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@keyframes splash-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes splash-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes splash-x {
+  0%,
+  100% {
+    transform: translate(40px, 0);
+  }
+  50% {
+    transform: translate(-40px, 0);
+  }
+}
+
+@keyframes splash-y {
+  0%,
+  50%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(0, 10px);
+    animation-timing-function: ease-in;
+  }
+  75% {
+    transform: translate(0, -10px);
+    animation-timing-function: ease-in;
+  }
+}
+
+@keyframes splash-fly {
+  from {
+    transform: translate(-15vw, 0);
+  }
+  50% {
+    transform: translate(50vw, -34px);
+  }
+  to {
+    transform: translate(115vw, 6px);
+  }
+}
+
+@keyframes splash-flap {
+  to {
+    transform: scaleY(0.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash,
+  .splash * {
+    animation: none;
+  }
+
+  .splash__bat {
+    display: none;
+  }
+}

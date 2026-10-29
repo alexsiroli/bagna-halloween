@@ -1,4 +1,4 @@
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes, matchPath, useLocation } from 'react-router-dom';
 import Home from './routes/Home.jsx';
 import Contest from './routes/Contest.jsx';
 import Vote from './routes/Vote.jsx';
@@ -8,6 +8,7 @@ import AlexSiroli from './routes/AlexSiroli.jsx';
 import Privacy from './routes/Privacy.jsx';
 import SiteFooter from './components/SiteFooter.jsx';
 import BackHomeLink from './components/BackHomeLink.jsx';
+import Splash from './components/Splash.jsx';
 
 // La route resta configurabile, ma la protezione vera sono login Google + config/admins + regole.
 const adminRouteRaw = import.meta.env.VITE_ADMIN_ROUTE || '/admin';
@@ -25,9 +26,14 @@ const NotFound = () => (
   </div>
 );
 
+// Chi arriva da un QR di voto o dall'admin va dritto al contenuto, senza splash.
+const noSplash = (pathname) => ['/vote', '/vota/:numero', adminRoute].some((path) => matchPath(path, pathname));
+
 function App() {
+  const { pathname } = useLocation();
   return (
     <div className="app-wrapper">
+      <Splash skip={noSplash(pathname)} />
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Home />} />
