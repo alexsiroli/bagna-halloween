@@ -10,9 +10,8 @@ import SiteFooter from './components/SiteFooter.jsx';
 import BackHomeLink from './components/BackHomeLink.jsx';
 import Splash from './components/Splash.jsx';
 
-// La route resta configurabile, ma la protezione vera sono login Google + config/admins + regole.
-const adminRouteRaw = import.meta.env.VITE_ADMIN_ROUTE || '/admin';
-const adminRoute = adminRouteRaw.startsWith('/') ? adminRouteRaw : `/${adminRouteRaw}`;
+// La route e' fissa: la protezione vera sono login Google + config/admins + regole.
+const adminRoute = '/admin';
 
 const NotFound = () => (
   <div className="app-shell app-shell--narrow">

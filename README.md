@@ -19,7 +19,7 @@ Applicazione React + Vite per gestire la votazione delle case di Halloween, con 
   - Ricerca rapida per numero casa, o tocco sulla casa nella mappa.
   - Voto unico per casa (scala 6-10) con zucche.
   - Sezione "I miei voti".
-- Area admin (route `VITE_ADMIN_ROUTE`, default `/admin`) protetta da login Google e dalla
+- Area admin (route fissa `/admin`) protetta da login Google e dalla
   allowlist `config/admins`:
   - Apertura/chiusura votazioni e pubblicazione della classifica.
   - Gestione case (titolo, descrizione, visibilita', posizione sulla mappa).
@@ -47,8 +47,9 @@ VITE_FIREBASE_PROJECT_ID=...
 VITE_FIREBASE_STORAGE_BUCKET=....appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
-VITE_ADMIN_ROUTE=/admin
 ```
+
+L'area admin sta sempre su `/admin`: `VITE_ADMIN_ROUTE` non si usa più e la variabile su Netlify si può cancellare.
 
 > `VITE_FIREBASE_AUTH_DOMAIN` vale `bagna-halloween.firebaseapp.com` ovunque. Il login usa il popup (`signInWithPopup`), che funziona da qualsiasi dominio autorizzato: ogni dominio da cui si apre il sito (compresa una deploy preview su cui si vuole provare il login) va aggiunto in Firebase Auth > Authorized domains.
 
