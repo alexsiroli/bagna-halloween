@@ -1490,6 +1490,55 @@ fieldset {
   color: var(--nebbia);
 }
 
+/* Regolamento apribile: chiuso e' solo la riga con il segno +/-, cosi' il contest sta in una schermata */
+.contest-rules {
+  padding-block: var(--space-2);
+}
+
+.contest-rules > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 44px;
+  font-size: var(--step-1);
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--radius-m);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.contest-rules > summary::-webkit-details-marker {
+  display: none;
+}
+
+.contest-rules > summary::after {
+  content: '+';
+  color: var(--lampione);
+  font-size: var(--step-2);
+  line-height: 1;
+}
+
+.contest-rules[open] > summary::after {
+  content: '\2212';
+}
+
+.contest-rules[open] {
+  padding-block: var(--space-2) var(--space-5);
+}
+
+/* il contenuto di details non segue il gap della griglia: spazio a mano */
+.contest-rules[open] > :not(summary) {
+  margin-top: var(--space-4);
+}
+
+/* il titolo interno e' il testo di sempre: resta leggibile, ma meno del Regolamento che lo contiene */
+.contest-rules h2 {
+  font-size: var(--step-0);
+  color: var(--nebbia);
+}
+
 /* ---------- Admin ---------- */
 .admin-head {
   display: flex;

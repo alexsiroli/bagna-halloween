@@ -46,7 +46,8 @@ function Contest() {
         </span>
       </div>
 
-      <section className="panel contest-card">
+      <details className="panel contest-rules">
+        <summary>Regolamento</summary>
         <h2>Come partecipare</h2>
         <ul className="contest-list">
           <li>
@@ -76,7 +77,7 @@ function Contest() {
           Le storie più belle riceveranno un <span className="contest-highlight">premio speciale</span>:
           libera tutta la tua creatività e spaventa la giuria!
         </p>
-      </section>
+      </details>
     </div>
   );
 }
