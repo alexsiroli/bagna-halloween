@@ -12,6 +12,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { CaretDownIcon, CaretUpIcon, EyeIcon, EyeSlashIcon, PencilSimpleIcon, PlusIcon, SignOutIcon, TrophyIcon } from '@phosphor-icons/react';
+import AdminEmails from '../components/AdminEmails.jsx';
 import HouseMap from '../components/HouseMap.jsx';
 import Sheet from '../components/Sheet.jsx';
 import { db } from '../firebase.js';
@@ -535,6 +536,8 @@ function Admin({ user }) {
             </ol>
           )}
         </section>
+
+        <AdminEmails user={user} />
       </div>
 
       <Sheet open={modalState.open} onClose={() => !saving && closeModal()} labelledBy="house-dialog-title" className="house-dialog">

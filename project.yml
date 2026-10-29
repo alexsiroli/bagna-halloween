@@ -21,7 +21,7 @@ stack:
 # --- hosting ----------------------------------------------------------------
 hosting: netlify
 hosting_project: bagna-halloween
-url_prod: https://bagna-halloween.netlify.app
+url_prod: https://halloween.alxstudio.it
 url_staging:
 
 # --- distribuzione ----------------------------------------------------------

@@ -28,7 +28,7 @@ test('--numbers: input sbagliato lancia un errore chiaro', () => {
 });
 
 test('URL: base di default, slash finali tolti, rotta /vota/<n>', () => {
-  assert.equal(DEFAULT_BASE_URL, 'https://bagna-halloween.netlify.app');
+  assert.equal(DEFAULT_BASE_URL, 'https://halloween.alxstudio.it');
   assert.equal(siteUrl('https://esempio.it'), 'https://esempio.it/');
   assert.equal(siteUrl('https://esempio.it//'), 'https://esempio.it/');
   assert.equal(houseUrl('https://esempio.it/', 12), 'https://esempio.it/vota/12');

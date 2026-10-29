@@ -5,6 +5,9 @@ import { initializeApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { connectFirestoreEmulator, doc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore';
 
+// Lo splash d'apertura copre la pagina: qui e' gia' "visto" (e2e/splash.spec.js lo prova da solo).
+test.beforeEach(({ page }) => page.addInitScript(() => sessionStorage.setItem('splash-visto', '1')));
+
 // Login dal popup dell'emulatore auth, scegliendo un utente creato dal seed.
 async function login(page, email) {
   const popupPromise = page.waitForEvent('popup');
@@ -190,6 +193,56 @@ test('admin: rifiuta chi non e in lista, accetta un admin', async ({ page }) => 
   await login(page, 'admin@esempio.test');
   await expect(page.getByRole('heading', { name: 'Area admin' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Gestione case' })).toBeVisible();
+});
+
+test('admin: aggiunge e toglie un admin (con conferma), la propria email e l ultimo admin non si tolgono', async ({ page, request }) => {
+  const url =
+    'http://127.0.0.1:8181/v1/projects/demo-bagna-halloween/databases/(default)/documents/config/admins?updateMask.fieldPaths=emails';
+  const nuovo = `nuovo-${Date.now()}@esempio.test`;
+  const panel = page.locator('section.admin-emails');
+  const row = panel.getByRole('listitem').filter({ hasText: nuovo });
+  try {
+    await page.goto('/admin');
+    await login(page, 'admin@esempio.test');
+    // Un solo admin: nessun «Togli», con la spiegazione.
+    await expect(panel.getByRole('listitem')).toHaveCount(1);
+    await expect(panel.getByRole('listitem')).toContainText('admin@esempio.test (tu)');
+    await expect(panel.getByRole('button', { name: /^Togli/ })).toHaveCount(0);
+    await expect(panel).toContainText('Resta un solo admin');
+
+    // Email non valida e doppione: errore, niente scrittura.
+    await panel.getByLabel('Nuova email admin').fill('non-una-email');
+    await panel.getByRole('button', { name: 'Aggiungi' }).click();
+    await expect(panel.getByRole('alert')).toContainText('non valido');
+    await panel.getByLabel('Nuova email admin').fill(' Admin@Esempio.test ');
+    await panel.getByRole('button', { name: 'Aggiungi' }).click();
+    await expect(panel.getByRole('alert')).toContainText('è già admin');
+    await expect(panel.getByRole('listitem')).toHaveCount(1);
+
+    // Aggiunta: trim e minuscolo.
+    await panel.getByLabel('Nuova email admin').fill(`  ${nuovo.toUpperCase()} `);
+    await panel.getByRole('button', { name: 'Aggiungi' }).click();
+    await expect(row).toBeVisible();
+    await expect(panel.getByRole('alert')).toHaveCount(0);
+    await expect(panel.getByRole('button', { name: /^Togli/ })).toHaveCount(1); // solo l'altro, mai la propria
+
+    // Togli: conferma, poi sparisce.
+    await panel.getByRole('button', { name: `Togli ${nuovo}` }).click();
+    const dialog = page.getByRole('dialog', { name: `Togliere ${nuovo}?` });
+    await dialog.getByRole('button', { name: 'Annulla' }).click();
+    await expect(dialog).toBeHidden();
+    await expect(row).toBeVisible();
+    await panel.getByRole('button', { name: `Togli ${nuovo}` }).click();
+    await dialog.getByRole('button', { name: 'Togli' }).click();
+    await expect(row).toHaveCount(0);
+    await expect(panel.getByRole('listitem')).toHaveCount(1);
+  } finally {
+    // Rimette l'elenco com'era nel seed (solo emulatore).
+    await request.patch(url, {
+      headers: { Authorization: 'Bearer owner' },
+      data: { fields: { emails: { arrayValue: { values: [{ stringValue: 'admin@esempio.test' }] } } } },
+    });
+  }
 });
 
 test('admin: tocco sulla mappa posiziona la casa, il segnaposto compare in /mappa', async ({ page, request }) => {
