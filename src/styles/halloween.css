@@ -255,10 +255,20 @@ svg {
   min-height: var(--target);
 }
 
-.topbar__back {
-  margin-left: calc(var(--space-1) * -1);
-  border-color: transparent;
-  background: transparent;
+/* Indietro: cerchio da 44px con lo stesso anello lampione dell'avatar a destra (specificita' piu' alta di .icon-btn, piu' sotto) */
+.icon-btn.topbar__back {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--lampione);
+  background: var(--notte-700);
+  color: var(--lampione);
+}
+
+.topbar__back svg {
+  width: 1.4rem;
+  height: 1.4rem;
 }
 
 .topbar__title {
@@ -453,6 +463,8 @@ svg {
 .site-footer__name {
   color: var(--luna);
   font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .site-footer__link,
@@ -847,13 +859,34 @@ fieldset {
 
 .home-hero__title {
   grid-area: title;
+  text-align: center;
 }
 
 .home-hero__status {
   grid-area: status;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--notte-600);
+  border-radius: 999px;
+  background: var(--notte-800);
+  font-size: var(--step--1);
+  text-align: center;
 }
 
-.home-hero__scene {
+.home-hero__status .status-bulb {
+  margin-top: 0;
+}
+
+.status-end {
+  display: block;
+  color: var(--nebbia);
+}
+
+.home-hero__scene,
+.contest-scene {
   grid-area: scene;
   /* 56vw: si taglia il cielo sopra la luna; si stringe fino a 120px sugli schermi bassi */
   flex: 0 1 56vw;
@@ -901,13 +934,29 @@ fieldset {
 }
 
 /* Telefono: la scena prende l'altezza che resta (il cielo si taglia dall'alto), cosi' tutto sta in una schermata */
-.home-hero__scene .skyline {
+.home-hero__scene .skyline,
+.contest-scene .skyline {
   aspect-ratio: auto;
   position: absolute;
   inset: auto 0 0;
   height: 100%;
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%);
   mask-image: linear-gradient(180deg, transparent, #000 22%);
+}
+
+/* Contest: la scena riempie lo spazio che avanza sotto le regole (niente scroll: si stringe fino a sparire) */
+.contest-scene {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 80vw;
+  margin-top: auto;
+}
+
+/* Schermi bassi: avanza una striscia che taglierebbe le case a meta', meglio niente */
+@media (max-height: 720px) {
+  .contest-scene {
+    display: none;
+  }
 }
 
 .home-hero__cta {
@@ -943,6 +992,14 @@ fieldset {
   background: radial-gradient(closest-side, rgb(255 225 154 / 0.7), rgb(255 178 56 / 0.2) 60%, transparent);
   pointer-events: none;
   animation: light-on 620ms linear 1.6s both, window-glow var(--d, 3.6s) ease-in-out var(--w, 2.4s) infinite alternate;
+}
+
+/* Lampadine delle luminarie: si accendono in fila come le altre, poi respirano piano e sfasate */
+.luce--lampadina {
+  width: 5cqw;
+  height: 5cqw;
+  background: radial-gradient(closest-side, rgb(255 225 154 / 0.75), rgb(255 178 56 / 0.22) 55%, transparent);
+  animation: light-on 620ms linear calc(200ms + var(--i) * 50ms) both, window-glow var(--d, 3s) ease-in-out var(--w, 2.6s) infinite alternate;
 }
 
 /* Il quartiere: la scena della locandina v2 (Skyline.jsx). Si accendono solo con opacity: niente repaint continui */
@@ -1208,10 +1265,18 @@ fieldset {
   padding: var(--space-1);
 }
 
+/* --cols lo calcola MyVotes.jsx (max 5, righe pareggiate): righe tutte uguali, la griglia riempie la larghezza */
 .my-votes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(3.5rem, 1fr));
-  gap: var(--space-2) var(--space-1);
+  grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--space-1);
+}
+
+@media (max-width: 359px) {
+  .my-votes-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .my-vote {
@@ -1257,24 +1322,6 @@ fieldset {
   border-radius: var(--radius-m);
   background: linear-gradient(90deg, var(--notte-800), var(--notte-700), var(--notte-800)) 0 0 / 200% 100%;
   animation: shimmer 1.4s linear infinite;
-}
-
-.my-votes-key {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--nebbia);
-  font-size: var(--step--1);
-}
-
-.my-votes-key .chip {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.my-votes-key .glyph {
-  width: 0.85rem;
-  height: 0.85rem;
 }
 
 .vote-dialog-meta {
@@ -1340,6 +1387,21 @@ fieldset {
 .dialog-actions .primary-btn,
 .dialog-actions .secondary-btn {
   min-height: var(--target-xl);
+}
+
+.dialog-actions--single {
+  grid-template-columns: 1fr;
+}
+
+/* «Portami qui»: link a tutta larghezza, almeno 44 px */
+.dialog-link {
+  min-height: 48px;
+}
+
+.map-dialog .vote-dialog-header .chip {
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 1.5rem;
 }
 
 .vote-dialog-header {
@@ -1622,27 +1684,47 @@ fieldset {
   box-shadow: 0 0 0 2px var(--notte-950), 0 0 0 3.5px rgb(244 239 228 / 0.9), 0 2px 10px 2px rgb(3 5 12 / 0.7);
 }
 
-/* Segnaposto: casetta con bordo chiaro sulle tessere scure; accesa se l'hai votata */
-.pin .casetta {
-  width: 2.5rem;
-  height: 2.5rem;
+/* Segnaposto: cerchietto col numero, bordo chiaro sulle tessere scure; acceso se l'hai votata */
+.pin__disc {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 2.5px solid var(--luna);
+  border-radius: 50%;
+  background: var(--notte-800);
+  color: var(--luna);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  box-shadow: 0 1px 3px rgb(3 5 12 / 0.9);
 }
 
-.pin .casetta__forma {
-  filter: drop-shadow(0 1px 3px rgb(3 5 12 / 0.9));
+.pin__disc[data-lit='true'] {
+  border-color: var(--lampione);
+  background: var(--finestra);
+  color: var(--notte-950);
+  box-shadow: 0 0 8px rgb(255 225 154 / 0.75);
 }
 
-.pin .casetta[data-lit='false'] .casetta__forma path {
-  fill: var(--notte-800);
-  stroke: var(--luna);
-  stroke-width: 2.5;
+/* Glifo del tipo: attaccato al bordo in basso a destra, non copre il numero */
+.pin__tipo {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 1rem;
+  height: 1rem;
+  box-shadow: 0 0 0 2px var(--notte-900);
 }
 
-.pin .casetta[data-lit='true'] .casetta__forma {
-  filter: drop-shadow(0 0 8px rgb(255 225 154 / 0.75));
+.pin__tipo .glyph {
+  width: 0.7rem;
+  height: 0.7rem;
 }
 
-.pin-wrap:focus-visible .casetta {
+.pin-wrap:focus-visible .pin__disc {
   outline: 3px solid var(--lampione);
   outline-offset: 3px;
 }
@@ -1664,12 +1746,9 @@ fieldset {
   animation-delay: calc(250ms + var(--order) * 110ms);
 }
 
-.pin[data-podium='true'] .casetta {
+.pin[data-podium='true'] .pin__disc {
   scale: 1.15;
-}
-
-.pin[data-podium='true'] .casetta__forma {
-  filter: drop-shadow(0 0 10px rgb(255 178 56 / 0.8));
+  box-shadow: 0 0 10px rgb(255 178 56 / 0.8);
 }
 
 .house-map .leaflet-marker-pane:has(.pin[data-ranked='true']) .pin[data-ranked='false'] {
@@ -1677,12 +1756,9 @@ fieldset {
 }
 
 /* Admin: il segnaposto della casa in modifica, non toccabile */
-.house-map[data-picking='true'] .casetta__forma path {
-  fill: var(--lampione);
-  stroke: var(--notte-950);
-}
-
-.house-map[data-picking='true'] .casetta {
+.house-map[data-picking='true'] .pin__disc {
+  border-color: var(--notte-950);
+  background: var(--lampione);
   color: var(--notte-900);
 }
 
@@ -1744,24 +1820,6 @@ fieldset {
 
 .map-legend .muted {
   font-size: var(--step--1);
-}
-
-/* Punti di servizio: il popup segue il tema notte */
-.house-map .leaflet-popup-content-wrapper,
-.house-map .leaflet-popup-tip {
-  background: var(--notte-800);
-  color: var(--luna);
-  border: 1px solid var(--notte-600);
-}
-
-.house-map .leaflet-popup-content {
-  margin: var(--space-3) var(--space-4);
-  font: inherit;
-}
-
-.house-map .leaflet-popup-content p {
-  margin: var(--space-1) 0 0;
-  color: var(--nebbia);
 }
 
 .ranking-list {
@@ -2191,6 +2249,12 @@ fieldset {
   .home-hero__title {
     font-size: clamp(4rem, 1.6rem + 4.4vw, 6rem);
     margin-bottom: var(--space-3);
+    text-align: left;
+  }
+
+  .home-hero__status {
+    align-self: start;
+    justify-self: start;
   }
 
   .home-hero__scene {
@@ -2359,7 +2423,7 @@ fieldset {
 /* Alone di una finestra: respira piano tra mezza luce e luce piena */
 @keyframes window-glow {
   from {
-    opacity: 0.25;
+    opacity: 0.2;
   }
   to {
     opacity: 1;

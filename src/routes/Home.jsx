@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRightIcon, CameraIcon, MapTrifoldIcon, TrophyIcon } from '@phosphor-icons/react';
 import AlxMark from '../components/AlxMark.jsx';
 import Profile from '../components/Profile.jsx';
-import Skyline, { LUCI } from '../components/Skyline.jsx';
+import Scene from '../components/Scene.jsx';
 import { useAppConfig } from '../data.js';
 import { formatEnd } from '../votingTime.js';
 
@@ -27,26 +27,14 @@ function Home() {
         </h1>
         <p className="status-line home-hero__status" data-open={loaded ? votingOpen : undefined}>
           <span className="status-bulb" aria-hidden="true" />
-          Edizione {edition}
-          {loaded && <> · {votingOpen ? 'votazioni aperte' : 'votazioni chiuse'}</>}
-          {votingOpen && votingEndsAt && <> · fino alle {formatEnd(votingEndsAt)}</>}
+          <span>
+            Edizione {edition}
+            {loaded && <> · {votingOpen ? 'votazioni aperte' : 'votazioni chiuse'}</>}
+            {/* La scadenza va a capo intera, senza il punto che resterebbe appeso a fine riga */}
+            {votingOpen && votingEndsAt && <span className="status-end">fino alle {formatEnd(votingEndsAt)}</span>}
+          </span>
         </p>
-        <div className="home-hero__scene">
-          <Skyline />
-          {/* Candele nelle due zucche grandi (x 46 e 170 su 240) e nebbia: livelli HTML, l'SVG resta fermo */}
-          <span className="fiamma" style={{ '--x': 19.2 }} aria-hidden="true" />
-          <span className="fiamma" style={{ '--x': 70.8, '--d': '4.1s' }} aria-hidden="true" />
-          {/* Luci delle case che pulsano piano: aloni HTML sopra alcune finestre accese (solo opacity) */}
-          {LUCI.map(([x, y], index) => (
-            <span
-              key={`${x}-${y}`}
-              className="luce"
-              style={{ '--x': x, '--y': y, '--d': `${3.2 + (index % 4) * 0.9}s`, '--w': `${2 + (index % 5) * 0.7}s` }}
-              aria-hidden="true"
-            />
-          ))}
-          <span className="banco-nebbia" aria-hidden="true" />
-        </div>
+        <Scene className="home-hero__scene" />
         <Link className="primary-btn primary-btn--xl home-hero__cta" to="/vote">
           Vota le case <ArrowRightIcon aria-hidden="true" weight="bold" />
         </Link>
