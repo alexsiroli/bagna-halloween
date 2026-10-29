@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRightIcon, CameraIcon, MapTrifoldIcon } from '@phosphor-icons/react';
+import { ArrowRightIcon, CameraIcon, MapTrifoldIcon, TrophyIcon } from '@phosphor-icons/react';
 import Skyline from '../components/Skyline.jsx';
 import { useAppConfig } from '../data.js';
 import { formatEnd } from '../votingTime.js';
@@ -41,6 +41,14 @@ function Home() {
           <span className="home-link__text">
             <strong>Mappa del quartiere</strong>
             <span>Trova le case sulla mappa.</span>
+          </span>
+          <ArrowRightIcon className="home-link__arrow" aria-hidden="true" weight="bold" />
+        </Link>
+        <Link className="home-link" to="/albo">
+          <TrophyIcon className="home-link__icon" aria-hidden="true" weight="duotone" />
+          <span className="home-link__text">
+            <strong>Albo d’oro</strong>
+            <span>Le case più votate di ogni edizione.</span>
           </span>
           <ArrowRightIcon className="home-link__arrow" aria-hidden="true" weight="bold" />
         </Link>

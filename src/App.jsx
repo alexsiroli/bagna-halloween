@@ -3,15 +3,15 @@ import Home from './routes/Home.jsx';
 import Contest from './routes/Contest.jsx';
 import Vote from './routes/Vote.jsx';
 import MapPage from './routes/MapPage.jsx';
+import Albo from './routes/Albo.jsx';
 import AdminGate from './routes/AdminGate.jsx';
 import Privacy from './routes/Privacy.jsx';
 import SiteFooter from './components/SiteFooter.jsx';
 import BackHomeLink from './components/BackHomeLink.jsx';
 import Splash from './components/Splash.jsx';
 
-// La route resta configurabile, ma la protezione vera sono login Google + config/admins + regole.
-const adminRouteRaw = import.meta.env.VITE_ADMIN_ROUTE || '/admin';
-const adminRoute = adminRouteRaw.startsWith('/') ? adminRouteRaw : `/${adminRouteRaw}`;
+// La route e' fissa: la protezione vera sono login Google + config/admins + regole.
+const adminRoute = '/admin';
 
 const NotFound = () => (
   <div className="app-shell app-shell--narrow">
@@ -40,6 +40,7 @@ function App() {
           <Route path="/vote" element={<Vote />} />
           <Route path="/vota/:numero" element={<Vote />} />
           <Route path="/mappa" element={<MapPage />} />
+          <Route path="/albo" element={<Albo />} />
           <Route path={adminRoute} element={<AdminGate />} />
           <Route path="/alex-siroli" element={<Navigate to="/" replace />} />
           <Route path="/privacy" element={<Privacy />} />

@@ -39,7 +39,7 @@ numero civico vero. Nessun prodotto generico di sondaggi conosce le vie di Bagna
 
 ## Capabilities and Constraints
 - Voto intero da 6 a 10 per casa, uno per utente per casa per edizione.
-- Area admin su route configurabile (`VITE_ADMIN_ROUTE`), protetta da login Google e
+- Area admin su route fissa `/admin`, protetta da login Google e
   allowlist `config/admins`; le regole Firestore sono l'unica vera protezione.
 - I voti altrui non sono leggibili dal pubblico; medie e classifica le vede l'admin, che puo'
   pubblicarne l'ordine.

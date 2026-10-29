@@ -69,7 +69,7 @@ I passi 6-7 non la usano.
 - [ ] **Release-manager:** il file della chiave, ormai revocata e quindi inerte, si cancella con il comando di pulizia (sotto) insieme a export e regole; se si vuole toglierlo prima, `clean` cancella tutto, quindi solo dopo che export e regole non servono piu'. Scrive nella issue #7 le date di consegna e di revoca.
 
 ## 6. Sito (solo dopo il passo 5)
-- [ ] **Release-manager:** su Netlify NON impostare `VITE_USE_EMULATORS`. `VITE_ADMIN_ROUTE` e' facoltativa.
+- [ ] **Release-manager:** su Netlify NON impostare `VITE_USE_EMULATORS`. `VITE_ADMIN_ROUTE` non si usa piu': se presente, il CEO la cancella.
 - [ ] **Release-manager:** su Netlify `VITE_FIREBASE_AUTH_DOMAIN` resta `bagna-halloween.firebaseapp.com` (valore attuale, non cambiarlo): `halloween.alxstudio.it` va solo autorizzato in Firebase Auth. Le variabili si scrivono solo con `python3 /Users/alexsiroli/AlxStudio/ops/bin/imposta-env netlify <progetto> <NOME> <ambiente>` (valore messo dal CEO nel Portachiavi da dashboard > Collegamenti).
 - [ ] **Release-manager:** anteprima Netlify da `develop`.
 - [ ] **CEO, da telefono, sull'anteprima (prova generale):**
