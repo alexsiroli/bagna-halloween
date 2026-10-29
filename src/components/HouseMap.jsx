@@ -23,6 +23,12 @@ const pinHtml = (number, rank, kind) => {
 
 const NO_SERVICES = { points: [], closedRoads: [] };
 
+// Inquadra tutto cio' che e' disegnato: segnaposto delle case, punti di servizio e strade chiuse.
+const fitAll = (map, ...groups) => {
+  const coords = groups.flatMap((group) => group.getLayers()).flatMap((item) => (item.getLatLng ? [item.getLatLng()] : item.getLatLngs()));
+  if (coords.length > 0) map.fitBounds(L.latLngBounds(coords), { padding: [48, 48], maxZoom: 17 });
+};
+
 // Popup con nodi DOM e textContent: nome e indirizzo arrivano da un file, mai in una stringa HTML.
 const popupNode = (point) => {
   const box = document.createElement('div');
@@ -51,9 +57,8 @@ function HouseMap({ houses, ranking = null, services: servicesData = NO_SERVICES
   const map = useRef(null);
   const layer = useRef(null);
   const servicesLayer = useRef(null);
-  const fitted = useRef(false); // false | 'houses' | 'services': su cosa si e' inquadrato
-  const placedCount = useRef(0);
-  placedCount.current = houses.length;
+  // Si inquadra al primo arrivo di case e di punti (al massimo due volte), poi la vista resta di chi la usa.
+  const fitted = useRef({ houses: false, services: false });
   const handlers = useRef({});
   handlers.current = { onSelect, onPick };
   const picking = Boolean(onPick);
@@ -79,7 +84,7 @@ function HouseMap({ houses, ranking = null, services: servicesData = NO_SERVICES
     map.current = instance;
     layer.current = L.layerGroup().addTo(instance);
     servicesLayer.current = L.layerGroup().addTo(instance);
-    fitted.current = false;
+    fitted.current = { houses: false, services: false };
     return () => {
       resize.disconnect();
       instance.remove();
@@ -104,9 +109,9 @@ function HouseMap({ houses, ranking = null, services: servicesData = NO_SERVICES
         marker.on('click', () => handlers.current.onSelect?.(house));
       }
     });
-    if (!picking && houses.length > 0 && fitted.current !== 'houses') {
-      map.current.fitBounds(L.latLngBounds(houses.map((house) => [house.lat, house.lng])), { padding: [48, 48], maxZoom: 17 });
-      fitted.current = 'houses';
+    if (!picking && houses.length > 0 && !fitted.current.houses) {
+      fitAll(map.current, layer.current, servicesLayer.current);
+      fitted.current.houses = true;
     }
   }, [houses, ranking, picking]);
 
@@ -115,15 +120,15 @@ function HouseMap({ houses, ranking = null, services: servicesData = NO_SERVICES
     servicesLayer.current.clearLayers();
     if (picking) return;
     const { points, closedRoads } = servicesData;
-    closedRoads.forEach((road) => L.polyline(road.path, { className: 'road-closed', weight: 5, opacity: 0.9, interactive: false }).addTo(servicesLayer.current));
+    closedRoads.forEach((road) => L.polyline(road.path, { className: 'road-closed', weight: 6, opacity: 1, interactive: false }).addTo(servicesLayer.current));
     points.forEach((point) => {
       const label = `${POINT_LABELS[point.type]}: ${point.name}`;
       const marker = L.marker([point.lat, point.lng], {
         icon: L.divIcon({
           className: 'pin-wrap',
           html: `<span class="chip chip--point" data-t="${point.type}">${glyphSvg(point.type)}</span>`,
-          iconSize: [32, 32],
-          popupAnchor: [0, -14],
+          iconSize: [44, 44], // area da toccare 44px, il cerchio resta piu' piccolo
+          popupAnchor: [0, -18],
         }),
         title: label,
       }).addTo(servicesLayer.current);
@@ -132,11 +137,10 @@ function HouseMap({ houses, ranking = null, services: servicesData = NO_SERVICES
       // Leaflet lo etichetta «Close popup»: l'app e' in italiano.
       marker.on('popupopen', ({ popup }) => popup.getElement().querySelector('.leaflet-popup-close-button')?.setAttribute('aria-label', 'Chiudi'));
     });
-    // Senza case sulla mappa si inquadrano punti e strade; con le case resta la vista sulle case.
-    const coords = [...points.map((point) => [point.lat, point.lng]), ...closedRoads.flatMap((road) => road.path)];
-    if (coords.length > 0 && placedCount.current === 0 && !fitted.current) {
-      map.current.fitBounds(L.latLngBounds(coords), { padding: [48, 48], maxZoom: 17 });
-      fitted.current = 'services';
+    // Case, punti e strade chiuse entrano tutti nella vista: nessun punto resta tagliato ai bordi.
+    if (points.length + closedRoads.length > 0 && !fitted.current.services) {
+      fitAll(map.current, layer.current, servicesLayer.current);
+      fitted.current.services = true;
     }
   }, [servicesData, picking]);
 

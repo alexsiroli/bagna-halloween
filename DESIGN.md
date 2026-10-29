@@ -88,7 +88,12 @@ Durate 150 / 220 / 320 ms (`--dur-fast`, `--dur`, `--dur-slow`), entrate con
 bottoni: `scale(0.97)`. Hover solo con `(hover: hover) and (pointer: fine)`.
 
 Vocabolario unico, l'**accensione**: una luce che prende con due guizzi e poi resta ferma.
-- Home: le lampadine delle luminarie si accendono in fila, poi le finestre del quartiere.
+Si anima solo `opacity` e `transform`, e solo una volta: niente cicli infiniti (sull'SVG
+costerebbero un repaint continuo sul telefono).
+- Cambio pagina: la pagina entra con opacita' e 6px di salita (`page-in`, 320 ms); si riparte
+  dall'alto (`ScrollToTop`).
+- Home: le lampadine delle luminarie si accendono in fila, poi le finestre del quartiere; i
+  pipistrelli arrivano una volta davanti alla luna.
 - Voto: le zucche si accendono una dopo l'altra fino al punteggio scelto; la targa della casa
   appena votata fa lo stesso guizzo nella lista.
 - Mappa: a classifica pubblicata le case si accendono in ordine di classifica (110 ms l'una),
@@ -97,12 +102,26 @@ Vocabolario unico, l'**accensione**: una luce che prende con due guizzi e poi re
 Con `prefers-reduced-motion: reduce` le animazioni finiscono subito nello stato finale
 (niente guizzi, niente scorrimenti).
 
+## Il quartiere (Skyline)
+
+`Skyline.jsx` e' la scena della locandina v2 (marketing/brand/proposte/bagna-halloween-stampa/v2)
+in formato 240x160: case di paese, villa stregata con il gatto, campanile, luna con le nuvole,
+pipistrelli, alberi spogli, luminarie, zucche intagliate, nebbia. Markup generato una volta con
+seme fisso. Sul telefono la scena prende l'altezza rimasta (`preserveAspectRatio` slice: si
+taglia il cielo dall'alto) cosi' la home sta in una schermata; in desktop ha i bordi sfumati.
+
 ## La mappa
 
 `/mappa` usa Leaflet con tessere OpenStreetMap scurite via CSS (`filter` sul solo strato delle
 tessere: le targhe restano a piena luce). Le case sono targhe (`.pin__plate`, area da toccare
 44px) nello stile della targa civica; il tocco apre il foglio con la scheda e il bottone Vota.
 Le case senza posizione stanno in un elenco sotto la mappa.
+Ogni segnaposto (targhe e cerchi dei punti) ha un anello chiaro sopra uno scuro: si stacca dalle
+tessere scure. Punti di servizio con area da toccare 44px; strade chiuse 6px con alone mattone.
+La vista iniziale inquadra case, punti e strade insieme. La legenda sta sotto la mappa, in due
+colonne sul telefono; mappa e legenda entrano insieme nella prima schermata di un iPhone 14.
+
+«Alex Siroli» nel piede e' solo testo, mai un link.
 
 ## Schermate chiave
 
