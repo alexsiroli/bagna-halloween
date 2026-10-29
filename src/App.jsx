@@ -1,10 +1,9 @@
-import { Link, Route, Routes, matchPath, useLocation } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, matchPath, useLocation } from 'react-router-dom';
 import Home from './routes/Home.jsx';
 import Contest from './routes/Contest.jsx';
 import Vote from './routes/Vote.jsx';
 import MapPage from './routes/MapPage.jsx';
 import AdminGate from './routes/AdminGate.jsx';
-import AlexSiroli from './routes/AlexSiroli.jsx';
 import Privacy from './routes/Privacy.jsx';
 import SiteFooter from './components/SiteFooter.jsx';
 import BackHomeLink from './components/BackHomeLink.jsx';
@@ -42,7 +41,7 @@ function App() {
           <Route path="/vota/:numero" element={<Vote />} />
           <Route path="/mappa" element={<MapPage />} />
           <Route path={adminRoute} element={<AdminGate />} />
-          <Route path="/alex-siroli" element={<AlexSiroli />} />
+          <Route path="/alex-siroli" element={<Navigate to="/" replace />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
