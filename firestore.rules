@@ -58,23 +58,31 @@ service cloud.firestore {
       allow update: if validVote()
         && resource.data.userId == request.auth.uid
         && request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if false;
+      // Si cancella solo il proprio voto, a votazioni aperte e prima dell'orario di fine (i voti senza edition non passano).
+      allow delete: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && votingOpenFor(resource.data.edition);
+
+      // Votazioni aperte per l'edizione corrente e prima dell'orario di fine (se c'è).
+      function votingOpenFor(edition) {
+        let app = get(configPath('app')).data;
+        return app.votingOpen == true
+          && (app.get('votingEndsAt', null) == null || request.time < app.votingEndsAt)
+          && edition == app.edition;
+      }
 
       // Voto valido: tuo, dell'edizione corrente, intero da 6 a 10, a votazioni aperte e prima dell'orario di fine (se c'è),
       // su una casa esistente e visibile (`houses/${edition}_${houseNumber}`), con id `${edition}_${uid}_${houseNumber}`,
       // updatedAt = ora del server, createdAt timestamp non futuro.
       function validVote() {
         let v = request.resource.data;
-        let app = get(configPath('app')).data;
         return signedIn()
           && v.updatedAt == request.time
           && v.createdAt is timestamp
           && v.createdAt <= request.time
-          && app.votingOpen == true
-          && (app.get('votingEndsAt', null) == null || request.time < app.votingEndsAt)
+          && votingOpenFor(v.edition)
           && v.keys().hasOnly(['userId', 'houseNumber', 'score', 'edition', 'createdAt', 'updatedAt'])
           && v.userId == request.auth.uid
-          && v.edition == app.edition
           && v.houseNumber is int
           && v.score is int
           && v.score >= 6

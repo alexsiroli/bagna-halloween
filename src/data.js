@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, doc, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from './firebase.js';
 
 // Edizione mostrata finche' config/app non risponde. Quella vera arriva da config/app.edition.
@@ -7,6 +7,7 @@ export const FALLBACK_EDITION = 2026;
 
 export const houseId = (edition, number) => `${edition}_${number}`;
 export const voteId = (edition, uid, houseNumber) => `${edition}_${uid}_${houseNumber}`;
+export const deleteVote = (edition, uid, houseNumber) => deleteDoc(doc(db, 'votes', voteId(edition, uid, houseNumber)));
 
 export const houseAddress = (house) => [house.street, house.civic].filter(Boolean).join(' ');
 export const hasPosition = (house) => Number.isFinite(house.lat) && Number.isFinite(house.lng);
