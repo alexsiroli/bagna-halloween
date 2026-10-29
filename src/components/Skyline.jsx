@@ -109,6 +109,9 @@ function albero(x, y, lungo, angolo, spessore, profondita, seed) {
 
 // Ogni luce che si accende ha un suo ordine (--i): il CSS la fa prendere con due guizzi.
 let ordine = 0;
+// Centri delle finestre accese delle case (non della villa): la Home ci mette sopra gli aloni che pulsano.
+let raccogli = false;
+const finestreAccese = [];
 const accesa = (contenuto, classe = 'sk-win') => `<g class="${classe}" style="--i:${(ordine++ * 7) % 23}">${contenuto}</g>`;
 
 function finestra(x, y, w, h, lit, opz = {}) {
@@ -119,6 +122,7 @@ function finestra(x, y, w, h, lit, opz = {}) {
   let s = forma(C.n900);
   if (lit) {
     const zucca = lit === 'zucca';
+    if (raccogli && !zucca) finestreAccese.push([Number(f(x + w / 2)), Number(f(y + h / 2))]);
     s += accesa(
       `<rect x="${f(x - w * 0.9)}" y="${f(y - h * 0.7)}" width="${f(w * 2.8)}" height="${f(h * 2.4)}" fill="url(#${zucca ? 'sk-zucca-alone' : 'sk-finestra-alone'})"/>` +
         forma(zucca ? 'url(#sk-faccia)' : C.finestra),
@@ -313,7 +317,9 @@ function scena() {
     { x: 186, w: 26, h: 44, tetto: 12 },
     { x: 216, w: 30, h: 52, tetto: 13, camino: 18 },
   ];
+  raccogli = true;
   case_.forEach((c, i) => (s += casa(c, 100 + i)));
+  raccogli = false;
   // villa scalata attorno alla sua base
   s += `<g transform="translate(64 ${SUOLO}) scale(.8) translate(-64 ${-SUOLO})">${villa(64, SUOLO)}</g>`;
   let cancello = `M64 ${SUOLO - 4.9}h52v.6h-52zM64 ${SUOLO - 1.5}h52v.6h-52z`;
@@ -331,6 +337,8 @@ function scena() {
 }
 
 const MARKUP = scena();
+// Una finestra accesa su due: abbastanza per far vivere il quartiere, poche per il telefono.
+export const LUCI = finestreAccese.filter((_, i) => i % 2 === 0);
 
 function Skyline({ className = '' }) {
   return (
