@@ -60,7 +60,7 @@ Su Netlify inserisci gli stessi valori in **Site settings → Build & deploy →
 2. Modello dati (tutto per edizione):
    - `config/app`: `{ votingOpen, edition }` (es. `edition: 2026`).
    - `config/admins`: `{ emails: [...] }` email Google degli organizzatori, in minuscolo.
-   - `config/results`: `{ edition, published, ranking: [numeri casa in ordine] }`.
+   - `results/<anno>`: `{ edition, top3: [{ number, title, avg, votes }], updatedAt }`, l'albo d'oro; l'admin lo pubblica e lo ritira.
    - `houses/<edizione>_<numero>`: `{ number, title, description, street, civic, lat, lng, visible, edition }`
      con `lat, lng` WGS84 (opzionali: senza posizione la casa sta in elenco sotto la mappa).
    - `votes/<edizione>_<uid>_<numero>`: `{ userId, houseNumber, score, edition, createdAt, updatedAt }`.
@@ -86,7 +86,7 @@ npm run dev:emulator   # app su http://localhost:4101 collegata agli emulatori
 
 Il seed crea 12 case inventate con via, civico e posizione (due senza), 40 votanti finti e tre utenti Google
 dell'emulatore: `admin@esempio.test` (admin), `votante@esempio.test`, `curioso@esempio.test`.
-Per la mappa con la classifica accesa: `node scripts/seed-emulator.mjs --results`.
+Per l'albo con la top 3 2026 già pubblicata (badge sulla mappa e `/albo`): `node scripts/seed-emulator.mjs --results`.
 
 ## QR per i cartelli
 

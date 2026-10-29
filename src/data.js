@@ -56,10 +56,22 @@ export function useAppConfig() {
   };
 }
 
-// Numeri delle case in ordine di classifica, solo se l'admin l'ha pubblicata per questa edizione.
+// Numeri della top 3 in ordine, solo se l'admin ha pubblicato results/<edizione>; altrimenti null.
 export function usePublishedRanking(edition) {
-  const data = useConfigDoc('results');
-  return data?.published === true && data.edition === edition ? data.ranking ?? [] : null;
+  const [ranking, setRanking] = useState(null);
+  useEffect(
+    () =>
+      onSnapshot(
+        doc(db, 'results', String(edition)),
+        (snapshot) => setRanking(snapshot.data()?.top3.map((row) => row.number) ?? null),
+        (err) => {
+          console.error(`Errore caricando results/${edition}`, err);
+          setRanking(null);
+        },
+      ),
+    [edition],
+  );
+  return ranking;
 }
 
 const HOUSES_ERROR = 'Impossibile caricare le case, riprova più tardi.';

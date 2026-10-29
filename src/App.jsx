@@ -3,6 +3,7 @@ import Home from './routes/Home.jsx';
 import Contest from './routes/Contest.jsx';
 import Vote from './routes/Vote.jsx';
 import MapPage from './routes/MapPage.jsx';
+import Albo from './routes/Albo.jsx';
 import AdminGate from './routes/AdminGate.jsx';
 import Privacy from './routes/Privacy.jsx';
 import SiteFooter from './components/SiteFooter.jsx';
@@ -40,6 +41,7 @@ function App() {
           <Route path="/vote" element={<Vote />} />
           <Route path="/vota/:numero" element={<Vote />} />
           <Route path="/mappa" element={<MapPage />} />
+          <Route path="/albo" element={<Albo />} />
           <Route path={adminRoute} element={<AdminGate />} />
           <Route path="/alex-siroli" element={<Navigate to="/" replace />} />
           <Route path="/privacy" element={<Privacy />} />

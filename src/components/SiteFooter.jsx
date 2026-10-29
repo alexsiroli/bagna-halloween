@@ -6,6 +6,10 @@ function SiteFooter() {
     <footer className="site-footer">
       Sito sviluppato da <span className="site-footer__name">Alex Siroli</span>
       {' · '}
+      <Link className="site-footer__link" to="/albo">
+        Albo d’oro
+      </Link>
+      {' · '}
       <Link className="site-footer__link" to="/privacy">
         Privacy
       </Link>

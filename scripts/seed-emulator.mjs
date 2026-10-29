@@ -1,10 +1,11 @@
 // Seed FINTO per gli emulatori Firebase (mai la produzione).
 // Uso: dentro `firebase emulators:exec` oppure con gli emulatori avviati (npm run emulators):
 //   FIRESTORE_EMULATOR_HOST=127.0.0.1:8181 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9191 node scripts/seed-emulator.mjs
-// Opzioni: --results  pubblica anche la classifica (per gli screenshot della mappa accesa).
+// Opzioni: --results  pubblica anche la top 3 2026 in results/2026 (per la mappa con i badge e per /albo).
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { topThree } from '../src/podium.js';
 
 if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST) {
   console.error('Rifiuto: FIRESTORE_EMULATOR_HOST e FIREBASE_AUTH_EMULATOR_HOST devono puntare agli emulatori.');
@@ -66,9 +67,23 @@ async function seedFirestore({ results }) {
   batch.set(db.doc('config/app'), { votingOpen: true, edition: EDITION });
   batch.set(db.doc('config/admins'), { emails: [TEST_USERS.admin.email] });
 
-  // Due case "2025" nel vecchio formato (id = numero, senza edition): non devono comparire.
-  batch.set(db.doc('houses/1'), { number: 1, title: 'Casa 2025 (vecchia)', description: '', visible: true });
-  batch.set(db.doc('houses/2'), { number: 2, title: 'Casa 2025 (vecchia)', description: '', visible: true });
+  // Edizione 2025 nel formato vero: case con id = numero ed `edition: 2025`, voti `<uid>_<numero>` SENZA `edition`, con userName.
+  // Top 3 attesa (a mano): casa 1 (9,3 su 3 voti), casa 3 (8,0 su 3 voti), casa 2 (8,0 su 2 voti); la 4 resta fuori.
+  for (const [number, title] of [[1, 'Casa Zucca 2025'], [2, 'Il Castello 2025'], [3, 'La Soffitta 2025'], [4, 'Il Giardino 2025']]) {
+    batch.set(db.doc(`houses/${number}`), { number, title, description: '', edition: 2025, visible: true });
+  }
+  const at2025 = Timestamp.fromDate(new Date('2025-10-31T20:00:00+01:00'));
+  for (const [uid, number, score] of [
+    ['anna', 1, 10], ['bruno', 1, 9], ['carla', 1, 9],
+    ['anna', 2, 8], ['bruno', 2, 8],
+    ['carla', 3, 8], ['dario', 3, 8], ['elisa', 3, 8],
+    ['dario', 4, 7], ['elisa', 4, 6],
+  ]) {
+    batch.set(db.doc(`votes/${uid}_${number}`), {
+      userId: uid, userName: `Votante ${uid}`, houseNumber: number, score, createdAt: at2025, updatedAt: at2025,
+    });
+  }
+  batch.delete(db.doc('results/2025'));
 
   for (const [number, title, description, street, civic, lat, lng, kind] of HOUSES) {
     batch.set(db.doc(`houses/${EDITION}_${number}`), {
@@ -80,7 +95,7 @@ async function seedFirestore({ results }) {
 
   // Voti di 40 persone finte tra le 18:00 e le 22:30 del 31/10.
   const start = new Date('2026-10-31T18:00:00+01:00').getTime();
-  const totals = new Map();
+  const votes = [];
   for (let person = 1; person <= 40; person += 1) {
     const uid = `finto-${person}`;
     for (const [number] of HOUSES) {
@@ -92,15 +107,18 @@ async function seedFirestore({ results }) {
         userId: uid, houseNumber: number, score,
         edition: EDITION, createdAt, updatedAt: createdAt,
       });
-      const entry = totals.get(number) ?? { sum: 0, count: 0 };
-      totals.set(number, { sum: entry.sum + score, count: entry.count + 1 });
+      votes.push({ houseNumber: number, score });
     }
   }
 
-  const ranking = [...totals.entries()]
-    .sort(([na, a], [nb, b]) => b.sum / b.count - a.sum / a.count || b.count - a.count || na - nb)
-    .map(([number]) => number);
-  batch.set(db.doc('config/results'), { edition: EDITION, published: results, ranking: results ? ranking : [] });
+  // Con --results la top 3 2026 e' gia' pubblicata (stesso calcolo dell'admin).
+  const resultsRef = db.doc(`results/${EDITION}`);
+  if (results) {
+    const top3 = topThree(HOUSES.map(([number, title]) => ({ number, title })), votes);
+    batch.set(resultsRef, { edition: EDITION, top3, updatedAt: Timestamp.now() });
+  } else {
+    batch.delete(resultsRef);
+  }
   await batch.commit();
 }
 
