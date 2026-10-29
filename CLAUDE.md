@@ -1,6 +1,6 @@
 # bagna-halloween
 
-Web app per l evento di Halloween a Cesenatico con mappa delle case addobbate, valutazioni anonime e classifica per premiare le migliori.
+Web app per l evento di Halloween a Cesenatico con mappa delle case addobbate, valutazioni con accesso Google (ogni voto è legato all'account e non è mostrato pubblicamente) e classifica per premiare le migliori.
 
 ## Alx Studio
 

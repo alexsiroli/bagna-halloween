@@ -1,123 +1,63 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut,
-  setPersistence,
-  browserLocalPersistence,
-} from 'firebase/auth';
-import {
-  collection,
-  doc,
-  onSnapshot,
-  query,
-  serverTimestamp,
-  setDoc,
-  where,
-} from 'firebase/firestore';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { collection, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import { GoogleLogoIcon, MagnifyingGlassIcon, SignOutIcon } from '@phosphor-icons/react';
 import BackHomeLink from '../components/BackHomeLink.jsx';
 import PumpkinRating from '../components/PumpkinRating.jsx';
 import MyVotes from '../components/MyVotes.jsx';
-import { auth, provider, db } from '../firebase.js';
+import Sheet from '../components/Sheet.jsx';
+import { db } from '../firebase.js';
+import { loginWithGoogle, logout, useAuthUser } from '../auth.js';
+import { useAppConfig, useHouses, voteId } from '../data.js';
+import { formatEnd } from '../votingTime.js';
 
 function Vote() {
-  const [user, setUser] = useState(null);
-  const [houses, setHouses] = useState([]);
+  const user = useAuthUser();
+  const config = useAppConfig();
+  const { edition } = config;
+  const { houses, loading: loadingHouses, error: housesError } = useHouses(edition);
   const [votes, setVotes] = useState([]);
-  const [config, setConfig] = useState({ votingOpen: true });
-  const [loadingHouses, setLoadingHouses] = useState(true);
   const [loadingVotes, setLoadingVotes] = useState(false);
+  // Vero solo dopo il primo snapshot (o errore): prima votesMap e' vuota e la scheda si aprirebbe senza il voto.
+  const [votesReady, setVotesReady] = useState(false);
   const [error, setError] = useState('');
   const [searchValue, setSearchValue] = useState('');
   const [searchMessage, setSearchMessage] = useState('');
   const [modalState, setModalState] = useState({ open: false, house: null, score: 0 });
   const [savingVote, setSavingVote] = useState(false);
-
-  useEffect(() => {
-    const init = async () => {
-      try {
-        await setPersistence(auth, browserLocalPersistence);
-      } catch (err) {
-        console.warn('Impossibile impostare la persistenza del login', err);
-      }
-    };
-    init();
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setError('');
-    });
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
-    const housesRef = collection(db, 'houses');
-    const unsubscribeHouses = onSnapshot(
-      housesRef,
-      (snapshot) => {
-        const items = snapshot.docs
-          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-          .filter((item) => item.visible !== false)
-          .sort((a, b) => a.number - b.number);
-        setHouses(items);
-        setLoadingHouses(false);
-      },
-      (err) => {
-        console.error('Errore caricando le case', err);
-        setLoadingHouses(false);
-        setError('Impossibile caricare le case, riprova più tardi.');
-      },
-    );
-
-    const configRef = doc(db, 'config', 'app');
-    const unsubscribeConfig = onSnapshot(
-      configRef,
-      (snapshot) => {
-        setConfig(snapshot.data() || { votingOpen: false });
-      },
-      (err) => {
-        console.error('Errore caricando la configurazione', err);
-        setConfig({ votingOpen: false });
-      },
-    );
-
-    return () => {
-      unsubscribeHouses();
-      unsubscribeConfig();
-    };
-  }, []);
+  const [savedHouse, setSavedHouse] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     if (!user) {
       setVotes([]);
       setLoadingVotes(false);
-      return;
+      setVotesReady(false);
+      return undefined;
     }
 
     setLoadingVotes(true);
-    const votesRef = collection(db, 'votes');
-    const votesQuery = query(votesRef, where('userId', '==', user.uid));
-    const unsubscribeVotes = onSnapshot(
+    setVotesReady(false);
+    const votesQuery = query(
+      collection(db, 'votes'),
+      where('userId', '==', user.uid),
+      where('edition', '==', edition),
+    );
+    return onSnapshot(
       votesQuery,
       (snapshot) => {
-        const items = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
-        setVotes(items);
+        setVotes(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
         setLoadingVotes(false);
+        setVotesReady(true);
       },
       (err) => {
         console.error('Errore caricando i voti', err);
         setLoadingVotes(false);
+        setVotesReady(true);
         setError('Impossibile recuperare i tuoi voti.');
       },
     );
-
-    return () => unsubscribeVotes();
-  }, [user]);
+  }, [user, edition]);
 
   const votesMap = useMemo(() => {
     const map = new Map();
@@ -137,44 +77,7 @@ function Vote() {
   const progressPercent = totalVisible ? (totalRated / totalVisible) * 100 : 0;
 
   const handleLogin = async () => {
-    try {
-      if (typeof window !== 'undefined') {
-        const probeKey = '__firebase_auth_probe__';
-        try {
-          window.sessionStorage.setItem(probeKey, '1');
-          window.sessionStorage.removeItem(probeKey);
-        } catch (storageErr) {
-          setError(
-            'Per accedere con Google devi aprire il sito nel browser di sistema e consentire i cookie.',
-          );
-          console.warn('SessionStorage non disponibile per autenticazione', storageErr);
-          return;
-        }
-      }
-    } catch (probeErr) {
-      console.warn('Errore durante la verifica del browser prima del login', probeErr);
-    }
-
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (err) {
-      console.error('Login fallito', err);
-      if (err?.message?.includes('missing initial state')) {
-        setError(
-          'Il browser sta bloccando la pagina di login di Google. Apri il sito nel browser di sistema e abilita i cookie, poi riprova.',
-        );
-        return;
-      }
-      setError('Accesso non riuscito, riprova.');
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      console.error('Logout fallito', err);
-    }
+    setError(await loginWithGoogle());
   };
 
   const handleVoteChange = useCallback(
@@ -189,22 +92,24 @@ function Vote() {
       }
 
       const existing = votesMap.get(houseNumber);
-      const voteRef = doc(db, 'votes', `${user.uid}_${houseNumber}`);
+      const voteRef = doc(db, 'votes', voteId(edition, user.uid, houseNumber));
       const parsedScore = Number(score);
       const sanitizedScore = Number.isFinite(parsedScore) ? parsedScore : 0;
       const clampedScore =
         sanitizedScore <= 0 ? 0 : Math.min(10, Math.max(6, sanitizedScore));
       const payload = {
         userId: user.uid,
-        userName: user.displayName || '',
         houseNumber,
         score: clampedScore,
+        edition,
         updatedAt: serverTimestamp(),
-        createdAt: existing?.createdAt || serverTimestamp(),
       };
+      // Voto nuovo: createdAt dal server. Voto esistente (anche se ancora in attesa):
+      // non lo inviamo e il merge lascia quello originale, come richiedono le regole.
+      if (!existing) payload.createdAt = serverTimestamp();
 
       try {
-        await setDoc(voteRef, payload);
+        await setDoc(voteRef, payload, { merge: true });
         setError('');
         return true;
       } catch (err) {
@@ -213,7 +118,7 @@ function Vote() {
         return false;
       }
     },
-    [config.votingOpen, user, votesMap],
+    [config.votingOpen, edition, user, votesMap],
   );
 
   const openHouseModal = useCallback(
@@ -224,6 +129,28 @@ function Vote() {
     },
     [votesMap],
   );
+
+  // Arrivo dalla mappa: /vote?casa=12 apre subito la casa (dopo il login).
+  // Arrivo dal QR: /vota/12 (l'URL resta; il messaggio per numeri sbagliati e' nel render).
+  const { numero } = useParams();
+  const requestedHouse = Number(numero ?? searchParams.get('casa'));
+  const qrOpened = useRef(false);
+  const qrHouse = numero === undefined ? null : houses.find((item) => item.number === requestedHouse);
+  const qrInvalid = numero !== undefined && !loadingHouses && !housesError && !qrHouse;
+  useEffect(() => {
+    if (!user || loadingHouses || !votesReady || !requestedHouse) return;
+    if (numero !== undefined) {
+      if (qrHouse && !qrOpened.current) {
+        qrOpened.current = true;
+        openHouseModal(qrHouse);
+      }
+      return;
+    }
+    const house = houses.find((item) => item.number === requestedHouse);
+    if (house) openHouseModal(house);
+    else setSearchMessage(`Nessuna casa ${requestedHouse} trovata (forse è nascosta).`);
+    setSearchParams({}, { replace: true });
+  }, [user, loadingHouses, votesReady, houses, requestedHouse, numero, qrHouse, openHouseModal, setSearchParams]);
 
   const closeModal = () => {
     setModalState({ open: false, house: null, score: 0 });
@@ -250,7 +177,10 @@ function Vote() {
     const success = await handleVoteChange(modalState.house.number, modalState.score);
     setSavingVote(false);
     if (success) {
+      setSavedHouse({ number: modalState.house.number, score: modalState.score });
       closeModal();
+      // La prossima casa e' gia' pronta: campo numero vuoto (il dialog rimette il focus da dove eri).
+      setSearchValue('');
     }
   };
 
@@ -276,147 +206,177 @@ function Vote() {
     openHouseModal(house);
   };
 
+  const shownError = error || housesError;
+
   return (
-    <div className="app-shell vote-page">
+    <div className="app-shell app-shell--narrow vote-page">
       <BackHomeLink />
-      <header>
-        <p className="badge">Sezione voto</p>
+      <header className="page-head">
         <h1>Vota una casa</h1>
-        <p>
-          {config.votingOpen
-            ? 'Le votazioni sono aperte! Scegli le tue case preferite.'
-            : 'Le votazioni sono chiuse, puoi comunque consultare i voti che hai espresso.'}
-        </p>
+        {config.loaded && (
+          <p className="status-line" data-open={config.votingOpen}>
+            <span className="status-bulb" aria-hidden="true" />
+            {config.votingOpen
+              ? `Le votazioni sono aperte${config.votingEndsAt ? `: si vota fino alle ${formatEnd(config.votingEndsAt)}` : ''}! Scegli le tue case preferite.`
+              : 'Le votazioni sono chiuse, puoi comunque consultare i voti che hai espresso.'}
+          </p>
+        )}
       </header>
 
-      {error && (
-        <div className="card" role="alert">
-          <strong>Attenzione:</strong> {error}
+      {shownError && (
+        <div className="notice notice--error" role="alert">
+          <strong>Attenzione:</strong> {shownError}
         </div>
       )}
 
-      {!user && (
-        <div className="card">
-          <h2>Accedi per votare</h2>
-          <p>Usa il tuo account Google per esprimere i voti.</p>
-          <button type="button" className="primary-btn" onClick={handleLogin}>
-            Accedi con Google
-          </button>
+      {qrInvalid && (
+        <div className="notice" role="status">
+          La casa {numero} non esiste in questa edizione.{' '}
+          {user ? 'Cerca il numero giusto qui sotto o apri la ' : 'Controlla il numero sul cartello o apri la '}
+          <Link to="/mappa">mappa</Link>.
         </div>
+      )}
+
+      {user === null && (
+        <section className="panel login-panel">
+          <h2>Accedi per votare</h2>
+          {qrHouse && (
+            <p>
+              <strong>
+                Stai per votare la casa {qrHouse.number} · {qrHouse.title || 'Senza titolo'}
+              </strong>
+            </p>
+          )}
+          <p>Usa il tuo account Google per esprimere i voti. Un voto per casa, modificabile finché le votazioni sono aperte.</p>
+          <button type="button" className="primary-btn primary-btn--xl" onClick={handleLogin}>
+            <GoogleLogoIcon aria-hidden="true" weight="bold" /> Accedi con Google
+          </button>
+          <Link className="email-link" to="/privacy">
+            Privacy
+          </Link>
+        </section>
       )}
 
       {user && (
         <>
-          <div className="card">
-            <div className="house-header">
-              <div>
-                <strong>Ciao {user.displayName || 'Halloween lover'}!</strong>
-                <p>
-                  Case visibili: {totalVisible} · Case valutate: {totalRated}
-                </p>
-              </div>
-              <button type="button" className="secondary-btn" onClick={handleLogout}>
-                Esci
+          <section className="panel vote-panel">
+            <div className="vote-panel__who">
+              <p>
+                Ciao <strong>{user.displayName || 'Halloween lover'}</strong>
+              </p>
+              <button type="button" className="ghost-btn" onClick={logout}>
+                <SignOutIcon aria-hidden="true" weight="bold" /> Esci
               </button>
             </div>
 
-            <form className="search-bar search-bar--large" onSubmit={handleSearchSubmit}>
-              <input
-                type="number"
-                inputMode="numeric"
-                placeholder="Inserisci numero casa"
-                value={searchValue}
-                onChange={(event) => setSearchValue(event.target.value)}
-                disabled={loadingHouses}
-              />
-              <button type="submit" className="primary-btn" disabled={loadingHouses}>
-                Cerca
-              </button>
+            <form className="search-bar" onSubmit={handleSearchSubmit}>
+              <label htmlFor="house-search">Numero della casa</label>
+              <div className="search-bar__row">
+                <input
+                  id="house-search"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  placeholder="Es. 12"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
+                  disabled={loadingHouses}
+                  enterKeyHint="go"
+                />
+                <button type="submit" className="primary-btn" disabled={loadingHouses}>
+                  <MagnifyingGlassIcon aria-hidden="true" weight="bold" /> Cerca
+                </button>
+              </div>
             </form>
-            {searchMessage && <p>{searchMessage}</p>}
+            {searchMessage && <p className="field-message" role="status">{searchMessage}</p>}
 
-            <div
-              className="vote-progress"
-              role="group"
-              aria-label="Progresso valutazioni"
-            >
+            <div className="vote-progress" role="group" aria-label="Progresso valutazioni">
               <p>
-                Case valutate: {totalRated} / {totalVisible || '—'}
+                Case valutate <strong>{totalRated}</strong> su {totalVisible || 'nessuna'}
               </p>
               <div
-                className="vote-progress-bar"
+                className="bulb-string"
                 role="progressbar"
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round(progressPercent)}
+                aria-label={`${totalRated} case valutate su ${totalVisible}`}
               >
-                <span style={{ width: `${progressPercent}%` }} />
+                {houses.map((house) => (
+                  <span
+                    key={house.id}
+                    className="bulb"
+                    data-lit={(votesMap.get(house.number)?.score || 0) >= 6}
+                  />
+                ))}
               </div>
             </div>
-          </div>
+          </section>
+
+          {savedHouse && (
+            <p className="notice notice--saved" role="status" key={`${savedHouse.number}-${savedHouse.score}`}>
+              Voto salvato: casa {savedHouse.number}, {savedHouse.score} su 10.
+            </p>
+          )}
 
           <MyVotes
             houses={houses}
             votesMap={votesMap}
             loading={loadingHouses}
             onHouseSelect={handleHouseSelectFromList}
+            highlight={savedHouse?.number}
           />
 
           {loadingVotes && <p className="empty-state">Aggiornamento voti…</p>}
         </>
       )}
 
-      {modalState.open && modalState.house && (
-        <div className="dialog-backdrop" role="dialog" aria-modal="true">
-          <form className="dialog-card vote-dialog" onSubmit={handleModalSubmit}>
+      <Sheet
+        open={modalState.open && Boolean(modalState.house)}
+        onClose={() => !savingVote && closeModal()}
+        labelledBy="vote-dialog-title"
+        className="vote-dialog"
+      >
+        {modalState.house && (
+          <form onSubmit={handleModalSubmit}>
             <div className="vote-dialog-header">
-              <span className="vote-dialog-emoji" role="img" aria-hidden="true">
-                🏠
+              <span className="plate plate--lg" aria-hidden="true">
+                {modalState.house.number}
               </span>
               <div className="vote-dialog-headings">
-                <h3>Casa {modalState.house.number}</h3>
-                <p className="vote-dialog-house-title">
-                  {modalState.house.title || 'Senza titolo'}
-                </p>
+                <h2 id="vote-dialog-title">Casa {modalState.house.number}</h2>
+                <p className="vote-dialog-house-title">{modalState.house.title || 'Senza titolo'}</p>
               </div>
             </div>
             <p className="vote-dialog-description">
               {modalState.house.description || 'Nessuna descrizione disponibile.'}
             </p>
 
-            {!config.votingOpen && (
-              <p className="empty-state" style={{ margin: 0 }}>
-                Le votazioni sono chiuse al momento.
-              </p>
-            )}
+            {!config.votingOpen && <p className="notice">Le votazioni sono chiuse al momento.</p>}
 
             <PumpkinRating
-              label="Seleziona un voto"
+              label="Il tuo voto"
               value={modalState.score}
               onChange={updateModalScore}
               disabled={!config.votingOpen || savingVote}
             />
 
             <div className="dialog-actions">
-              <button
-                type="button"
-                className="secondary-btn"
-                onClick={closeModal}
-                disabled={savingVote}
-              >
+              <button type="button" className="secondary-btn" onClick={closeModal} disabled={savingVote}>
                 Annulla
               </button>
               <button
                 type="submit"
                 className="primary-btn"
                 disabled={savingVote || !config.votingOpen || modalState.score < 6}
+                data-busy={savingVote}
               >
                 {savingVote ? 'Salvataggio…' : 'Salva voto'}
               </button>
             </div>
           </form>
-        </div>
-      )}
+        )}
+      </Sheet>
     </div>
   );
 }

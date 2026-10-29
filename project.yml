@@ -3,7 +3,7 @@
 
 # --- identità ---------------------------------------------------------------
 nome: bagna-halloween
-descrizione: Web app per l evento di Halloween a Cesenatico con mappa delle case addobbate, valutazioni anonime e classifica per premiare le migliori.
+descrizione: Web app per l evento di Halloween a Cesenatico con mappa delle case addobbate, valutazioni con accesso Google (ogni voto è legato all'account e non è mostrato pubblicamente) e classifica per premiare le migliori.
 repo: alexsiroli/bagna-halloween
 
 # --- metodo -----------------------------------------------------------------
@@ -21,7 +21,7 @@ stack:
 # --- hosting ----------------------------------------------------------------
 hosting: netlify
 hosting_project: bagna-halloween
-url_prod: https://bagna-halloween.netlify.app
+url_prod: https://halloween.alxstudio.it
 url_staging:
 
 # --- distribuzione ----------------------------------------------------------
