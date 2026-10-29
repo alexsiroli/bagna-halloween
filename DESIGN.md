@@ -150,7 +150,7 @@ tessere scure. Punti di servizio con area da toccare 44px; strade chiuse 6px con
 La vista iniziale inquadra case, punti e strade insieme. La legenda sta sotto la mappa, in due
 colonne sul telefono; la mappa prende l'altezza che resta.
 
-«Alex Siroli» nel piede e' solo testo, mai un link. Il piede e' fisso in basso, una riga da 44px.
+«Alex Siroli» nel piede e' un link email sottolineato (area 44px, focus visibile); la firma dello splash resta testo. Il piede e' fisso in basso, una riga da 44px.
 
 ## Una schermata
 
