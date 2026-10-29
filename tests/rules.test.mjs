@@ -218,6 +218,37 @@ test('prima dell orario di fine, e senza orario, si vota', async () => {
   await assertSucceeds(updateDoc(doc(alice, 'votes/2026_alice_1'), { score: 10, updatedAt: serverTimestamp() }));
 });
 
+test('delete voto: bob cancella il suo', async () => {
+  await assertSucceeds(deleteDoc(doc(as('bob'), 'votes/2026_bob_1')));
+});
+
+test('delete voto: eve non cancella quello di bob', async () => {
+  await assertFails(deleteDoc(doc(as('eve'), 'votes/2026_bob_1')));
+});
+
+test('delete voto: non a votazioni chiuse', async () => {
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), 'config/app'), { votingOpen: false, edition: EDITION }),
+  );
+  await assertFails(deleteDoc(doc(as('bob'), 'votes/2026_bob_1')));
+});
+
+test('delete voto: non dopo l orario di fine', async () => {
+  await setEnd(Date.now() - 60_000);
+  await assertFails(deleteDoc(doc(as('bob'), 'votes/2026_bob_1')));
+});
+
+test('delete voto: non un voto 2025 (senza edition)', async () => {
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), 'votes/bob_1'), { userId: 'bob', houseNumber: 1, score: 7 }),
+  );
+  await assertFails(deleteDoc(doc(as('bob'), 'votes/bob_1')));
+});
+
+test('delete voto: non da anonimo', async () => {
+  await assertFails(deleteDoc(doc(env.unauthenticatedContext().firestore(), 'votes/2026_bob_1')));
+});
+
 test('solo l admin imposta e cancella l orario di fine', async () => {
   const end = Timestamp.fromMillis(Date.now() + 3600_000);
   await assertFails(setDoc(doc(as('eve', 'eve@esempio.test'), 'config/app'), { votingEndsAt: end }, { merge: true }));
