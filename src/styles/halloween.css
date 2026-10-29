@@ -1301,7 +1301,7 @@ fieldset {
 /* Voto sul segnaposto: il punteggio (un segno visibile senza colore); lo stato sta in data-voted */
 .pin__vote {
   position: absolute;
-  bottom: -2px;
+  bottom: -14px;
   right: -6px;
   min-width: 1.1rem;
   padding: 0 4px;
