@@ -28,3 +28,9 @@ if (import.meta.env.VITE_USE_EMULATORS === 'true') {
   connectAuthEmulator(auth, 'http://127.0.0.1:9191', { disableWarnings: true });
   connectFirestoreEmulator(db, '127.0.0.1', 8181);
 }
+
+// Solo emulatore: conta le letture aperte in window.__reads, per il test «carico». Altrove non fa nulla.
+export const countRead = (name) => {
+  if (import.meta.env.VITE_USE_EMULATORS !== 'true') return;
+  window.__reads = { ...window.__reads, [name]: (window.__reads?.[name] ?? 0) + 1 };
+};

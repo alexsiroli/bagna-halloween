@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { collection, doc, getDocs, onSnapshot, query, where } from 'firebase/firestore';
-import { db } from './firebase.js';
+import { countRead, db } from './firebase.js';
 
 // Edizione mostrata finche' config/app non risponde. Quella vera arriva da config/app.edition.
 export const FALLBACK_EDITION = 2026;
@@ -76,6 +76,7 @@ const toHouses = (snapshot, includeHidden) =>
 const housesCache = new Map();
 function loadHouses(edition) {
   if (!housesCache.has(edition)) {
+    countRead('houses');
     const promise = getDocs(housesQuery(edition));
     promise.catch(() => housesCache.delete(edition));
     housesCache.set(edition, promise);
