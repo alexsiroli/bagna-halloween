@@ -414,6 +414,28 @@ test('carico: le case si leggono una volta per sessione (Home, Mappa, Voto, Mapp
   }
 });
 
+test('votazioni chiuse: il tag rosso e centrato, su una riga, e la pagina resta in una schermata', async ({ page, request }) => {
+  const url =
+    'http://127.0.0.1:8181/v1/projects/demo-bagna-halloween/databases/(default)/documents/config/app?updateMask.fieldPaths=votingOpen';
+  // "Bearer owner" salta le regole, solo sull'emulatore.
+  const setOpen = (open) =>
+    request.patch(url, { headers: { Authorization: 'Bearer owner' }, data: { fields: { votingOpen: { booleanValue: open } } } });
+  try {
+    await setOpen(false);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/vote');
+    const tag = page.locator('.tag--closed');
+    await expect(tag).toHaveText('Votazioni chiuse', { timeout: 15_000 });
+    const box = await tag.boundingBox();
+    expect(Math.abs(box.x + box.width / 2 - 390 / 2)).toBeLessThanOrEqual(1);
+    expect(box.height).toBeLessThan(40);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+    await page.screenshot({ path: 'test-results/vota-chiuse-390x844.png' });
+  } finally {
+    await setOpen(true);
+  }
+});
+
 test('regole: un voto fuori scala viene rifiutato', async () => {
   const app = initializeApp({ apiKey: 'demo-api-key', projectId: 'demo-bagna-halloween' }, 'regole-e2e');
   const auth = getAuth(app);

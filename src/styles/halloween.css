@@ -382,6 +382,8 @@ svg {
 }
 
 .tag--closed {
+  align-self: center;
+  justify-self: center;
   color: var(--brace);
   background: rgb(255 122 107 / 0.12);
   border: 1px solid var(--brace);
