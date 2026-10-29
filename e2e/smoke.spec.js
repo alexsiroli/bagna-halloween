@@ -99,7 +99,7 @@ test('mappa: accesso e voto dalla scheda, la casetta si accende', async ({ page 
   await expect(dialog).toBeHidden();
   await expect(page).toHaveURL(/\/mappa$/);
   await expect(page.getByRole('button', { name: new RegExp(`^Casa 2, .*votata ${score} su 10`) })).toBeVisible();
-  await expect(page.locator('.pin .casetta[data-lit="true"]').first()).toBeVisible();
+  await expect(page.locator('.pin__disc[data-lit="true"]').first()).toBeVisible();
   await expect(page.getByRole('button', { name: /^Profilo: / })).toBeVisible();
 });
 
@@ -123,14 +123,26 @@ test('mappa: tipi di casa, punti di servizio e strade chiuse da file', async ({ 
   await expect(page.locator('.leaflet-overlay-pane path')).toHaveCount(1);
   await expect(page.locator('.leaflet-overlay-pane path.leaflet-interactive')).toHaveCount(0);
   await expect(page.locator('.leaflet-overlay-pane path')).toHaveCSS('stroke', 'rgb(217, 83, 58)'); // --strada-chiusa
+  // Un solo segnaposto per casa: un cerchietto col numero, mai una casetta.
+  await expect(page.locator('.pin__disc')).toHaveCount(10);
+  await expect(page.locator('.pin .casetta')).toHaveCount(0);
   // Il tipo e' nel nome accessibile e nel glifo del segnaposto.
   const show = page.getByRole('button', { name: 'Casa 3, La Cripta del Fornaio, spettacolo: apri la scheda' });
   const decor = page.getByRole('button', { name: 'Casa 4, Ragnatele in Giardino, casa addobbata: apri la scheda' });
-  // Casetta + glifo del tipo; la casa senza tipo ha solo la casetta.
-  await expect(show.locator('svg')).toHaveCount(2);
-  await expect(decor.locator('svg')).toHaveCount(2);
+  // Glifo del tipo attaccato al cerchietto; la casa senza tipo ha solo il numero.
+  await expect(show.locator('svg')).toHaveCount(1);
+  await expect(decor.locator('svg')).toHaveCount(1);
   expect(await show.innerHTML()).not.toBe(await decor.innerHTML());
-  await expect(page.getByRole('button', { name: /^Casa 5, La Strega del Canale: apri/ }).locator('svg')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: /^Casa 5, La Strega del Canale: apri/ }).locator('svg')).toHaveCount(0);
+  // Il glifo non copre il numero: i due rettangoli non si sovrappongono.
+  const overlap = await show.evaluate((el) => {
+    const range = document.createRange();
+    range.selectNodeContents(el.querySelector('.pin__disc'));
+    const n = range.getBoundingClientRect();
+    const g = el.querySelector('.pin__tipo').getBoundingClientRect();
+    return n.left < g.right && g.left < n.right && n.top < g.bottom && g.top < n.bottom;
+  });
+  expect(overlap).toBe(false);
 
   // Legenda in testo, solo i tipi presenti, con la nota del file.
   const legend = page.locator('.map-legend');
@@ -139,18 +151,18 @@ test('mappa: tipi di casa, punti di servizio e strade chiuse da file', async ({ 
   }
   await expect(legend).toContainText('dalle 18:30 alle 23:00');
 
-  // Un tocco su un punto: nome e indirizzo (come testo), niente Vota.
-  await page.getByRole('button', { name: 'Bar: Bar <b>DJ</b> set' }).click();
-  const popup = page.locator('.leaflet-popup');
-  await expect(popup).toContainText('Bar <b>DJ</b> set');
-  await expect(popup).toContainText('Via di Prova 9');
-  await expect(popup.locator('b')).toHaveCount(0);
-  await expect(popup.getByRole('link')).toHaveCount(0);
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  // Si chiude anche da tastiera: il bottone ha un nome accessibile.
-  await popup.getByRole('button', { name: 'Chiudi' }).focus();
-  await page.keyboard.press('Enter');
-  await expect(popup).toHaveCount(0);
+  // Un tocco su un punto: la scheda dal basso con tipo, nome e indirizzo (come testo), niente Vota e niente popup di Leaflet.
+  // Con lo zoom sulle sole case i punti possono stare fuori vista: il click va sul loro elemento.
+  await page.getByRole('button', { name: 'Bar: Bar <b>DJ</b> set' }).dispatchEvent('click');
+  const sheet = page.getByRole('dialog', { name: 'Bar <b>DJ</b> set' });
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toContainText('Bar <b>DJ</b> set');
+  await expect(sheet).toContainText('Via di Prova 9');
+  await expect(sheet.locator('b')).toHaveCount(0);
+  await expect(sheet.getByRole('button', { name: /Salva voto|Accedi/ })).toHaveCount(0);
+  await expect(page.locator('.leaflet-popup')).toHaveCount(0);
+  await sheet.getByRole('button', { name: 'Chiudi' }).click();
+  await expect(sheet).toBeHidden();
 
   // Niente elenco «Spettacoli» sotto la mappa: i punti di intrattenimento restano segnaposto.
   await expect(page.getByRole('heading', { name: 'Spettacoli' })).toHaveCount(0);
@@ -178,6 +190,169 @@ for (const [name, contentType, body] of [
     await expect(page.locator('.leaflet-marker-icon')).toHaveCount(10);
     await expect(page.locator('.leaflet-overlay-pane path')).toHaveCount(0);
     expect(errors).toEqual([]);
+  });
+}
+
+// «Portami qui»: solo le coordinate e il modo a piedi (Pixel 7 = Android = Google Maps), in una nuova scheda, bersaglio da 44 px.
+const expectDirections = async (link, lat, lng) => {
+  await expect(link).toHaveAttribute('href', `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`);
+  await expect(link).toHaveAttribute('target', '_blank');
+  await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  expect((await link.boundingBox()).height).toBeGreaterThanOrEqual(44);
+};
+
+test('mappa: la scheda di una casa ha numero, nome, via e «Portami qui» con le sue coordinate', async ({ page }) => {
+  await blockTiles(page);
+  await page.goto('/mappa');
+  await page.getByRole('button', { name: /^Casa 1, La Casa delle Zucche/ }).click();
+  const sheet = page.getByRole('dialog', { name: 'Casa 1' });
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toContainText('La Casa delle Zucche');
+  await expect(sheet).toContainText('Via Cesenatico 12');
+  await expectDirections(sheet.getByRole('link', { name: 'Portami qui' }), 44.2005, 12.338);
+});
+
+test('mappa: tocco su un parcheggio apre la scheda dal basso con tipo, nome, indirizzo e «Portami qui»', async ({ page }) => {
+  await blockTiles(page);
+  await servePoints(page);
+  await page.goto('/mappa');
+  // I punti di servizio possono stare fuori vista (la mappa inquadra le case): il click va sul loro elemento.
+  await page.getByRole('button', { name: 'Parcheggio: Parcheggio di prova' }).dispatchEvent('click');
+  const sheet = page.getByRole('dialog', { name: 'Parcheggio di prova' });
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toContainText('Parcheggio'); // il tipo, da POINT_LABELS
+  await expect(sheet).toContainText('Via del Parcheggio');
+  await expectDirections(sheet.getByRole('link', { name: 'Portami qui' }), 44.2022, 12.3445);
+  // Foglio dal basso: il fondo della scheda sta sul fondo della finestra (a fine animazione).
+  const bottom = async () => {
+    const box = await sheet.locator('.sheet__body').boundingBox();
+    return Math.round(box.y + box.height);
+  };
+  await expect.poll(bottom).toBe(page.viewportSize().height);
+  await expect(page.locator('.leaflet-popup')).toHaveCount(0);
+});
+
+test('mappa: all\'apertura inquadra le case; i servizi che arrivano dopo non spostano la vista', async ({ page }) => {
+  await blockTiles(page);
+  // I punti arrivano dopo un secondo e mezzo: con un secondo inquadramento la vista si sposterebbe.
+  await page.route('**/punti/*.json', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.fulfill({ path: PUNTI, contentType: 'application/json' });
+  });
+  await page.goto('/mappa');
+  await expect(page.locator('.leaflet-marker-icon[aria-label^="Casa "]')).toHaveCount(10);
+
+  // Posizione dei segnaposto delle case (rispetto al centro della mappa: la legenda che arriva con i servizi la accorcia) e zoom
+  // (dalla distanza fra la casa 5 e la 4: 0,0081 gradi di longitudine), a vista ferma.
+  const view = () =>
+    page.evaluate(() => {
+      const box = document.querySelector('.house-map').getBoundingClientRect();
+      const centers = Object.fromEntries(
+        [...document.querySelectorAll('.leaflet-marker-icon[aria-label^="Casa "]')].map((el) => {
+          const r = el.getBoundingClientRect();
+          const cx = box.left + box.width / 2;
+          const cy = box.top + box.height / 2;
+          return [el.getAttribute('aria-label').match(/^Casa (\d+),/)[1], [Math.round(r.x + r.width / 2 - cx), Math.round(r.y + r.height / 2 - cy)]];
+        }),
+      );
+      const inside = Object.values(centers).every(([x, y]) => Math.abs(x) < box.width / 2 && Math.abs(y) < box.height / 2);
+      const zoom = Math.round(Math.log2(((centers[4][0] - centers[5][0]) * 360) / (0.0081 * 256)));
+      return JSON.stringify({ centers, inside, zoom });
+    });
+  const settled = async () => {
+    let last = await view();
+    for (let i = 0; i < 20; i += 1) {
+      await page.waitForTimeout(300);
+      const now = await view();
+      if (now === last) return JSON.parse(now);
+      last = now;
+    }
+    throw new Error('la vista non si ferma');
+  };
+
+  const before = await settled();
+  expect(before.inside).toBe(true); // tutte le case dentro la vista
+  expect(before.zoom).toBeGreaterThanOrEqual(15);
+  await expect(page.locator('.leaflet-marker-icon')).toHaveCount(15); // arrivati i punti
+  expect(await settled()).toEqual(before);
+});
+
+// Case 13-20 (senza posizione) in piu' sull'emulatore: /vote con 20 case. Si tolgono sempre a fine test.
+const EXTRA_HOUSES = [13, 14, 15, 16, 17, 18, 19, 20];
+const HOUSE_DOC = (n) => `http://127.0.0.1:8181/v1/projects/demo-bagna-halloween/databases/(default)/documents/houses/2026_${n}`;
+const OWNER = { Authorization: 'Bearer owner' }; // salta le regole, solo sull'emulatore
+const addExtraHouses = (request) =>
+  Promise.all(
+    EXTRA_HOUSES.map((n) =>
+      request.patch(HOUSE_DOC(n), {
+        headers: OWNER,
+        data: {
+          fields: {
+            number: { integerValue: String(n) },
+            title: { stringValue: `Casa di prova ${n}` },
+            edition: { integerValue: '2026' },
+            visible: { booleanValue: true },
+            street: { stringValue: 'Via di Prova' },
+            civic: { stringValue: String(n) },
+          },
+        },
+      }),
+    ),
+  );
+const removeExtraHouses = (request) => Promise.all(EXTRA_HOUSES.map((n) => request.delete(HOUSE_DOC(n), { headers: OWNER })));
+
+for (const size of [{ width: 390, height: 844 }, { width: 375, height: 667 }]) {
+  test(`vota: con 20 case la pagina non scorre a ${size.width}x${size.height}, griglia a righe uguali, nessuna legenda «Spettacolo»`, async ({ page, request }) => {
+    await blockTiles(page);
+    await page.setViewportSize(size);
+    try {
+      await addExtraHouses(request);
+      await page.goto('/vote');
+      await login(page, 'curioso@esempio.test');
+      const grid = page.locator('.my-votes-grid');
+      await expect(grid.getByRole('button')).toHaveCount(20);
+
+      const layout = await page.evaluate(() => {
+        const g = document.querySelector('.my-votes-grid');
+        const cells = [...g.querySelectorAll('button')].map((b) => b.getBoundingClientRect());
+        const box = g.getBoundingClientRect();
+        const list = document.querySelector('.my-votes');
+        return {
+          pageFits: document.documentElement.scrollHeight <= window.innerHeight,
+          listFits: list.scrollHeight <= list.clientHeight,
+          columns: getComputedStyle(g).gridTemplateColumns.split(' ').length,
+          rows: new Set(cells.map((r) => Math.round(r.top))).size,
+          heights: new Set(cells.map((r) => Math.round(r.height))).size,
+          minSide: Math.min(...cells.map((r) => Math.min(r.width, r.height))),
+          fillsWidth: Math.abs(Math.max(...cells.map((r) => r.right)) - box.right) < 2 && Math.abs(Math.min(...cells.map((r) => r.left)) - box.left) < 2,
+        };
+      });
+      expect(layout.pageFits).toBe(true);
+      expect(layout.listFits).toBe(true); // nemmeno la lista scorre al suo interno
+      expect(layout.columns).toBe(5); // 20 case: 5 colonne x 4 righe, da 360 px in su
+      expect(layout.rows).toBe(4);
+      expect(layout.heights).toBe(1); // righe tutte uguali
+      expect(layout.minSide).toBeGreaterThanOrEqual(44);
+      expect(layout.fillsWidth).toBe(true);
+      await expect(page.locator('.my-votes-key')).toHaveCount(0);
+      await expect(page.getByText('Spettacolo')).toHaveCount(0);
+      // Il tipo resta nel nome accessibile.
+      await expect(grid.getByRole('button', { name: /^Casa 1, La Casa delle Zucche, spettacolo,/ })).toBeVisible();
+
+      // Scheda di una casa con posizione: «Portami qui». Senza posizione (casa 11): niente link, ma la via c'e'.
+      await grid.getByRole('button', { name: /^Casa 1, / }).click();
+      const sheet = page.getByRole('dialog', { name: 'Casa 1' });
+      await expect(sheet).toContainText('Via Cesenatico 12');
+      await expectDirections(sheet.getByRole('link', { name: 'Portami qui' }), 44.2005, 12.338);
+      await sheet.getByRole('button', { name: 'Annulla' }).click();
+      await expect(sheet).toBeHidden();
+      await grid.getByRole('button', { name: /^Casa 11, / }).click();
+      const noPlace = page.getByRole('dialog', { name: 'Casa 11' });
+      await expect(noPlace).toContainText('Via Cesenatico 150');
+      await expect(noPlace.getByRole('link', { name: 'Portami qui' })).toHaveCount(0);
+    } finally {
+      await removeExtraHouses(request);
+    }
   });
 }
 

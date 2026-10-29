@@ -1,6 +1,9 @@
 import Casetta from './Casetta.jsx';
-import { Chip } from './MapGlyph.jsx';
 import { isVoted } from '../myVotes.js';
+
+// Griglia piena e a righe pareggiate: al massimo 5 colonne (sotto i 360 px, 4: vedi CSS), come il filo di lampadine.
+const MAX_COLS = 5;
+const columns = (count) => Math.ceil(count / Math.ceil(count / MAX_COLS)) || 1;
 
 // I miei voti: una casetta per casa, accesa quando l'hai votata, il voto sotto. Tocco = scheda della casa.
 function MyVotes({ houses, votesMap, loading, onHouseSelect, highlight }) {
@@ -21,12 +24,11 @@ function MyVotes({ houses, votesMap, loading, onHouseSelect, highlight }) {
   if (!houses?.length) return <p className="empty-state">Nessuna casa disponibile al momento.</p>;
 
   const sortedHouses = [...houses].sort((a, b) => a.number - b.number);
-  const hasShows = houses.some((house) => house.kind === 'spettacolo');
 
   return (
     <section className="my-votes" aria-labelledby="my-votes-title">
       <h2 id="my-votes-title" className="sr-only">I miei voti</h2>
-      <div className="my-votes-grid">
+      <div className="my-votes-grid" style={{ '--cols': columns(sortedHouses.length) }}>
         {sortedHouses.map((house) => {
           const vote = votesMap?.get(house.number);
           const voted = isVoted(vote);
@@ -49,11 +51,6 @@ function MyVotes({ houses, votesMap, loading, onHouseSelect, highlight }) {
           );
         })}
       </div>
-      {hasShows && (
-        <p className="my-votes-key">
-          <Chip t="spettacolo" /> Spettacolo
-        </p>
-      )}
     </section>
   );
 }

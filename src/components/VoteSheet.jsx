@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Casetta from './Casetta.jsx';
+import DirectionsLink from './DirectionsLink.jsx';
 import { KindTag } from './MapGlyph.jsx';
 import PumpkinRating from './PumpkinRating.jsx';
 import Sheet from './Sheet.jsx';
@@ -52,6 +53,7 @@ function VoteForm({ house, user, config, saving, setSaving, onClose, onSaved, on
         </div>
       )}
       {house.description && <p className="vote-dialog-description">{house.description}</p>}
+      <DirectionsLink place={house} />
 
       {user ? (
         <PumpkinRating label="Il tuo voto" value={score} onChange={setPicked} disabled={!config.votingOpen || saving} />
