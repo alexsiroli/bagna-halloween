@@ -218,6 +218,37 @@ test('prima dell orario di fine, e senza orario, si vota', async () => {
   await assertSucceeds(updateDoc(doc(alice, 'votes/2026_alice_1'), { score: 10, updatedAt: serverTimestamp() }));
 });
 
+test('delete voto: bob cancella il suo', async () => {
+  await assertSucceeds(deleteDoc(doc(as('bob'), 'votes/2026_bob_1')));
+});
+
+test('delete voto: eve non cancella quello di bob', async () => {
+  await assertFails(deleteDoc(doc(as('eve'), 'votes/2026_bob_1')));
+});
+
+test('delete voto: non a votazioni chiuse', async () => {
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), 'config/app'), { votingOpen: false, edition: EDITION }),
+  );
+  await assertFails(deleteDoc(doc(as('bob'), 'votes/2026_bob_1')));
+});
+
+test('delete voto: non dopo l orario di fine', async () => {
+  await setEnd(Date.now() - 60_000);
+  await assertFails(deleteDoc(doc(as('bob'), 'votes/2026_bob_1')));
+});
+
+test('delete voto: non un voto 2025 (senza edition)', async () => {
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), 'votes/bob_1'), { userId: 'bob', houseNumber: 1, score: 7 }),
+  );
+  await assertFails(deleteDoc(doc(as('bob'), 'votes/bob_1')));
+});
+
+test('delete voto: non da anonimo', async () => {
+  await assertFails(deleteDoc(doc(env.unauthenticatedContext().firestore(), 'votes/2026_bob_1')));
+});
+
 test('solo l admin imposta e cancella l orario di fine', async () => {
   const end = Timestamp.fromMillis(Date.now() + 3600_000);
   await assertFails(setDoc(doc(as('eve', 'eve@esempio.test'), 'config/app'), { votingEndsAt: end }, { merge: true }));
@@ -284,4 +315,55 @@ test('gli altri config/* restano scrivibili dagli admin e non dagli altri', asyn
   await assertSucceeds(setDoc(doc(as('ada', ADMIN), 'config/results'), { published: false }));
   await assertSucceeds(updateDoc(doc(as('ada', ADMIN), 'config/app'), { votingOpen: false }));
   await assertFails(setDoc(doc(as('eve', 'eve@esempio.test'), 'config/results'), { published: true }));
+});
+
+// Albo d'oro: results/<anno>, top 3 pubblica; scrive e ritira solo l'admin.
+const entry = (number, avg, extra = {}) => ({ number, title: `Casa ${number}`, avg, votes: 3, ...extra });
+const result = (top3, extra = {}) => ({ edition: 2025, top3, updatedAt: serverTimestamp(), ...extra });
+const resultRef = (db, year = 2025) => doc(db, `results/${year}`);
+
+test('results: chiunque legge il documento e la collezione', async () => {
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(resultRef(ctx.firestore()), { edition: 2025, top3: [entry(1, 9.5)], updatedAt: Timestamp.now() }),
+  );
+  for (const db of [env.unauthenticatedContext().firestore(), as('alice')]) {
+    await assertSucceeds(getDoc(resultRef(db)));
+    await assertSucceeds(getDocs(collection(db, 'results')));
+  }
+});
+
+test('results: admin crea, aggiorna e cancella; gli altri no', async () => {
+  const ada = resultRef(as('ada', ADMIN));
+  await assertSucceeds(setDoc(ada, result([entry(1, 9.5), entry(2, 8), entry(3, 7.25)])));
+  await assertSucceeds(setDoc(ada, result([entry(2, 10)])));
+  for (const db of [as('eve', 'eve@esempio.test'), as('alice'), env.unauthenticatedContext().firestore()]) {
+    await assertFails(setDoc(resultRef(db, 2024), result([entry(1, 8)], { edition: 2024 })));
+    await assertFails(deleteDoc(resultRef(db)));
+  }
+  await assertSucceeds(deleteDoc(ada));
+});
+
+test('results: forma non valida rifiutata anche all admin', async () => {
+  const ada = resultRef(as('ada', ADMIN));
+  const noTitle = { number: 1, avg: 9, votes: 3 };
+  const bad = [
+    result([entry(1, 9), entry(2, 8), entry(3, 7), entry(4, 6)]),
+    result([]),
+    result('x'),
+    result([entry(1, 9)], { extra: 1 }),
+    result([entry(1, 9, { extra: 1 })]),
+    result([noTitle]),
+    result([entry(1, '9')]),
+    result([entry(1, 5.9)]),
+    result([entry(1, 10.1)]),
+    result([entry(1, 9, { votes: 0 })]),
+    result([entry(1, 9, { number: '1' })]),
+    result([entry(1, 9, { title: 'x'.repeat(201) })]),
+    result([entry(1, 9), 'x']),
+    result([entry(1, 9)], { edition: 2024 }),
+    result([entry(1, 9)], { edition: '2025' }),
+    result([entry(1, 9)], { updatedAt: Timestamp.fromDate(new Date('2020-01-01')) }),
+    { edition: 2025, top3: [entry(1, 9)] },
+  ];
+  for (const data of bad) await assertFails(setDoc(ada, data));
 });

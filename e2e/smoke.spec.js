@@ -183,6 +183,12 @@ test('voto: login emulatore, zucche, voto salvato', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Casa 3/ })).toContainText(String(score));
 });
 
+test('admin: il vecchio indirizzo /admin-halloween-2025 e una pagina non trovata, senza redirect', async ({ page }) => {
+  await page.goto('/admin-halloween-2025');
+  await expect(page.getByRole('heading', { name: 'Pagina non trovata' })).toBeVisible();
+  await expect(page).toHaveURL(/\/admin-halloween-2025$/);
+});
+
 test('admin: rifiuta chi non e in lista, accetta un admin', async ({ page }) => {
   await page.goto('/admin');
   await login(page, 'curioso@esempio.test');

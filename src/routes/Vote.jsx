@@ -8,7 +8,7 @@ import MyVotes from '../components/MyVotes.jsx';
 import Sheet from '../components/Sheet.jsx';
 import { db } from '../firebase.js';
 import { loginWithGoogle, logout, useAuthUser } from '../auth.js';
-import { useAppConfig, useHouses, voteId } from '../data.js';
+import { deleteVote, useAppConfig, useHouses, voteId } from '../data.js';
 import { formatEnd } from '../votingTime.js';
 
 function Vote() {
@@ -26,6 +26,8 @@ function Vote() {
   const [modalState, setModalState] = useState({ open: false, house: null, score: 0 });
   const [savingVote, setSavingVote] = useState(false);
   const [savedHouse, setSavedHouse] = useState(null);
+  // Conferma «Cancella voto»: null = chiusa, altrimenti { deleting, error }.
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -155,6 +157,7 @@ function Vote() {
   const closeModal = () => {
     setModalState({ open: false, house: null, score: 0 });
     setSavingVote(false);
+    setConfirmDelete(null);
   };
 
   const updateModalScore = (score) => {
@@ -182,6 +185,22 @@ function Vote() {
       // La prossima casa e' gia' pronta: campo numero vuoto (il dialog rimette il focus da dove eri).
       setSearchValue('');
     }
+  };
+
+  const handleDeleteConfirm = async () => {
+    const number = modalState.house.number;
+    setConfirmDelete({ deleting: true, error: '' });
+    try {
+      await deleteVote(edition, user.uid, number);
+    } catch (err) {
+      console.error('Errore cancellando il voto', err);
+      setConfirmDelete({ deleting: false, error: 'Impossibile cancellare il voto, riprova più tardi.' });
+      return;
+    }
+    setSavedHouse({ number, deleted: true });
+    setConfirmDelete(null);
+    closeModal();
+    setSearchValue('');
   };
 
   const handleSearchSubmit = (event) => {
@@ -315,7 +334,9 @@ function Vote() {
 
           {savedHouse && (
             <p className="notice notice--saved" role="status" key={`${savedHouse.number}-${savedHouse.score}`}>
-              Voto salvato: casa {savedHouse.number}, {savedHouse.score} su 10.
+              {savedHouse.deleted
+                ? `Voto cancellato: casa ${savedHouse.number}.`
+                : `Voto salvato: casa ${savedHouse.number}, ${savedHouse.score} su 10.`}
             </p>
           )}
 
@@ -361,6 +382,17 @@ function Vote() {
               disabled={!config.votingOpen || savingVote}
             />
 
+            {config.votingOpen && votesMap.has(modalState.house.number) && (
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={() => setConfirmDelete({ deleting: false, error: '' })}
+                disabled={savingVote}
+              >
+                Cancella voto
+              </button>
+            )}
+
             <div className="dialog-actions">
               <button type="button" className="secondary-btn" onClick={closeModal} disabled={savingVote}>
                 Annulla
@@ -375,6 +407,40 @@ function Vote() {
               </button>
             </div>
           </form>
+        )}
+      </Sheet>
+
+      <Sheet
+        open={Boolean(confirmDelete) && Boolean(modalState.house)}
+        onClose={() => !confirmDelete?.deleting && setConfirmDelete(null)}
+        labelledBy="delete-vote-title"
+        className="vote-dialog"
+      >
+        {confirmDelete && modalState.house && (
+          <div>
+            <h2 id="delete-vote-title">Vuoi cancellare il tuo voto per la casa {modalState.house.number}?</h2>
+            {confirmDelete.error && <p className="notice notice--error" role="alert">{confirmDelete.error}</p>}
+            <div className="dialog-actions">
+              <button
+                type="button"
+                className="secondary-btn"
+                autoFocus
+                onClick={() => setConfirmDelete(null)}
+                disabled={confirmDelete.deleting}
+              >
+                Annulla
+              </button>
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={handleDeleteConfirm}
+                disabled={confirmDelete.deleting}
+                data-busy={confirmDelete.deleting}
+              >
+                {confirmDelete.deleting ? 'Cancellazione…' : 'Cancella'}
+              </button>
+            </div>
+          </div>
         )}
       </Sheet>
     </div>

@@ -23,7 +23,7 @@ jobs:
           cache: npm
           cache-dependency-path: ./package-lock.json
       - run: npm ci
-      - run: node --test tests/export-edition.test.mjs tests/qr.test.mjs tests/houses-file.test.mjs tests/geocode-houses.test.mjs
+      - run: node --test tests/export-edition.test.mjs tests/qr.test.mjs tests/houses-file.test.mjs tests/geocode-houses.test.mjs tests/podium.test.mjs
       - run: |
           if [ -f .env.example ] && [ ! -f .env ]; then cp .env.example .env; fi
           npm run build
