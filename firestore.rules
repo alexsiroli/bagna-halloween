@@ -45,7 +45,7 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if false;
 
-      // Voto valido: tuo, dell'edizione corrente, intero da 6 a 10, a votazioni aperte,
+      // Voto valido: tuo, dell'edizione corrente, intero da 6 a 10, a votazioni aperte e prima dell'orario di fine (se c'è),
       // su una casa esistente e visibile (`houses/${edition}_${houseNumber}`), con id `${edition}_${uid}_${houseNumber}`,
       // updatedAt = ora del server, createdAt timestamp non futuro.
       function validVote() {
@@ -56,6 +56,7 @@ service cloud.firestore {
           && v.createdAt is timestamp
           && v.createdAt <= request.time
           && app.votingOpen == true
+          && (app.get('votingEndsAt', null) == null || request.time < app.votingEndsAt)
           && v.keys().hasOnly(['userId', 'houseNumber', 'score', 'edition', 'createdAt', 'updatedAt'])
           && v.userId == request.auth.uid
           && v.edition == app.edition

@@ -2,9 +2,10 @@ import { Link } from 'react-router-dom';
 import { ArrowRightIcon, CameraIcon, MapTrifoldIcon } from '@phosphor-icons/react';
 import Skyline from '../components/Skyline.jsx';
 import { useAppConfig } from '../data.js';
+import { formatEnd } from '../votingTime.js';
 
 function Home() {
-  const { edition, votingOpen, loaded } = useAppConfig();
+  const { edition, votingOpen, votingEndsAt, loaded } = useAppConfig();
 
   return (
     <div className="app-shell home">
@@ -20,6 +21,7 @@ function Home() {
           <span className="status-bulb" aria-hidden="true" />
           Edizione {edition}
           {loaded && <> · {votingOpen ? 'votazioni aperte' : 'votazioni chiuse'}</>}
+          {votingOpen && votingEndsAt && <> · si vota fino alle {formatEnd(votingEndsAt)}</>}
         </p>
         <div className="home-hero__scene">
           <Skyline />
