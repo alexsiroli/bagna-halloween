@@ -1208,10 +1208,18 @@ fieldset {
   padding: var(--space-1);
 }
 
+/* --cols lo calcola MyVotes.jsx (max 5, righe pareggiate): righe tutte uguali, la griglia riempie la larghezza */
 .my-votes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(3.5rem, 1fr));
-  gap: var(--space-2) var(--space-1);
+  grid-template-columns: repeat(var(--cols, 5), minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--space-1);
+}
+
+@media (max-width: 359px) {
+  .my-votes-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .my-vote {
@@ -1257,24 +1265,6 @@ fieldset {
   border-radius: var(--radius-m);
   background: linear-gradient(90deg, var(--notte-800), var(--notte-700), var(--notte-800)) 0 0 / 200% 100%;
   animation: shimmer 1.4s linear infinite;
-}
-
-.my-votes-key {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--nebbia);
-  font-size: var(--step--1);
-}
-
-.my-votes-key .chip {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.my-votes-key .glyph {
-  width: 0.85rem;
-  height: 0.85rem;
 }
 
 .vote-dialog-meta {
@@ -1340,6 +1330,21 @@ fieldset {
 .dialog-actions .primary-btn,
 .dialog-actions .secondary-btn {
   min-height: var(--target-xl);
+}
+
+.dialog-actions--single {
+  grid-template-columns: 1fr;
+}
+
+/* «Portami qui»: link a tutta larghezza, almeno 44 px */
+.dialog-link {
+  min-height: 48px;
+}
+
+.map-dialog .vote-dialog-header .chip {
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 1.5rem;
 }
 
 .vote-dialog-header {
@@ -1622,27 +1627,47 @@ fieldset {
   box-shadow: 0 0 0 2px var(--notte-950), 0 0 0 3.5px rgb(244 239 228 / 0.9), 0 2px 10px 2px rgb(3 5 12 / 0.7);
 }
 
-/* Segnaposto: casetta con bordo chiaro sulle tessere scure; accesa se l'hai votata */
-.pin .casetta {
-  width: 2.5rem;
-  height: 2.5rem;
+/* Segnaposto: cerchietto col numero, bordo chiaro sulle tessere scure; acceso se l'hai votata */
+.pin__disc {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 2.5px solid var(--luna);
+  border-radius: 50%;
+  background: var(--notte-800);
+  color: var(--luna);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  box-shadow: 0 1px 3px rgb(3 5 12 / 0.9);
 }
 
-.pin .casetta__forma {
-  filter: drop-shadow(0 1px 3px rgb(3 5 12 / 0.9));
+.pin__disc[data-lit='true'] {
+  border-color: var(--lampione);
+  background: var(--finestra);
+  color: var(--notte-950);
+  box-shadow: 0 0 8px rgb(255 225 154 / 0.75);
 }
 
-.pin .casetta[data-lit='false'] .casetta__forma path {
-  fill: var(--notte-800);
-  stroke: var(--luna);
-  stroke-width: 2.5;
+/* Glifo del tipo: attaccato al bordo in basso a destra, non copre il numero */
+.pin__tipo {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 1rem;
+  height: 1rem;
+  box-shadow: 0 0 0 2px var(--notte-900);
 }
 
-.pin .casetta[data-lit='true'] .casetta__forma {
-  filter: drop-shadow(0 0 8px rgb(255 225 154 / 0.75));
+.pin__tipo .glyph {
+  width: 0.7rem;
+  height: 0.7rem;
 }
 
-.pin-wrap:focus-visible .casetta {
+.pin-wrap:focus-visible .pin__disc {
   outline: 3px solid var(--lampione);
   outline-offset: 3px;
 }
@@ -1664,12 +1689,9 @@ fieldset {
   animation-delay: calc(250ms + var(--order) * 110ms);
 }
 
-.pin[data-podium='true'] .casetta {
+.pin[data-podium='true'] .pin__disc {
   scale: 1.15;
-}
-
-.pin[data-podium='true'] .casetta__forma {
-  filter: drop-shadow(0 0 10px rgb(255 178 56 / 0.8));
+  box-shadow: 0 0 10px rgb(255 178 56 / 0.8);
 }
 
 .house-map .leaflet-marker-pane:has(.pin[data-ranked='true']) .pin[data-ranked='false'] {
@@ -1677,12 +1699,9 @@ fieldset {
 }
 
 /* Admin: il segnaposto della casa in modifica, non toccabile */
-.house-map[data-picking='true'] .casetta__forma path {
-  fill: var(--lampione);
-  stroke: var(--notte-950);
-}
-
-.house-map[data-picking='true'] .casetta {
+.house-map[data-picking='true'] .pin__disc {
+  border-color: var(--notte-950);
+  background: var(--lampione);
   color: var(--notte-900);
 }
 
@@ -1744,24 +1763,6 @@ fieldset {
 
 .map-legend .muted {
   font-size: var(--step--1);
-}
-
-/* Punti di servizio: il popup segue il tema notte */
-.house-map .leaflet-popup-content-wrapper,
-.house-map .leaflet-popup-tip {
-  background: var(--notte-800);
-  color: var(--luna);
-  border: 1px solid var(--notte-600);
-}
-
-.house-map .leaflet-popup-content {
-  margin: var(--space-3) var(--space-4);
-  font: inherit;
-}
-
-.house-map .leaflet-popup-content p {
-  margin: var(--space-1) 0 0;
-  color: var(--nebbia);
 }
 
 .ranking-list {

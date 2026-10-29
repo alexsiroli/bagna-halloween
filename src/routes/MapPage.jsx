@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import PageHeader from '../components/PageHeader.jsx';
 import HouseMap from '../components/HouseMap.jsx';
 import { Chip } from '../components/MapGlyph.jsx';
+import PointSheet from '../components/PointSheet.jsx';
 import VoteSheet from '../components/VoteSheet.jsx';
 import { useAuthUser } from '../auth.js';
 import { hasPosition, useAppConfig, useHouses, usePublishedRanking } from '../data.js';
@@ -19,6 +20,7 @@ function MapPage() {
   const ranking = usePublishedRanking(edition);
   const services = usePoints(edition);
   const [selected, setSelected] = useState(null);
+  const [selectedPoint, setSelectedPoint] = useState(null);
   const [saved, setSaved] = useState(null);
   const placed = useMemo(() => houses.filter(hasPosition), [houses]);
   // Numero -> voto delle case votate; null senza accesso (le casette restano spente, senza stato nel nome).
@@ -50,7 +52,7 @@ function MapPage() {
         </p>
       )}
 
-      <HouseMap houses={placed} votes={votes} ranking={ranking} services={services} onSelect={setSelected} />
+      <HouseMap houses={placed} votes={votes} ranking={ranking} services={services} onSelect={setSelected} onSelectPoint={setSelectedPoint} />
 
       {(legend.length > 0 || services.note) && (
         <section className="map-legend" aria-label="Legenda">
@@ -67,6 +69,8 @@ function MapPage() {
           {services.note && <p className="muted">{services.note}</p>}
         </section>
       )}
+
+      <PointSheet point={selectedPoint} onClose={() => setSelectedPoint(null)} />
 
       <VoteSheet
         house={selected}
