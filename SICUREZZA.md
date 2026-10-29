@@ -4,7 +4,8 @@ Rilevati il 2026-09-29 durante il redesign (branch `redesign/bagna-halloween-202
 
 ## Risolti nel branch (da pubblicare con PROCEDURA-2026.md)
 - **Area admin protetta solo da un URL segreto.** Ora richiede il login Google e l'appartenenza alla allowlist `config/admins`.
-- **Regole non versionate.** `firestore.rules` e' ora nel repo, testato sull'emulatore (6 test):
+- **Regole non versionate.** `firestore.rules` e' ora nel repo, testato sull'emulatore (18 test):
+  - `config/admins`: solo update da admin, lista da 1 a 50 email senza doppioni, chi scrive resta in lista, `updatedAt` e' l'ora del server, niente create o delete dal client;
   - `houses` e `config` scrivibili solo dagli admin;
   - un voto si crea o modifica solo se e' tuo, intero da 6 a 10, dell'edizione corrente e a votazioni aperte;
   - i voti degli altri non si leggono.
