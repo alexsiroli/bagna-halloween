@@ -112,6 +112,8 @@ let ordine = 0;
 // Centri delle finestre accese delle case (non della villa): la Home ci mette sopra gli aloni che pulsano.
 let raccogli = false;
 const finestreAccese = [];
+// Centri delle lampadine delle luminarie: la scena ci mette sopra aloni che respirano.
+const lampadine = [];
 const accesa = (contenuto, classe = 'sk-win') => `<g class="${classe}" style="--i:${(ordine++ * 7) % 23}">${contenuto}</g>`;
 
 function finestra(x, y, w, h, lit, opz = {}) {
@@ -287,6 +289,7 @@ function luminarie(x0, y0, cx, cy, x1, y1, n, k = 1) {
     const by = y + 2.4 * k;
     s += `<rect x="${f(x - 0.55 * k)}" y="${f(y)}" width="${f(1.1 * k)}" height="${f(1.3 * k)}" fill="${C.n500}"/>`;
     s += `<circle cx="${f(x)}" cy="${f(by)}" r="${f(1.05 * k)}" fill="${C.n600}"/>`;
+    lampadine.push([Number(f(x)), Number(f(by))]);
     s +=
       `<g class="sk-bulb" style="--i:${i}"><circle cx="${f(x)}" cy="${f(by)}" r="${f(4.4 * k)}" fill="url(#sk-lampadina)"/>` +
       `<circle cx="${f(x)}" cy="${f(by)}" r="${f(1.05 * k)}" fill="${i % 4 === 2 ? C.lampione : C.finestra}"/>` +
@@ -339,6 +342,7 @@ function scena() {
 const MARKUP = scena();
 // Una finestra accesa su due: abbastanza per far vivere il quartiere, poche per il telefono.
 export const LUCI = finestreAccese.filter((_, i) => i % 2 === 0);
+export const LAMPADINE = lampadine;
 
 function Skyline({ className = '' }) {
   return (
