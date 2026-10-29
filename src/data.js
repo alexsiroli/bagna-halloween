@@ -29,11 +29,29 @@ export function useConfigDoc(id) {
   return data;
 }
 
+// setTimeout oltre ~24,8 giorni va in overflow: si riprogramma a tappe.
+const MAX_TIMEOUT = 2 ** 31 - 1;
+
+// votingOpen e' l'apertura effettiva (flag acceso e orario di fine non passato); votingFlag e' il flag grezzo.
 export function useAppConfig() {
   const data = useConfigDoc('app');
+  const [tick, setTick] = useState(0);
+  const votingEndsAt = data?.votingEndsAt?.toDate?.() ?? null;
+  const endsMs = votingEndsAt?.getTime();
+  const votingFlag = data?.votingOpen === true;
+  const votingOpen = votingFlag && !(endsMs <= Date.now());
+  // Allo scadere (o a ogni tappa) si ricalcola da solo, senza ricaricare.
+  useEffect(() => {
+    const wait = endsMs - Date.now();
+    if (!(wait > 0)) return undefined;
+    const timer = setTimeout(() => setTick((n) => n + 1), Math.min(wait, MAX_TIMEOUT));
+    return () => clearTimeout(timer);
+  }, [endsMs, tick]);
   return {
     loaded: data !== undefined,
-    votingOpen: data?.votingOpen === true,
+    votingOpen,
+    votingFlag,
+    votingEndsAt,
     edition: Number(data?.edition) || FALLBACK_EDITION,
   };
 }

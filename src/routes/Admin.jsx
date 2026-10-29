@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   collection,
+  deleteField,
   doc,
   onSnapshot,
   query,
   serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -17,6 +19,7 @@ import { db } from '../firebase.js';
 import { logout } from '../auth.js';
 import { hasPosition, houseAddress, houseId, useAppConfig, useConfigDoc, useHouses } from '../data.js';
 import { isKind, KIND_LABELS } from '../mapKinds.js';
+import { dateToRome, formatEnd, romeToDate } from '../votingTime.js';
 
 const emptyHouse = {
   id: null,
@@ -45,6 +48,12 @@ function Admin({ user }) {
   const [modalState, setModalState] = useState({ open: false, data: emptyHouse, mode: 'create' });
   const [saving, setSaving] = useState(false);
   const [sort, setSort] = useState({ field: 'houseNumber', direction: 'asc' });
+  // Campo dell'orario di fine: si allinea al valore salvato quando cambia.
+  const endsMs = config.votingEndsAt?.getTime();
+  const [endInput, setEndInput] = useState('');
+  useEffect(() => setEndInput(endsMs ? dateToRome(new Date(endsMs)) : ''), [endsMs]);
+  const endPassed = endsMs <= Date.now();
+  const voters = useMemo(() => new Set(votes.map((vote) => vote.userId)).size, [votes]);
 
   useEffect(() => {
     // Nessun orderBy: con il filtro per edizione servirebbe un indice composto. Si ordina qui.
@@ -247,19 +256,36 @@ function Admin({ user }) {
     }
   };
 
+  const writeApp = (patch) =>
+    setDoc(doc(db, 'config', 'app'), { ...patch, updatedAt: serverTimestamp() }, { merge: true });
+
+  // Si decide sullo stato effettivo; aprendo con l'orario gia' passato lo si toglie nella stessa scrittura.
   const toggleVotingState = async () => {
     try {
-      await setDoc(
-        doc(db, 'config', 'app'),
-        {
-          votingOpen: !config.votingOpen,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true },
+      await writeApp(
+        config.votingOpen
+          ? { votingOpen: false }
+          : { votingOpen: true, ...(endPassed ? { votingEndsAt: deleteField() } : {}) },
       );
     } catch (err) {
       console.error('Errore aggiornando stato votazioni', err);
       setError('Impossibile aggiornare lo stato delle votazioni.');
+    }
+  };
+
+  const saveEndTime = async (clear) => {
+    const date = clear ? null : romeToDate(endInput);
+    if (!clear && !date) {
+      setError("Scegli data e ora di fine, oppure usa Cancella.");
+      return;
+    }
+    try {
+      await writeApp({ votingEndsAt: date ? Timestamp.fromDate(date) : deleteField() });
+      setError('');
+      if (clear) setEndInput('');
+    } catch (err) {
+      console.error('Errore salvando l’orario di fine', err);
+      setError('Impossibile salvare l’orario di fine.');
     }
   };
 
@@ -334,8 +360,31 @@ function Admin({ user }) {
             <h2>Stato votazioni</h2>
             <p className="status-line" data-open={config.votingOpen}>
               <span className="status-bulb" aria-hidden="true" />
-              {config.votingOpen ? 'Aperte: il paese sta votando.' : 'Chiuse: nessuno può votare.'}
+              {config.votingOpen
+                ? config.votingEndsAt
+                  ? `Aperte fino alle ${formatEnd(config.votingEndsAt)}`
+                  : 'Aperte: il paese sta votando.'
+                : config.votingFlag && endPassed
+                  ? 'Chiuse: orario di fine passato'
+                  : 'Chiuse: nessuno può votare.'}
             </p>
+            <div className="field end-time">
+              <label htmlFor="voting-end">Orario di fine (ora di Roma)</label>
+              <input
+                id="voting-end"
+                type="datetime-local"
+                value={endInput}
+                onChange={(event) => setEndInput(event.target.value)}
+              />
+              <div className="end-time__actions">
+                <button type="button" className="secondary-btn" onClick={() => saveEndTime(false)}>
+                  Salva orario
+                </button>
+                <button type="button" className="secondary-btn" onClick={() => saveEndTime(true)} disabled={!endsMs}>
+                  Cancella
+                </button>
+              </div>
+            </div>
           </div>
           <button type="button" className="primary-btn" onClick={toggleVotingState}>
             {config.votingOpen ? 'Metti in pausa' : 'Apri votazioni'}
@@ -415,6 +464,12 @@ function Admin({ user }) {
 
         <section className="panel admin-stats">
           <h2>Statistiche voti</h2>
+          <p className="muted">
+            Votazioni totali: <strong>{votes.length}</strong>
+          </p>
+          <p className="muted">
+            Account che hanno votato: <strong>{voters}</strong>
+          </p>
           <div className="table-scroll">
             <table className="admin-table">
               <thead>

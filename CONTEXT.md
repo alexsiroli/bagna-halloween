@@ -37,6 +37,10 @@ Un tratto chiuso al traffico durante l'evento, disegnato sulla mappa come linea.
 **Voto**:
 Il punteggio da 6 a 10 che un votante dà a una casa; uno per casa per votante, modificabile finché la votazione è aperta.
 
+**Orario di fine**:
+L'ora, in ora di Roma, in cui la votazione si chiude da sola; la sceglie l'admin e può toglierla. Dopo quell'ora non si vota più, anche se la votazione era rimasta aperta.
+_Da evitare_: scadenza, deadline
+
 **Classifica**:
 L'ordine delle case che l'admin pubblica a votazione chiusa.
 

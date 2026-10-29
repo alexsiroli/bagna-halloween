@@ -9,6 +9,7 @@ import Sheet from '../components/Sheet.jsx';
 import { db } from '../firebase.js';
 import { loginWithGoogle, logout, useAuthUser } from '../auth.js';
 import { useAppConfig, useHouses, voteId } from '../data.js';
+import { formatEnd } from '../votingTime.js';
 
 function Vote() {
   const user = useAuthUser();
@@ -216,7 +217,7 @@ function Vote() {
           <p className="status-line" data-open={config.votingOpen}>
             <span className="status-bulb" aria-hidden="true" />
             {config.votingOpen
-              ? 'Le votazioni sono aperte! Scegli le tue case preferite.'
+              ? `Le votazioni sono aperte${config.votingEndsAt ? `: si vota fino alle ${formatEnd(config.votingEndsAt)}` : ''}! Scegli le tue case preferite.`
               : 'Le votazioni sono chiuse, puoi comunque consultare i voti che hai espresso.'}
           </p>
         )}

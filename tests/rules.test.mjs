@@ -13,6 +13,7 @@ import {
   getDocs,
   collection,
   deleteDoc,
+  deleteField,
   query,
   serverTimestamp,
   setDoc,
@@ -185,6 +186,48 @@ test('i voti degli altri non si leggono, gli admin leggono tutto', async () => {
   await assertSucceeds(
     getDocs(query(collection(as('ada', 'admin@esempio.test'), 'votes'), where('edition', '==', EDITION))),
   );
+});
+
+// Orario di fine: config/app.votingEndsAt (Timestamp), assente = nessun orario.
+const setEnd = (ms) =>
+  env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), 'config/app'), {
+      votingOpen: true,
+      edition: EDITION,
+      ...(ms === undefined ? {} : { votingEndsAt: Timestamp.fromMillis(ms) }),
+    }),
+  );
+
+test('dopo l orario di fine non si crea ne si modifica un voto', async () => {
+  const mine = Timestamp.fromMillis(Date.now() - 3600_000);
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), 'votes/2026_alice_1'), vote('alice', 1, 7, { createdAt: mine, updatedAt: mine })),
+  );
+  await setEnd(Date.now() - 60_000);
+  const alice = as('alice');
+  await assertFails(setDoc(doc(as('carl'), 'votes/2026_carl_1'), vote('carl', 1, 8)));
+  await assertFails(updateDoc(doc(alice, 'votes/2026_alice_1'), { score: 9, updatedAt: serverTimestamp() }));
+});
+
+test('prima dell orario di fine, e senza orario, si vota', async () => {
+  const alice = as('alice');
+  await setEnd(Date.now() + 3600_000);
+  await assertSucceeds(setDoc(doc(alice, 'votes/2026_alice_1'), vote('alice', 1, 8)));
+  await assertSucceeds(updateDoc(doc(alice, 'votes/2026_alice_1'), { score: 9, updatedAt: serverTimestamp() }));
+  await setEnd(undefined);
+  await assertSucceeds(updateDoc(doc(alice, 'votes/2026_alice_1'), { score: 10, updatedAt: serverTimestamp() }));
+});
+
+test('solo l admin imposta e cancella l orario di fine', async () => {
+  const end = Timestamp.fromMillis(Date.now() + 3600_000);
+  await assertFails(setDoc(doc(as('eve', 'eve@esempio.test'), 'config/app'), { votingEndsAt: end }, { merge: true }));
+  await assertFails(setDoc(doc(as('alice'), 'config/app'), { votingEndsAt: end }, { merge: true }));
+  const ada = doc(as('ada', 'admin@esempio.test'), 'config/app');
+  await assertSucceeds(setDoc(ada, { votingEndsAt: end }, { merge: true }));
+  await assertSucceeds(setDoc(ada, { votingEndsAt: deleteField() }, { merge: true }));
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    assert.equal((await getDoc(doc(ctx.firestore(), 'config/app'))).data().votingEndsAt, undefined);
+  });
 });
 
 // config/admins: solo gli admin lo modificano, e mai in modo che si tolgano o spariscano.
