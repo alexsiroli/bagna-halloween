@@ -69,6 +69,10 @@ function Contest() {
         </ul>
       </section>
 
+      <p className="contest-note">
+        Chi vincerà il contest sarà contattato <strong className="contest-highlight">entro il 04/11/26</strong> tramite direct.
+      </p>
+
       {/* Lo spazio che avanza si riempie col quartiere: si stringe fino a sparire, mai scroll */}
       <Scene className="contest-scene" />
     </div>

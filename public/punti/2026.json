@@ -2,8 +2,8 @@
   "note": "Strade chiuse al traffico dalle 18:30 alle 23:00. Posizioni indicative, ricavate dalla mappa degli organizzatori.",
   "points": [
     {
-      "type": "bar",
-      "name": "Bar e DJ set",
+      "type": "radio",
+      "name": "DJ set Radio Studio Più",
       "address": "Via Walter Tobagi 9",
       "lat": 44.163445,
       "lng": 12.341995
@@ -14,6 +14,13 @@
       "address": "Siropack Italia, Via Balitrona 22/C",
       "lat": 44.163339,
       "lng": 12.339861
+    },
+    {
+      "type": "caramelle",
+      "name": "Casa di Corrado Tassinari",
+      "address": "Via Aldo Moro 14",
+      "lat": 44.164985,
+      "lng": 12.345827
     },
     {
       "type": "parcheggio",
