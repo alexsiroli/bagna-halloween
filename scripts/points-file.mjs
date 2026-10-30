@@ -16,6 +16,8 @@ const TYPES = {
   wc: 'wc',
   parcheggio: 'parcheggio',
   intrattenimento: 'intrattenimento',
+  radio: 'radio',
+  caramelle: 'caramelle',
   spettacolo: 'intrattenimento',
 };
 const ROAD = 'strada-chiusa';

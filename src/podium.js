@@ -19,3 +19,17 @@ export function topThree(houses, votes) {
     .sort((a, b) => b.avg - a.avg || b.votes - a.votes || a.number - b.number)
     .slice(0, 3);
 }
+
+// Classifica provvisoria dell'admin. Righe { houseNumber, scoreAverage, count }.
+// Per media: case con voti prima (anche in asc), poi media, poi piu' voti, poi numero piu' basso.
+export function sortStats(rows, { field, direction }) {
+  const sign = direction === 'asc' ? 1 : -1;
+  if (field !== 'scoreAverage') return [...rows].sort((a, b) => sign * (a[field] - b[field]) || a.houseNumber - b.houseNumber);
+  return [...rows].sort(
+    (a, b) => (b.count > 0) - (a.count > 0) || -sign * (b.scoreAverage - a.scoreAverage) || b.count - a.count || a.houseNumber - b.houseNumber,
+  );
+}
+
+// houseNumber -> posizione (1, 2, ...) secondo la media; le case senza voti non hanno posizione.
+export const positions = (rows) =>
+  new Map(sortStats(rows.filter((r) => r.count > 0), { field: 'scoreAverage', direction: 'desc' }).map((r, i) => [r.houseNumber, i + 1]));

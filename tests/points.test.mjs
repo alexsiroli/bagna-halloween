@@ -14,6 +14,12 @@ test('file valido: nota, punti e strade passano', () => {
   });
 });
 
+test('tipi radio e caramelle accettati', () => {
+  const radio = { type: 'radio', name: 'DJ set Radio Studio Più', address: 'Via Walter Tobagi 9', lat: 44.163445, lng: 12.341995 };
+  const candy = { type: 'caramelle', name: 'Casa di Corrado Tassinari', address: 'Via Aldo Moro 14', lat: 44.164985, lng: 12.345827 };
+  assert.deepEqual(parsePoints({ points: [radio, candy] }).points, [radio, candy]);
+});
+
 test('voci malformate scartate, le altre restano', () => {
   const parsed = parsePoints({
     points: [

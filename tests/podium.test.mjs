@@ -1,6 +1,26 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { editionOf, topThree } from '../src/podium.js';
+import { editionOf, positions, sortStats, topThree } from '../src/podium.js';
+
+const row = (houseNumber, scoreAverage, count) => ({ houseNumber, scoreAverage, count });
+const rows = [row(1, 0, 0), row(2, 8, 2), row(3, 8, 5), row(4, 9, 1), row(5, 0, 0)];
+const order = (list) => list.map((r) => r.houseNumber);
+
+test('sortStats: media desc, a parita piu voti, senza voti in fondo', () => {
+  assert.deepEqual(order(sortStats(rows, { field: 'scoreAverage', direction: 'desc' })), [4, 3, 2, 1, 5]);
+});
+
+test('sortStats: media asc tiene le case senza voti in fondo; altri campi con spareggio per numero', () => {
+  assert.deepEqual(order(sortStats(rows, { field: 'scoreAverage', direction: 'asc' })), [3, 2, 4, 1, 5]);
+  assert.deepEqual(order(sortStats(rows, { field: 'count', direction: 'desc' })), [3, 2, 4, 1, 5]);
+  assert.deepEqual(order(sortStats(rows, { field: 'houseNumber', direction: 'asc' })), [1, 2, 3, 4, 5]);
+});
+
+test('positions: classifica per media, senza voti nessuna posizione', () => {
+  const pos = positions(rows);
+  assert.deepEqual([...pos.entries()], [[4, 1], [3, 2], [2, 3]]);
+  assert.equal(pos.has(1), false);
+});
 
 const house = (number, title) => ({ number, title });
 const vote = (houseNumber, score) => ({ houseNumber, score });

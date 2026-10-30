@@ -21,7 +21,7 @@ import { db } from '../firebase.js';
 import { logout } from '../auth.js';
 import { hasPosition, houseAddress, houseId, useAppConfig, useHouses } from '../data.js';
 import { isKind, KIND_LABELS } from '../mapKinds.js';
-import { editionOf, topThree } from '../podium.js';
+import { editionOf, positions, sortStats, topThree } from '../podium.js';
 import { dateToRome, formatEnd, romeToDate } from '../votingTime.js';
 
 const emptyHouse = {
@@ -68,7 +68,7 @@ function Admin({ user }) {
       },
     );
   }, [year]);
-  const [sort, setSort] = useState({ field: 'houseNumber', direction: 'asc' });
+  const [sort, setSort] = useState({ field: 'scoreAverage', direction: 'desc' });
   // Campo dell'orario di fine: si allinea al valore salvato quando cambia.
   const endsMs = config.votingEndsAt?.getTime();
   const [endInput, setEndInput] = useState('');
@@ -121,20 +121,8 @@ function Admin({ user }) {
     });
   }, [houses, votes]);
 
-  const sortedStats = useMemo(() => {
-    const sorted = [...stats];
-    const { field, direction } = sort;
-    sorted.sort((a, b) => {
-      const valueA = a[field];
-      const valueB = b[field];
-      if (valueA === valueB) return 0;
-      if (direction === 'asc') {
-        return valueA > valueB ? 1 : -1;
-      }
-      return valueA < valueB ? 1 : -1;
-    });
-    return sorted;
-  }, [stats, sort]);
+  const sortedStats = useMemo(() => sortStats(stats, sort), [stats, sort]);
+  const places = useMemo(() => positions(stats), [stats]);
 
   const votesBySlot = useMemo(() => {
     const slots = new Map();
@@ -509,7 +497,7 @@ function Admin({ user }) {
         </section>
 
         <section className="panel admin-stats">
-          <h2>Statistiche voti</h2>
+          <h2>Classifica provvisoria</h2>
           <p className="muted">
             Votazioni totali: <strong>{votes.length}</strong>
           </p>
@@ -520,6 +508,7 @@ function Admin({ user }) {
             <table className="admin-table">
               <thead>
                 <tr>
+                  <th scope="col">Pos.</th>
                   {Object.entries(SORT_LABELS).map(([field, label]) => (
                     <th
                       key={field}
@@ -544,6 +533,7 @@ function Admin({ user }) {
               <tbody>
                 {sortedStats.map((row) => (
                   <tr key={row.houseNumber}>
+                    <td className="admin-table__figure">{places.has(row.houseNumber) ? `${places.get(row.houseNumber)}°` : '—'}</td>
                     <td>
                       <span className="admin-table__num">{row.houseNumber}</span>
                       {row.title ? <span className="admin-table__title">{row.title}</span> : null}

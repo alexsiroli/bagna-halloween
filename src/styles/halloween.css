@@ -66,6 +66,8 @@
   --punto-bar: #3ccfc0;
   --punto-wc: #7fb0ff;
   --punto-parcheggio: #dfe3f0;
+  --punto-radio: #ff3d9a; /* magenta: unico tra i punti */
+  --punto-caramelle: #b48cff;
   --strada-chiusa: #d9533a;
 
   --font-display: 'Bowlby One', 'Arial Black', sans-serif;
@@ -1646,6 +1648,16 @@ fieldset {
   --chip-fg: var(--notte-950);
 }
 
+[data-t='radio'] {
+  --chip-bg: var(--punto-radio);
+  --chip-fg: var(--notte-950);
+}
+
+[data-t='caramelle'] {
+  --chip-bg: var(--punto-caramelle);
+  --chip-fg: var(--notte-950);
+}
+
 [data-t='strada'] {
   --chip-bg: var(--strada-chiusa);
   --chip-fg: var(--luna);
@@ -1682,6 +1694,13 @@ fieldset {
   height: 2rem;
   font-size: 1.2rem;
   box-shadow: 0 0 0 2px var(--notte-950), 0 0 0 3.5px rgb(244 239 228 / 0.9), 0 2px 10px 2px rgb(3 5 12 / 0.7);
+}
+
+/* Punto principale (DJ set): 1.5x e magenta, sopra gli altri */
+.chip--point[data-t='radio'] {
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.8rem;
 }
 
 /* Segnaposto: cerchietto col numero, bordo chiaro sulle tessere scure; acceso se l'hai votata */
@@ -1918,6 +1937,24 @@ fieldset {
   color: var(--nebbia);
 }
 
+/* Schermi bassi (375x667): la nota in piu' deve stare nella stessa schermata */
+@media (max-height: 720px) {
+  .contest-page {
+    gap: var(--space-2);
+  }
+
+  .contest-page .contest-list {
+    gap: var(--space-2);
+    line-height: 1.35;
+  }
+
+  .contest-note {
+    padding-top: var(--space-2);
+    font-size: var(--step--1);
+    line-height: 1.35;
+  }
+}
+
 .contest-rules {
   display: grid;
   gap: var(--space-3);
@@ -2069,8 +2106,13 @@ fieldset {
   border-bottom: 1px solid var(--notte-500);
 }
 
-.admin-table th:not(:first-child),
+.admin-table th:nth-child(n + 3),
 .admin-table__figure {
+  text-align: right;
+}
+
+.admin-table th:first-child {
+  padding: 0 var(--space-2);
   text-align: right;
 }
 

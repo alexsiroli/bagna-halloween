@@ -2,11 +2,13 @@
 // I glifi sono SVG statici scritti qui: nessun dato dei partecipanti finisce in una stringa HTML.
 export const KIND_LABELS = { spettacolo: 'Spettacolo', addobbi: 'Casa addobbata' };
 export const POINT_LABELS = {
+  radio: 'Drink e intrattenimento',
   bar: 'Bar',
   food: 'Food truck',
   wc: 'Servizi igienici',
   parcheggio: 'Parcheggio',
   intrattenimento: 'Intrattenimento',
+  caramelle: 'Distribuzione caramelle',
 };
 export const isKind = (kind) => Object.hasOwn(KIND_LABELS, kind);
 export const ROAD_LABEL = 'Strada chiusa';
@@ -26,6 +28,10 @@ const GLYPHS = {
   parcheggio: text('P', 16),
   intrattenimento:
     '<path fill="currentColor" d="m12 2 2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/>',
+  radio:
+    '<path fill="currentColor" d="M9 3.5 19 2v13.2a3 3 0 1 1-2-2.8V6.6l-6 .9v10.7a3 3 0 1 1-2-2.8z"/>',
+  caramelle:
+    '<path fill="currentColor" d="M12 8c-1.2-2.6-3.3-4.3-6.6-4.5C5.2 6 3.6 8.4 2 9.6c1.4.4 2.6 1.5 3 3 .9-.6 1.9-.5 2.6.3.6.7 1.6 1 2.6.3L12 20l1.8-6.8c1 .7 2 .4 2.6-.3.7-.8 1.7-.9 2.6-.3.4-1.5 1.6-2.6 3-3C20.4 8.4 18.8 6 18.6 3.5 15.3 3.7 13.2 5.4 12 8z"/>',
   strada: '<path d="M3 12h18" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" fill="none"/>',
 };
 
