@@ -130,9 +130,10 @@ function HouseMap({ houses, votes = null, ranking = null, services: servicesData
         icon: L.divIcon({
           className: 'pin-wrap',
           html: `<span class="chip chip--point" data-t="${point.type}">${glyphSvg(point.type)}</span>`,
-          iconSize: [44, 44], // area da toccare 44px, il cerchio resta piu' piccolo
+          iconSize: point.type === 'radio' ? [56, 56] : [44, 44], // area da toccare 44px, il cerchio resta piu' piccolo
         }),
         title: label,
+        zIndexOffset: point.type === 'radio' ? 2000 : 0, // sopra case (1000) e punti
       }).addTo(servicesLayer.current);
       marker.getElement().setAttribute('aria-label', label);
       marker.on('click', () => handlers.current.onSelectPoint?.(point));
