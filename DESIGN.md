@@ -77,7 +77,7 @@ solo colore: c'e' sempre il testo accanto.
   niente piu' targhe quadrate (la `.plate` resta solo nell'admin); nell'albo d'oro basta «Casa 13».
 - **Intestazione** (`PageHeader`): freccia indietro, titolo, profilo. **Profilo**: cerchio con le
   iniziali in alto a destra; il tocco apre il foglio con nome, email ed Esci. In home: albo d'oro
-  (trofeo) a sinistra, profilo e marchio Alx Studio di Halloween (`AlxMark`, lo splash fermo) a destra.
+  (trofeo) a sinistra, profilo e marchio Alx Studio di Halloween (`AlxMark`, la A con la zucca) a destra.
 - **Tag** (`.tag--closed`): «Votazioni chiuse» in rosso brace, in pagina e nella scheda.
 - **Zucche** (`PumpkinRating`): cinque zucche SVG da 6 a 10, radiogroup con frecce. Spente
   sono sagome blu; accendendosi prendono colore da sinistra e la faccia "prende fuoco" come
@@ -150,7 +150,7 @@ tessere scure. Punti di servizio con area da toccare 44px; strade chiuse 6px con
 La vista iniziale inquadra case, punti e strade insieme. La legenda sta sotto la mappa, in due
 colonne sul telefono; la mappa prende l'altezza che resta.
 
-«Alex Siroli» nel piede e' un link email sottolineato (area 44px, focus visibile); la firma dello splash resta testo. Il piede e' fisso in basso, una riga da 44px.
+«Alex Siroli» nel piede e' un link email sottolineato (area 44px, focus visibile). Il piede e' fisso in basso, una riga da 44px.
 
 ## Una schermata
 

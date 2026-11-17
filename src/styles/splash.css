@@ -1,0 +1,88 @@
+/* Splash Alx Studio «Orbita» (approvata dal CEO il 15/11, standard O1), scheda Halloween di Bagnarola di
+   AlxStudio/marketing/brand/proposte/splash-app-orbita/variante-a.html: fondo #0b1224, A e testo #f4efe4, orbita
+   #ff6b1a→#ffb238. La anima orbitaSplash.js quando la pagina e' sullo schermo; fino ad allora si vede solo il fondo
+   (come l'immagine d'avvio iOS). Gli stili base sono lo stato finale: con prefers-reduced-motion resta cosi', fermo. */
+@font-face {
+  font-family: 'AlxDisplay';
+  src: url('/fonts/bricolage-grotesque-condensed-800.woff2') format('woff2');
+  font-weight: 800;
+  font-display: swap;
+}
+
+/* padding-bottom: 12u alza il marchio come nelle altre app; --barra (Splash.jsx) aggiunge la barra di stato che dalla
+   Home di iPhone sta sopra la pagina, cosi' il centro e' quello dello schermo intero. */
+.splash {
+  --u: min(1vw, 4.4px);
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: calc(12 * var(--u) + var(--barra, 0px));
+  overflow: hidden;
+  background: #0b1224;
+  color: #f4efe4;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.splash .sp-in {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  visibility: hidden;
+}
+
+.splash.sp-gioca .sp-in {
+  visibility: visible;
+}
+
+.splash .sp-glow {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: calc(150 * var(--u));
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 107 26 / 0.13), transparent);
+}
+
+.splash .sp-mark {
+  position: relative;
+  display: block;
+  width: calc(58 * var(--u));
+  height: auto;
+  overflow: visible;
+}
+
+.splash .sp-word {
+  position: relative;
+  margin: calc(3.5 * var(--u)) 0 0;
+  font: 800 calc(15 * var(--u)) / 0.92 'AlxDisplay', system-ui, sans-serif;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+
+.splash .sp-mark :is(.legs, .leg, .bar) {
+  transform-box: fill-box;
+}
+
+.splash .legL {
+  transform-origin: 100% 0;
+}
+
+.splash .legR {
+  transform-origin: 0 0;
+}
+
+.splash .bar {
+  transform-origin: 0 50%;
+}
+
+.splash .mk {
+  transform-origin: 22.05px -33px;
+}
