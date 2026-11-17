@@ -71,7 +71,7 @@ test('splash: se la pagina non ha finito di caricare resta ferma sull\'icona, po
   const fermo = new Promise((ok) => { libera = ok; });
   await page.route('**/fonts/bowlby-one-latin.woff2', async (route) => { await fermo; await route.continue(); });
   await page.goto('/', { waitUntil: 'commit' });
-  await expect(splash(page)).toBeVisible();
+  await expect(splash(page)).toHaveClass(/sp-gioca/, { timeout: 30_000 }); // animazione partita
   await page.waitForTimeout(2500); // oltre la fine dell'animazione (1,5 s)
   await expect(splash(page)).toBeVisible();
   libera();
@@ -84,15 +84,17 @@ test.describe('splash nella web app sulla Home di iPhone', () => {
   test.use({
     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
     viewport: { width: 393, height: 793 },
-    screen: { width: 393, height: 852 },
   });
 
   test('alza il marchio di mezza barra di stato e tiene la misura con la tastiera', async ({ page }) => {
-    await page.addInitScript(() => Object.defineProperty(Navigator.prototype, 'standalone', { get: () => true }));
+    await page.addInitScript(() => {
+      Object.defineProperty(Navigator.prototype, 'standalone', { get: () => true });
+      Object.defineProperty(Screen.prototype, 'height', { get: () => 852 }); // l'opzione screen non arriva col profilo Pixel 7
+    });
     await page.route('**/fonts/bowlby-one-latin.woff2', () => {}); // la splash resta aperta per tutta la prova
     await page.goto('/', { waitUntil: 'commit' });
     const barra = () => splash(page).evaluate((el) => el.style.getPropertyValue('--barra'));
-    await expect.poll(barra).toBe('59px');
+    await expect.poll(barra, { timeout: 30_000 }).toBe('59px'); // il server di sviluppo sotto carico e' lento
     await page.setViewportSize({ width: 393, height: 500 }); // tastiera aperta
     await expect.poll(barra).toBe('59px');
     await page.setViewportSize({ width: 393, height: 852 }); // iOS riporta la pagina a tutto schermo
