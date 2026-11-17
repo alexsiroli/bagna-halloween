@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import ScrollToTop from './components/ScrollToTop.jsx';
 import './styles/halloween.css';
+import './styles/splash.css';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
